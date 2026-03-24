@@ -50,3 +50,7 @@ composer.phar
 /calendar/.DS_Store
 /calendar/Thumbs.db
 
+# PHPUnit cache and coverage artifacts
+/webapp/tests/.phpunit*
+/webapp/tests/coverage/
+

@@ -42,7 +42,7 @@
                                     <a href="/church/{{ church.id }}/changeholders?uid={{ holder.user.uid }}&access=allowed"><i class="{{ ICONS_GRANT_ACCESS}} grey" title="Az engedélyezéshez kattints ide."></i></a>
                                 {% endif %}
                                 {% if status in ['denied','revoked','left']  %}
-                                    <i class="{{ ICONS_DENY_ACCESS}} red" title="A felhasználó nem szerkesztheti a templom adatait És nem is kérheti újra ehhez a jogot."></i>
+                                    <i class="{{ ICONS_DENY_ACCESS}} red" title="A felhasználó nem szerkesztheti a templom adatait. És nem is kérheti újra ehhez a jogot."></i>
                                 {% else %}
                                     <a href="/church/{{ church.id }}/changeholders?uid={{ holder.user.uid }}&access={% if status == 'asked' %}denied{% else %}revoked{% endif %}"><i class="{{ ICONS_DENY_ACCESS}} grey" title="A letiltáshoz kattints ide, így nem is kérheti többé a jogot a szerkesztéshez."></i></a>
                                 {% endif %}

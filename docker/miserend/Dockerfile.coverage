@@ -1,0 +1,21 @@
+FROM localhost/miserend.hu:latest
+
+USER root
+
+RUN if ! php -m | grep -qi '^pcov$'; then \
+      apt-get update; \
+      apt-get install -y --no-install-recommends autoconf gcc make; \
+      pecl install pcov; \
+      docker-php-ext-enable pcov; \
+      rm -rf /var/lib/apt/lists/*; \
+    else \
+      docker-php-ext-enable pcov || true; \
+    fi
+
+RUN printf '%s\n' \
+      'pcov.enabled=1' \
+      'pcov.directory=/miserend/webapp' \
+      'pcov.exclude="~vendor~"' \
+    > /usr/local/etc/php/conf.d/99-pcov.ini
+
+USER www-data

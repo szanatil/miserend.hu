@@ -1,10 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit backupGlobals="false"
-         backupStaticAttributes="false"
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
+         bootstrap="bootstrap.php"
          colors="true"
-         convertErrorsToExceptions="false"
-         convertNoticesToExceptions="false"
-         convertWarningsToExceptions="false"
-         processIsolation="false"
+         cacheDirectory=".phpunit.cache"
          stopOnFailure="false">
+    <testsuites>
+        <testsuite name="simple">
+            <file>SimpleFunctionsTest.php</file>
+            <file>UtilityFunctionsTest.php</file>
+        </testsuite>
+        <testsuite name="api">
+            <directory>Api</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <file>../functions.php</file>
+            <file>../twig_extras.php</file>
+            <directory>../classes/api</directory>
+        </include>
+    </source>
+    <coverage>
+        <report>
+            <html outputDirectory="coverage/html" lowUpperBound="50" highLowerBound="90"/>
+            <text outputFile="php://stdout" showOnlySummary="false"/>
+        </report>
+    </coverage>
 </phpunit>

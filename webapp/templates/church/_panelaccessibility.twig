@@ -3,7 +3,7 @@
 {% import 'macros/icons.twig' as icons %}
 
 {% if accessibility['wheelchair'] == 'yes' %}
-	{% set title = icons.icon(ICONS_WHEELCHAIR, 'certain') ~ ' Akadálymentes' %}
+	{% set title = icons.icon(ICONS_WHEELCHAIR, 'certain') ~ 'Akadálymentes' %}
 {% elseif accessibility['wheelchair'] == 'no' %}
 	{% set title = icons.icon(ICONS_WHEELCHAIR, 'crossed') ~ 'Nem akadálymentes</span>' %}
 {% elseif accessibility['wheelchair'] == 'limited' %}
@@ -39,7 +39,7 @@
 	{% if accessibility['hearing_loop'] == 'yes' %} 
 		<p><strong>Hallást segítő indukciós hurok elérhető.</strong></p>
 	{% elseif accessibility['hearing_loop'] == 'limited' %}
-		<p>Hallást segítő indukciós hurok elérhetőm de tenni kell érte, hogy működjön / hozzáférjenek.</p>
+		<p>Hallást segítő indukciós hurok elérhető, de tenni kell érte, hogy működjön / hozzáférjenek.</p>
 	{% elseif accessibility['hearing_loop'] == 'no' %}
 		<p>Nincs indukciós hurok a helyszínen.</p>
 	{% endif %}	

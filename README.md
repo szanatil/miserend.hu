@@ -161,6 +161,26 @@ npm run start:integrated
 - Ilyenkor egy python script a `/calendar` mappában buildeli az Angularos projektet, majd a megfelelő helyre átmásolja a legenerált fájlokat
 
 
+# 📅 RRULE Definícióik dokumentációja
+
+Az Angular naptár és a PHP backend különféle **RRULE** (Recurrence Rule) definíciókat támogat az ismétlődő eseményekhez. Az összes támogatott RRULE tulajdonság, frekvencia típus, és implementációs mintázat részletes dokumentációja megtalálható itt:
+
+📖 **[RRULE_DEFINITIONS.md](RRULE_DEFINITIONS.md)** - Teljes RRULE dokumentáció (RFC 5545 alapú)
+
+**Támogatott RRULE tulajdonságok:**
+- `dtstart` - Ismétlődés kezdete (SZÜKSÉGES)
+- `freq` - Frekvencia: daily, weekly, monthly, yearly (SZÜKSÉGES)
+- `until` - Ismétlődés vége (opcionális)
+- `count` - Előfordulások száma (opcionális)
+- `interval` - Lépések közötti távolság
+- `bymonth` - Hónap(ok) [1-12]
+- `bymonthday` - Hónap napja(i) [1-31]
+- `byweekday` - Hét napja(i) [MO, TU, WE, TH, FR, SA, SU]
+- `bysetpos` - Pozíció a halmazban (pl. 1=első, -1=utolsó)
+- `byweekno` - Hét szám(ai) [1-53]
+- `exdate` - Kizárt dátumok
+- Páros/páratlan hét szűrés (`byweekno` tömbökkel)
+
 # Fejlesztői megjegyzések
 
 ## 🌍 Környezeti változók
@@ -216,6 +236,91 @@ docker exec -it [mysql|mailcatcher|miserend] bash
 ```sh
 docker exec miserend composer install|require|update
 ```
+
+## 🧪 Tesztelés
+
+A projekt PHPUnit alapú unit teszteket használ a kód minőségének biztosítására és a regressziók elkerülésére.
+
+### Unit tesztek futtatása
+
+**Gyors futtatás (minden teszt):**
+```sh
+bash scripts/docker-test.sh
+```
+
+**Csak egy testsuite futtatása:**
+```sh
+bash scripts/docker-test.sh --testsuite api
+bash scripts/docker-test.sh --testsuite simple
+```
+
+**Code coverage generálása:**
+```sh
+bash scripts/docker-coverage.sh
+```
+
+A coverage report HTML formátumban a `webapp/tests/coverage/html/index.html` fájlban érhető el.
+
+### Teszt struktúra
+
+A tesztek a `webapp/tests/` könyvtárban találhatók, és tükrözik a `webapp/classes/` struktúráját:
+
+```
+webapp/tests/
+├── bootstrap.php              # Test környezet inicializálása
+├── phpunit.xml                # PHPUnit konfiguráció
+├── SimpleFunctionsTest.php    # Helper funkciók tesztjei
+├── UtilityFunctionsTest.php   # Utility funkciók tesztjei
+└── Api/                       # API osztályok tesztjei
+    ├── ApiTest.php            # Api\Api osztály tesztjei
+    └── LoginTest.php          # Api\Login osztály tesztjei
+```
+
+### Fontos tudnivalók
+
+- **Test naming convention**: A test fájlok neve megegyezik a tesztelt osztály nevével + `Test.php` végződés
+- **Test methods**: Minden teszt metódus `test` prefixszel kezdődik, pl. `testValidateVersionMainAcceptsVersion1()`
+- **Docker izolált környezet**: A tesztek Docker konténerben futnak, így nem befolyásolják a fejlesztői környezetet
+- **Coverage driver**: PCOV extension biztosítja a code coverage-t
+
+### Új tesztek írása
+
+1. **Hozz létre egy új test fájlt** a megfelelő helyen (pl. `webapp/tests/Api/FavoritesTest.php`)
+2. **Extend PHPUnit TestCase**: `class FavoritesTest extends TestCase`
+3. **Írj teszteket** a kritikus funkcionalitáshoz
+4. **Futtasd a teszteket** a fenti parancsokkal
+5. **Ellenőrizd a coverage-t** hogy minden fontos ág le legyen fedve
+
+**Példa teszt:**
+```php
+<?php
+
+use PHPUnit\Framework\TestCase;
+use Api\Favorites;
+
+class FavoritesTest extends TestCase {
+    
+    public function testAddFavoriteAcceptsValidChurchId() {
+        $favorites = new Favorites([]);
+        
+        // Test implementation
+        $this->assertTrue(true);
+    }
+}
+```
+
+### Mit érdemes tesztelni?
+
+**Prioritás szerint:**
+1. **API validáció és autentikáció** - kritikus biztonsági funkciók
+2. **Pure functions** - nincs side effect, könnyen tesztelhető
+3. **Üzleti logika** - komplex számítások, döntési fák
+4. **Edge case-ek** - határértékek, hibakezelés
+
+**Mit NEM kell tesztelni:**
+- Framework/library kód (már tesztelt)
+- Triviális getter/setter metódusok
+- UI/template renderelés (inkább E2E tesztek)
 
 ## 🌳 Branching stratégia
 

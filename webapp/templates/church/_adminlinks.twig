@@ -3,10 +3,10 @@
 <a href="/templom/{{ church.id }}/javaslatok">
 	{% if church.hasPendingSuggestionPackage %}
 		{% set icon = ICONS_SUGGESTION_PACKAGES_PENDING %}
-		{% set title = "Van függőben lévő javaslat csomag" %}
+		{% set title = "Van függőben lévő javaslatcsomag" %}
 	{% else %}
 		{% set icon = ICONS_SUGGESTION_PACKAGES_NONE %}
-		{% set title = "Nincs függőben lévő javaslat csomag" %}
+		{% set title = "Nincs függőben lévő javaslatcsomag" %}
 	{% endif %}
 	<i class='{{ icon }}' style='font-size:medium'  	title='{{ title }}'></i></a>
 	
@@ -19,4 +19,4 @@
 <a href='/templom/{{ church.id }}/editphotos'>
 	<i class='{{ ICONS_CHURCH_PHOTOS }}' style='font-size:medium' 	title='Fényképek szerkesztése'></i></a>	
 <a href="/templom/{{ church.id }}">
-	<i class="{{ ICONS_CHURCH_SEE }}" style='font-size:medium' 		title="Ugrás a templom oldalára."></i></a>	
+	<i class="{{ ICONS_CHURCH_SEE }}" style='font-size:medium' 		title="Ugrás a templom oldalára"></i></a>	

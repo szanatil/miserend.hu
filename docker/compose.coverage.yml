@@ -1,0 +1,5 @@
+services:
+  miserend:
+    build:
+      context: ..
+      dockerfile: docker/miserend/Dockerfile.coverage
