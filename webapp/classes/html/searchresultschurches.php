@@ -34,12 +34,6 @@ class SearchResultsChurches extends Html {
             $search->filters[] = "Egyházmegye: <b>" . htmlspecialchars($ehmnev) ." egyházmegye</b>";                              
         }
 
-        // gorog only
-        if (isset($_REQUEST['gorog']) AND $_REQUEST['gorog'] == 'gorog') {                        
-            $search->addMust(["term" => ['gorog' => true ]]); 
-            $search->filters[] = "Csak görögkatolikus templomok.";                              
-        }
-
         // nyelvek filter
         $tnyelv = isset($_REQUEST['tnyelv']) ? $_REQUEST['tnyelv'] : false;
         if($tnyelv == "h") $tnyelv = "hu";
@@ -58,7 +52,7 @@ class SearchResultsChurches extends Html {
         //Data for pagination
 		$params = [];
         $params['q'] = 'SearchResultsChurches';
-		foreach( ['kulcsszo','gorog','tnyelv','ehm'] as $param ) {
+		foreach( ['kulcsszo', 'tnyelv','ehm'] as $param ) {
 			if( isset($_REQUEST[$param]) AND $_REQUEST[$param] != ''  AND $_REQUEST[$param] != '0' ) {
 				$params[$param] = $_REQUEST[$param];
 			}

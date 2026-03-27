@@ -1,5 +1,6 @@
 tinymce.init({
     selector: ".tinymce",
+    license_key: 'gpl',
     mode: "inline",
     elements: "leiras,misemegj,megjegyzes,plebania",
     theme: "silver",

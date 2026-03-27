@@ -157,19 +157,6 @@ class Html {
         exit;
     }
 
-    function redirectWithAnalyticsEvent($url, $event) {
-        echo "<script type='text/javascript'>" .
-        "(function(i,s,o,g,r,a,m){i[\"GoogleAnalyticsObject\"]=r;i[r]=i[r]||function(){" .
-        "(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o)," .
-        "m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)" .
-        "})(window,document,\"script\",\"//www.google-analytics.com/analytics.js\",\"ga\");" .
-        "ga(\"create\", \"UA-3987621-4\", \"miserend.hu\");" .
-        "ga('send','event','Search','" . implode("','", $event) . "');" .
-        "window.location = '" . $url . "';" .
-        "</script>";
-        exit;
-    }
-
     function initPagination() {
         $this->pagination = new \Pagination();
         if (isset($this->input['page'])) {
@@ -182,11 +169,17 @@ class Html {
 
     function getGitHash() {
         //GIT version        ;
-        // exec('git rev-parse --verify HEAD 2> /dev/null', $v);
-
-        $v = trim(file_get_contents('../git_hash')); // See: (.)git/hooks/post-checkout
+        // exec('git rev-parse --verify --short HEAD 2> /dev/null', $v);
+        $gitHashFile = 'fajlok/git_hash';        
+        // Ellenőrizni, hogy a fájl létezik-e
+        if (!file_exists($gitHashFile)) {
+            return false;
+        }   
+        $v = file_get_contents($gitHashFile); // See: (.)git/hooks/post-checkout        
+        // Csak az alfanumerikus karaktereket tartjuk meg a fájl tartalmából
+        $v = preg_replace('/[^a-zA-Z0-9]/', '', $v);        
         //Validate short of git_hash
-        if( preg_match('/^[a-zA-Z0-9]{7,8}$/i',$v,$match) ) { 
+        if( preg_match('/^[a-zA-Z0-9]{7,8}$/i',$v,$match) ) {
             return $v;
         }
         return false;

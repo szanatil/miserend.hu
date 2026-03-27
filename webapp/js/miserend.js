@@ -45,15 +45,7 @@ $(document).ready(function() {
   });
 
 
-    $(document).on('click', '#quit', function () {
-        console.log('click');
-        var form = $('<form  method="post">' +
-                '<input type="hidden" name="logout" value="true" />' +
-                '</form>');
-        $('body').append(form);
-        form.submit();
-        return false;
-    });
+   
 
 
   $(document).on('click','.javitva',function(){  
@@ -321,6 +313,15 @@ $(document).ready(function() {
 	}
 
 	function OpenScrollWindow(url, x, y) {
-      var options = "toolbar=no,menubar=no,scrollbars=yes,resizable=yes,width=" + x + ",height=" + y;
-      msgWindow=window.open(url,"", options);
+	     var options = "toolbar=no,menubar=no,scrollbars=yes,resizable=yes,width=" + x + ",height=" + y;
+	     msgWindow=window.open(url,"", options);
+	}
+
+	function goBackWithoutQ() {
+	  var params = new URLSearchParams(window.location.search);
+	  params.delete('q');
+	  var newUrl = '/' + (params.toString() ? '?' + params.toString() : '');
+    console.log(newUrl);
+	  window.location.href = newUrl;
+	  return false;
 	}

@@ -39,8 +39,9 @@ if (isset($_REQUEST['login'])) {
         addMessage('Hibás név és/vagy jelszó!<br/><br/>Ha elfelejtetted a jelszavadat, <a href="/user/lostpassword">kérj ITT új jelszót</a>.', 'danger');
     }
 }
-if (isset($_REQUEST['logout'])) {
+if (isset($_REQUEST['logout']) AND $_REQUEST['logout'] != 'false') {
     \User::logout();
+
 }
 $user = \User::load();
 

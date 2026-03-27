@@ -3,6 +3,8 @@
 use PHPUnit\Framework\TestCase;
 use Api\Api;
 
+require_once __DIR__ . '/../../classes/MockPhpInputStreamWrapper.php';
+
 class ApiTest extends TestCase {
 
     protected function setUp(): void {
@@ -96,6 +98,34 @@ class ApiTest extends TestCase {
         $this->expectExceptionMessage('API version (4) does not match the required version');
         
         $api->validateVersionMain();
+    }
+
+    public function testValidateVersionMainRejectNonArrayRequiredVersion() {
+        $api = new Api();
+        $api->version = 4;
+        $api->requiredVersion = 'invalid';
+        
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Invalid requiredVersion for API endpoint.');
+        
+        $api->validateVersionMain();
+    }
+
+    public function testValidateVersionLocalIfExists() {
+        
+        $api = new class extends Api {
+            public $validateVersionCalled = false;
+            public function validateVersion() {
+                $this->validateVersionCalled = true;
+            }
+        };
+        $api->version = 4;
+        $api->requiredVersion = ['>=', 4];
+        
+        // Should not throw an exception since local validation is optional
+        $api->validateVersionMain();
+
+        $this->assertTrue($api->validateVersionCalled); // No exception thrown
     }
 
     // Integer validation tests
@@ -415,4 +445,100 @@ class ApiTest extends TestCase {
         
         $api->requiredInput(['user/name']);
     }
+
+    // Tests for getInputJson
+
+    public function testGetInputJsonThrowsWhenNoInput() {
+        $api = new Api();
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('There is no JSON input.');
+        $api->getInputJson();
+    }
+
+    public function testGetInputJsonThrowsWhenInvalidJson() {
+        // Mock php://input with invalid JSON
+        MockPhpInputStreamWrapper::mockPhpInput('invalid json');
+        
+        $api = new Api();
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Invalid JSON input.');
+        $api->getInputJson();
+    
+        // Restore php://input stream wrapper
+        MockPhpInputStreamWrapper::restorePhpInput();        
+    }
+
+    public function testGetInputJsonUnkownField() {
+        MockPhpInputStreamWrapper::mockPhpInput(json_encode(['unknownField' => 'value']));
+   
+        $api = new Api();
+        $api->fields = $fields = [
+            'knownField' => [
+                'required' => true, 
+                'description' => 'A known field'
+            ],              
+        ];            
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Unknown field \'unknownField\' in JSON input.');
+        $input = $api->getInputJson();
+    
+        MockPhpInputStreamWrapper::restorePhpInput();        
+    }
+
+    public function testGetInputJsonValidInput() {
+        $inputData = [
+            'knownField' => 1.3,
+            'knownField2' => 'value2',
+            'anotherField' => 15,
+            'anotherField2' => 20
+        ];
+        MockPhpInputStreamWrapper::mockPhpInput(json_encode($inputData));
+
+        $api = new class extends Api {
+            public function validateField($field,$validation) {
+                return true;
+            }
+            public function validateInput() {
+                return true;
+            }
+        };
+        $api->requiredFields = ['knownField',"knownField2"];
+        $api->fields = $fields = [
+            'knownField' => [
+                'required' => true, 
+                'validation' => 'float',
+                'description' => 'A known field'
+            ],
+            'emptyField' => [
+                'required' => false, 
+                'validation' => 'string',
+                'description' => 'An optional field'
+            ],            
+            'knownField2' => [
+                'required' => true, 
+                'description' => 'A known field'
+            ],
+            'anotherField' => [
+                'required' => false, 
+                'validation' => ['integer' => ['minimum' => 10]],
+                'description' => 'Another known field'
+            ],
+            'anotherField2' => [
+                'required' => false, 
+                'validation' => ['integer' => 10],
+                'description' => 'Another known field 2'
+            ],
+            'field/subfield' => [
+                'required' => false, 
+                'validation' => 'string',
+                'description' => 'A known field with subfield'
+            ]
+        ];            
+        $input = $api->getInputJson();
+    
+        $this->assertTrue(true); // No exception thrown
+    
+        MockPhpInputStreamWrapper::restorePhpInput();        
+    }
+
 }

@@ -89,31 +89,44 @@ class SimpleFunctionsTest extends TestCase {
         $this->assertMatchesRegularExpression('/ \d{2}:\d{2}$/', $result);
     }
 
-    public function testTwigHungarianDateFormatForDateInCurrentWeekButNotTodayYesterdayTomorrow() {
+    // Ha az aktuális héten van (előző vasárnaptól következő vasárnapig) és nem tegnap/ma/holnap
+    public function testTwigHungarianDateFormatForDateInCurrentWeekButNotTodayYesterdayTomorrow() {    
+        $lastSunday = strtotime('last sunday');
         $todayMidnight = strtotime(date('Y-m-d'));
-        $candidate = strtotime('-3 days', $todayMidnight);
-        if (date('Y-m-d', $candidate) === date('Y-m-d', strtotime('-1 day', $todayMidnight))) {
-            $candidate = strtotime('-4 days', $todayMidnight);
+        $daysBetween = (int)(($todayMidnight - $lastSunday) / 86400);
+        if ($daysBetween > 3) {
+            // later code's "-3 days" will be inside the current week — keep the default behavior
+            $candidate = strtotime('last monday', $todayMidnight);
+        } else {
+            // early in the week: pick a day inside this week (e.g. Monday) so it's not today/yesterday/tomorrow
+            $candidate = strtotime('next saturday', $lastSunday);
         }
 
+        //Ez sajnos kell mert a twig_extras keresi a $_honapok, de nem kapja meg, mert a load.php nélkül került meghívásra innen.
         global $_honapok;
         $monthNumber = (int)date('n', $candidate);
         if (!isset($_honapok[$monthNumber][0]) || $_honapok[$monthNumber][0] === '') {
             $_honapok[$monthNumber] = ['mon', 'month'];
         }
-
+                
         $result = twig_hungarian_date_format($candidate, '');
 
         $this->assertMatchesRegularExpression('/\(.*\d+\.\)$/', $result);
     }
 
     public function testTwigHungarianDateFormatForDateInCurrentWeekIncludesTimeWhenRequested() {
+        $lastSunday = strtotime('last sunday');
         $todayMidnight = strtotime(date('Y-m-d'));
-        $candidate = strtotime('-3 days', $todayMidnight);
-        if (date('Y-m-d', $candidate) === date('Y-m-d', strtotime('-1 day', $todayMidnight))) {
-            $candidate = strtotime('-4 days', $todayMidnight);
+        $daysBetween = (int)(($todayMidnight - $lastSunday) / 86400);
+        if ($daysBetween > 3) {
+            // later code's "-3 days" will be inside the current week — keep the default behavior
+            $candidate = strtotime('last monday', $todayMidnight);
+        } else {
+            // early in the week: pick a day inside this week (e.g. Monday) so it's not today/yesterday/tomorrow
+            $candidate = strtotime('next saturday', $lastSunday);
         }
 
+        //Ez sajnos kell mert a twig_extras keresi a $_honapok, de nem kapja meg, mert a load.php nélkül került meghívásra innen.
         global $_honapok;
         $monthNumber = (int)date('n', $candidate);
         if (!isset($_honapok[$monthNumber][0]) || $_honapok[$monthNumber][0] === '') {

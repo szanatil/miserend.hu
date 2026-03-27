@@ -49,7 +49,9 @@ class Home extends Html {
                 'class' => 'keresourlap',
                 'value' => 4)
         );
-
+        if($_REQUEST['kulcsszo']) $searchform['kulcsszo']['value'] = $_REQUEST['kulcsszo'];
+        if($_REQUEST['hely']) $searchform['hely']['value'] = $_REQUEST['hely'];
+        if($_REQUEST['tavolsag']) $searchform['tavolsag']['value'] = $_REQUEST['tavolsag'];
 
         $searchform['ehm'] = array(
             'name' => "ehm",
@@ -64,15 +66,8 @@ class Home extends Html {
                     foreach ($egyhmegyes as $egyhmegye) {
                         $searchform['ehm']['options'][$egyhmegye->id] = $egyhmegye->nev;
                     }
-               
-        $searchform['gorog'] = array(
-            'type' => 'checkbox',
-            'name' => "gorog",
-            'id' => "gorog",
-            'class' => "keresourlap",
-            'value' => "gorog"
-        );
-
+        if(isset($_REQUEST['ehm']) AND $_REQUEST['ehm'] != '') $searchform['ehm']['selected'] = $_REQUEST['ehm'];
+                       
         $searchform['tnyelv'] = array(
             'name' => "tnyelv",
             'id' => "tnyelv",
@@ -82,6 +77,7 @@ class Home extends Html {
         foreach ($languages as $abbrev => $language) {
             $searchform['tnyelv']['options'][$abbrev] = $language['name'];
         }
+        if(isset($_REQUEST['tnyelv']) AND $_REQUEST['tnyelv'] != '') $searchform['tnyelv']['selected'] = $_REQUEST['tnyelv'];
 
         //Mikor
         $mainap = date('w');
@@ -102,16 +98,8 @@ class Home extends Html {
         foreach ($languages as $abbrev => $language) {
             $searchform['nyelv']['options'][$abbrev] = $language['name'];
         }
-      
-        $searchform['ige'] = array(
-            'type' => 'checkbox',
-            'name' => "liturgy[]",
-            'id' => "liturgy",
-            'checked' => true,
-            'class' => "keresourlap",
-            'value' => "ige"
-        );
-
+        if(isset($_REQUEST['nyelv']) AND $_REQUEST['nyelv'] != '') $searchform['nyelv']['selected'] = $_REQUEST['nyelv'];
+              
         $this->photo = \Eloquent\Photo::big()->vertical()->where('flag', 'i')->orderbyRaw('RAND()')->first();
         if($this->photo->church) //TODO: Van, hogy a random képhez nem is tartozik templom. Valami régi hiba miatt.
             $this->photo->church->location;

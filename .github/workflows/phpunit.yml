@@ -1,0 +1,48 @@
+name: PHPUnit
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - production
+      - develop
+
+jobs:
+  phpunit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run coverage (Docker)
+        run: bash scripts/docker-coverage.sh --log-junit tests/junit.xml --coverage-cobertura tests/coverage/cobertura.xml
+
+      - name: Upload coverage HTML
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phpunit-coverage-html
+          path: webapp/tests/coverage/html
+          if-no-files-found: error
+
+      - name: Upload cobertura XML
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phpunit-coverage-cobertura
+          path: webapp/tests/coverage/cobertura.xml
+          if-no-files-found: error
+
+      - name: Publish JUnit report
+        uses: mikepenz/action-junit-report@v4
+        if: always()
+        with:
+          report_paths: webapp/tests/junit.xml
+          fail_on_failure: false
+          detailed_summary: true
+          include_passed: false
+          annotate_only: true
+          check_name: PHPUnit Test Results
+          job_name: PHPUnit

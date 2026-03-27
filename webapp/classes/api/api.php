@@ -48,7 +48,7 @@ class Api {
         
         $inputJSONarray = json_decode($inputJSONstring, TRUE);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new \Exception("Invalid JSON input: " . json_last_error_msg());
+            throw new \Exception("Invalid JSON input. " . json_last_error_msg());
         }
 
         $this->input = $inputJSONarray;

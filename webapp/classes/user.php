@@ -489,7 +489,8 @@ class User {
     }
 
     static function logout() {
-        \Token::delete();
+        addMessage('Sikeresen kijelentkeztél.', 'success');
+        \Token::delete();        
     } 
 	
 	static function deleteNonActivatedUsers() {
@@ -515,10 +516,18 @@ class User {
 			->limit(20)			// Lehetne végtelen, de jobb az óvatosság. Pláne, hogy még egyesével mennek az emailek
 			->get();			// Lehetne itt rögtön ->delete(), de a debug dolog miatt jobb, ha tovább is van
 
-		$ids2delete = [];
+        $countDeleted = 0;
 		foreach($results as $result) {
-			$ids2delete[] = $result->uid;
-			
+            try {
+                $user2delete = new User($result->uid);
+                $user2delete->delete();
+                $countDeleted++;
+            } catch (Exception $e) {
+                addMessage('Nem sikerül törölni a felhasználót: '.$result->uid, 'error');
+                echo "Nem sikerült törölni a felhasználót: ".$result->uid." ".$result->email." ".$result->nev." ".$result->regdatum." ".$result->lastlogin." ".$result->jogok." ".print_r($result,1)." ";                
+                continue;
+            }
+            
 			$email = new \Eloquent\Email();
 			$email->to = $result->email;
 			$email->render('user_youhavebeendeleted',$result);			
@@ -527,13 +536,7 @@ class User {
 			
 		}
 		$count = DB::table('user')->whereIN('uid',$ids2delete)->delete();
-		
-		if($count != count($ids2delete)) {
-			        addMessage('Nem sikerül mindenkit törölni.', 'error');
-					echo "Nem sikerült mindenkit aki még nem lépett be törölni! ".print_r($ids2delete,1)." ";
-		}
-		
-			
+									
 	}
 	
 

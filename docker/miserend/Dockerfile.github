@@ -16,7 +16,6 @@ COPY webapp/composer.json webapp/composer.lock ./
 
 RUN --mount=type=cache,target=/root/.composer \
     composer install \
-      --no-dev \
       --no-interaction \
       --no-progress \
       --optimize-autoloader

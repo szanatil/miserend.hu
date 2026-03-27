@@ -73,6 +73,13 @@ if (isset($html)) {
 			( isset($html->format) AND $html->format == 'json' ) 
 		  )
             header('Content-Type: application/json');
+
+        if($config['env'] == 'development') {
+            header('Cache-Control: no-cache, no-store, must-revalidate');
+            header('Pragma: no-cache');
+            header('Expires: 0');
+        }
+
         echo $html->html;
     }
 }

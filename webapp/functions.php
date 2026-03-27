@@ -194,9 +194,22 @@ if (!function_exists("env")) {
 }
 
 function file_exists_ci($fileName) {
+    // exact match first, but on case-insensitive filesystems file_exists may be true with wrong case
+    $dir = dirname($fileName);
+    $base = basename($fileName);
     if (file_exists($fileName)) {
+        // try to return the real filesystem-cased filename from the same directory
+        if (is_dir($dir)) {
+            foreach (scandir($dir) as $entry) {
+                if (strcasecmp($entry, $base) === 0) {
+                    return $dir . DIRECTORY_SEPARATOR . $entry;
+                }
+            }
+        }
+        // fallback to given filename
         return $fileName;
     }
+   
     $pattern = dirname(__FILE__) . "/classes";
     $files = array();
     for ($i = 0; $i < 5; $i++) {

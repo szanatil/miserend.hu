@@ -50,12 +50,6 @@ class SearchResultsMasses extends Html {
             $search->languages([$nyelv]);
         }
       
-        // Exclude 'Igeliturgia' masses unless specifically requested
-        $ige = isset($_REQUEST['liturgy']) ? $_REQUEST['liturgy'] : false;
-        if (empty($ige)) {
-            $search->notTitle('Igeliturgia'); 
-        }
-
         // Process advanced rites/types filters (if provided)
         $typesReq = isset($_REQUEST['types']) ? $_REQUEST['types'] : [];
         $ritesReq = isset($_REQUEST['rites']) ? $_REQUEST['rites'] : [];
@@ -68,7 +62,7 @@ class SearchResultsMasses extends Html {
                     if ($r === '') continue;
                     $search->filters[] = "A rítus nem lehet: <i>" . htmlspecialchars(t($r)) . "</i>";
                     // add to query must_not
-                    $search->query['bool']['must_not'][] = [ 'term' => ['rite' => $r] ];
+                    $search->query['bool']['must_not'][] = [ 'term' => ['rite.keyword' => $r] ];
                 }
             }
 
@@ -86,7 +80,7 @@ class SearchResultsMasses extends Html {
                     
                     if ($r === '') continue;
                     // Build clause requiring this rite
-                    $cl = [ 'bool' => [ 'must' => [ [ 'term' => ['rite' => $r] ] ] ] ];
+                    $cl = [ 'bool' => [ 'must' => [ [ 'term' => ['rite.keyword' => $r] ] ] ] ];
 
                     // If types specification exists for this rite, apply its should/must_not rules
                     if (!empty($typesReq[$r]) && is_array($typesReq[$r])) {
@@ -115,7 +109,7 @@ class SearchResultsMasses extends Html {
                             $shouldTerms = [];
                             foreach ($tShould as $tt) {
                                 if ($tt === '') continue;
-                                $shouldTerms[] = [ 'term' => ['types' => $tt] ];
+                                $shouldTerms[] = [ 'term' => ['types.keyword' => $tt] ];
                             }
                             $cl['bool']['must'][] = [ 'bool' => [ 
                                 'should' => $shouldTerms, 
@@ -126,8 +120,8 @@ class SearchResultsMasses extends Html {
                         // If there are negative type constraints, add must_not for each
                         if (!empty($tMustNot)) {
                             foreach ($tMustNot as $tt) {
-                                $cl['bool']['must_not'][] = [ 'term' => ['types' => $tt] ];
-                            }                            
+                                $cl['bool']['must_not'][] = [ 'term' => ['types.keyword' => $tt] ];
+                            }
                         }
                         foreach($tShould as $k => $ts)  $tShould[$k] = t($ts);
                         foreach($tMustNot as $k => $ts)  $tMustNot[$k] = t($ts);
@@ -151,9 +145,6 @@ class SearchResultsMasses extends Html {
             
         }
 
-        
-        $templomurlap = "<img src=/img/space.gif width=5 height=6><br><a href=\"/\" class=link><img src=/img/search.gif width=16 height=16 border=0 align=absmiddle hspace=2><b>Vissza a főoldali keresőhöz</b></a><br><img src=/img/space.gif width=5 height=6>";
-
 
         $min = isset($_REQUEST['min']) ? $_REQUEST['min'] : 0;       
 		$leptet = isset($_REQUEST['leptet']) ? $_REQUEST['leptet'] : 25;	
@@ -171,7 +162,7 @@ class SearchResultsMasses extends Html {
 
         //Data for pagination
 		$params = [];
-		foreach( ['varos','tavolsag','hely','kulcsszo','gorog','tnyelv','espker','ehm','types','rites',
+		foreach( ['varos','tavolsag','hely','kulcsszo','tnyelv','espker','ehm','types','rites',
             'mikordatum', 'mikortol','nyelv','zene','kor','ritus','tnyelv'] as $param ) {
 		
 			if( isset($_REQUEST[$param]) AND $_REQUEST[$param] != ''  AND $_REQUEST[$param] != '0' ) {
@@ -187,8 +178,7 @@ class SearchResultsMasses extends Html {
         $this->alert = (new \ExternalApi\NapilelkibatyuApi())->LiturgicalAlert(isset($mikordatum) ? $mikordatum : false);
 
         $this->setTitle("Szentmise kereső");
-        
-        $this->templomurlap = $templomurlap;
+                
         $this->template = 'search/resultsmasses.twig';
         
         $this->results = $results;                

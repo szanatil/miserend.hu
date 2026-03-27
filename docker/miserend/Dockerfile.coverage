@@ -1,4 +1,4 @@
-FROM localhost/miserend.hu:latest
+FROM ghcr.io/szentjozsefhackathon/miserend.hu:v2026.3.24
 
 USER root
 
@@ -11,6 +11,11 @@ RUN if ! php -m | grep -qi '^pcov$'; then \
     else \
       docker-php-ext-enable pcov || true; \
     fi
+    
+RUN composer install \
+      --no-interaction \
+      --no-progress \
+      --optimize-autoloader
 
 RUN printf '%s\n' \
       'pcov.enabled=1' \

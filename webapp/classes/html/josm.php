@@ -28,7 +28,7 @@ class Josm extends Html {
        $overpass = new \ExternalApi\OverpassApi();
        $overpass->downloadUrlMiserend();
         if (!$overpass->jsonData->elements) {
-            throw new Exception("Missing Json Elements from OverpassApi Query");
+            throw new \Exception("Missing Json Elements from OverpassApi Query");
         }
 
 		$urlmiserends = [];

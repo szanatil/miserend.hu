@@ -14,3 +14,4 @@ services:
     environment:
       - SMTP_HOST=mailcatcher
       - SMTP_PORT=11025
+      - MISEREND_WEBAPP_ENVIRONMENT=testing

@@ -2,11 +2,11 @@ nearby.log
 /nbproject/
 .env
 version
-git_hash
 vendor/
 var/
 node_modules/
 dumper/01-dump.sql
+webapp/fajlok/git_hash
 
 .idea
 composer.phar
