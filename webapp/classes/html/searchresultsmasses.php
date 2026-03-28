@@ -156,7 +156,6 @@ class SearchResultsMasses extends Html {
             }
             
         }
-printr($search);
 
         $min = isset($_REQUEST['min']) ? $_REQUEST['min'] : 0;       
 		$leptet = isset($_REQUEST['leptet']) ? $_REQUEST['leptet'] : 25;	
