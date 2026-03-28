@@ -68,17 +68,7 @@ class Home extends Html {
                     }
         if(isset($_REQUEST['ehm']) AND $_REQUEST['ehm'] != '') $searchform['ehm']['selected'] = $_REQUEST['ehm'];
                        
-        $searchform['tnyelv'] = array(
-            'name' => "tnyelv",
-            'id' => "tnyelv",
-            'class' => 'keresourlap',
-            'options' => array(0 => 'bármilyen')
-        );
-        foreach ($languages as $abbrev => $language) {
-            $searchform['tnyelv']['options'][$abbrev] = $language['name'];
-        }
-        if(isset($_REQUEST['tnyelv']) AND $_REQUEST['tnyelv'] != '') $searchform['tnyelv']['selected'] = $_REQUEST['tnyelv'];
-
+        
         //Mikor
         $mainap = date('w');
         if ($mainap == 0)
@@ -88,18 +78,19 @@ class Home extends Html {
             $vasarnap = date('Y-m-d', (time() + (86400 * $kulonbseg)));
         }
        
-        //languages
-        $searchform['nyelv'] = array(
-            'name' => "nyelv",
-            'id' => "nyelv",
-            'class' => 'keresourlap',
-            'options' => array(0 => 'mindegy')
-        );
-        foreach ($languages as $abbrev => $language) {
-            $searchform['nyelv']['options'][$abbrev] = $language['name'];
-        }
-        if(isset($_REQUEST['nyelv']) AND $_REQUEST['nyelv'] != '') $searchform['nyelv']['selected'] = $_REQUEST['nyelv'];
-              
+                
+        // Összegyűjtés: hányféle calmass.lang van az eloquent-ben, csökkenő sorrend szerint
+        $langStats = \Eloquent\CalMass::select('lang')
+            ->selectRaw('COUNT(*) as count')
+            ->whereNotNull('lang')
+            ->where('lang', '!=', '')
+            ->groupBy('lang')
+            ->orderBy('count', 'desc')
+            ->get()
+            ->pluck('lang')
+            ->toArray();
+        $this->langs = $langStats;
+        
         $this->photo = \Eloquent\Photo::big()->vertical()->where('flag', 'i')->orderbyRaw('RAND()')->first();
         if($this->photo->church) //TODO: Van, hogy a random képhez nem is tartozik templom. Valami régi hiba miatt.
             $this->photo->church->location;

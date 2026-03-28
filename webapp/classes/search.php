@@ -105,6 +105,10 @@ class Search {
         $this->query['bool']['must'][] = $condition;
     }
 
+    function addMustNot($condition) {
+        $this->query['bool']['must_not'][] = $condition;
+    }
+
     function tids(array $tids) {
         $this->filters[] = "Templom ID-k: " . htmlspecialchars(implode(', ', $tids));
         if($this->massOrChurch === 'mass') {
@@ -164,12 +168,9 @@ class Search {
     }
 
     function languages(array $languageAbbrevs) {
-        $this->filters[] = "Nyelv lehet: <b>" . htmlspecialchars(implode(', ', t($languageAbbrevs))) . "</b>";
-        if (is_array($languageAbbrevs) && count($languageAbbrevs) > 0) {
-            $this->query['bool']['must'][] = [
-                "terms" => ["lang" => $languageAbbrevs]
-            ];
-        }
+        $this->addMust([ 'terms' => ['lang.keyword' => $languageAbbrevs] ]);                
+        $translated = array_map(function($l){ return t('LANGUAGES.'.$l); }, $languageAbbrevs);
+        $this->filters[] = "A liturgia nyelve legyen <b>" . implode('</b> vagy <b>', $translated) . "</b>";        
     }
 
     function rites(array $rites) {

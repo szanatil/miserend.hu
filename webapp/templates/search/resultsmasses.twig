@@ -70,7 +70,7 @@
 
                         <td class="align-middle">
                             {% if result.lang and result.lang != 'hu' %}
-                                <img src="/cal_images/flags/{{ result.lang|lower }}.svg" alt="{{ result.lang|trans }}" title="{{ result.lang|trans }}" style="height:1.3em; margin-right:6px; vertical-align:middle;">
+                                <img src="/cal_images/flags/{{ result.lang|lower }}.svg" alt="{{ ('LANGUAGES.' ~ result.lang)|trans }}" title="{{ ('LANGUAGES.' ~ result.lang)|trans }}" style="height:1.3em; margin-right:6px; vertical-align:middle;">
                             {% endif %}
                             {% if result.types is iterable and result.types|length %}
                                 {% for type in result.types %}

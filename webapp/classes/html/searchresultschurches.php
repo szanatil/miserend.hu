@@ -35,13 +35,23 @@ class SearchResultsChurches extends Html {
         }
 
         // nyelvek filter
-        $tnyelv = isset($_REQUEST['tnyelv']) ? $_REQUEST['tnyelv'] : false;
-        if($tnyelv == "h") $tnyelv = "hu";
-        if ($tnyelv AND $tnyelv != '0') {
-            $search->addMust(["term" => ['nyelvek' => $tnyelv ]]); 
-            $search->filters[] = "Amelyik templomban van <b>" . htmlspecialchars(t('LANGUAGES.'.$tnyelv)) . "</b> nyelvű mise.";                              
-        }
+        if(isset($_REQUEST['lang']) AND is_array($_REQUEST['lang'])) {
+            $langsShould = isset($_REQUEST['lang']['should']) ? array_filter(array_map('trim', explode(',', $_REQUEST['lang']['should']))) : [];
+            $langsMustNot = isset($_REQUEST['lang']['must_not']) ? array_filter(array_map('trim', explode(',', $_REQUEST['lang']['must_not']))) : [];
 
+            if (!empty($langsShould)) {
+                $search->addMust([ 'terms' => ['nyelvek' => $langsShould] ]);
+                $translated = array_map(function($l){ return t('LANGUAGES.'.$l); }, $langsShould);
+                $search->filters[] = "Amelyik templomban van liturgia <b>" . implode('</b> vagy <b>', $translated) . "</b> nyelven.";                              
+            }
+
+            if (!empty($langsMustNot)) {
+                $search->addMustNot([ 'terms' => ['nyelvek' => $langsMustNot] ]);
+                $translated = array_map(function($l){ return t('LANGUAGES.'.$l); }, $langsMustNot);
+                $search->filters[] = "Amelyik templomban nincs liturgia <b>" . implode('</b> se <b>', $translated) . "</b> nyelven.";                              
+            }
+        }
+        
         //Let's do the search
         $offset = $this->pagination->take * $this->pagination->active;
         $limit = $this->pagination->take;        		        
@@ -52,7 +62,7 @@ class SearchResultsChurches extends Html {
         //Data for pagination
 		$params = [];
         $params['q'] = 'SearchResultsChurches';
-		foreach( ['kulcsszo', 'tnyelv','ehm'] as $param ) {
+		foreach( ['kulcsszo', 'lang','ehm'] as $param ) {
 			if( isset($_REQUEST[$param]) AND $_REQUEST[$param] != ''  AND $_REQUEST[$param] != '0' ) {
 				$params[$param] = $_REQUEST[$param];
 			}

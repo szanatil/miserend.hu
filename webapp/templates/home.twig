@@ -102,10 +102,6 @@
                     <label class="col-sm-4 control-label" >egyházmegye</label>
                     <div class="col-sm-8">{{ forms.select(searchform.ehm) }} </div>
                 </div>                
-                <div class="form-group row">
-                    <label class="col-sm-4 control-label" >ahol van adott nyelvű mise is</label>
-                    <div class="col-sm-8">{{ forms.select(searchform.tnyelv) }} </div>
-                </div>
             </div>
 
             <div id="form_mass" style="margin-top:12px;">
@@ -157,16 +153,80 @@
                         <input type="hidden" name="mikortol" id="mikortol" value="">
                         <!-- Offscreen datepicker input used to pick the date -->
                         <input type="text" id="mass_datepicker" class="datepicker form-control" style="display:none; margin-top:6px; width:auto;" />
-                    </div>
-                    <div class="cols-sm-2" style="text-align:right"><span id="form_mass_getdetails">{{ icons.icon('fa-plus', 'fa-2xs circle') }}</span></div>
+                    </div>                    
                 </div>
             </div>
 
             <div id="form_mass_details" style="">
                 <div class="form-group row">
                     <label class="col-sm-4 control-label" >nyelv</label>
-                    <div class="col-sm-8">{{ forms.select(searchform.nyelv) }} </div>
+                    <div class="col-sm-8">
+                        <div class="btn-group" role="group" aria-label="Language filters" id="language_group" style="display: flex; flex-wrap: wrap; gap: 4px;">
+                            {% for lang in langs %}
+                                <button type="button" class="btn btn-light lang-toggle" data-lang="{{ lang }}" data-state="0" style="padding:4px">
+                                    <img src="/cal_images/flags/{{ lang|lower }}.svg" alt="{{ ('LANGUAGES.' ~ lang)|trans }}" title="{{ ('LANGUAGES.' ~ lang)|trans }}" style="height:1.3em; margin-right:0px; vertical-align:middle;">
+                                </button>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="lang[should]" id="lang_should" value="">
+                        <input type="hidden" name="lang[must_not]" id="lang_must_not" value="">
+                    </div>
                 </div>
+
+                <script>
+                    (function($){
+                        function updateLanguageHiddenInputs() {
+                            var shouldArr = [];
+                            var shouldNotArr = [];
+                            $('.lang-toggle').each(function(){
+                                var state = Number($(this).data('state')) || 0;
+                                var lang = $(this).data('lang');
+                                if (state === 1) shouldArr.push(lang);
+                                else if (state === 2) shouldNotArr.push(lang);
+                            });
+                            $('#lang_should').val(shouldArr.join(','));
+                            $('#lang_must_not').val(shouldNotArr.join(','));
+                        }
+
+                        function applyLanguageState($btn, state) {
+                            // state: 0 neutral, 1 success (green), 2 danger (red)
+                            $btn.data('state', state);
+                            $btn.removeClass('btn-light btn-success btn-danger');
+                            if (state === 0) {
+                                $btn.addClass('btn-light');
+                            } else if (state === 1) {
+                                $btn.addClass('btn-success');
+                            } else if (state === 2) {
+                                $btn.addClass('btn-danger');
+                            }
+                        }
+
+                        $(function(){
+                            // Initialize: hu is green by default, others neutral
+                            $('.lang-toggle').each(function(){
+                                var lang = $(this).data('lang');
+                                if (lang === 'hu') {
+                                    applyLanguageState($(this), 1);
+                                } else {
+                                    applyLanguageState($(this), 0);
+                                }
+                            });
+
+                            // Click handler: cycle through states 0 -> 1 -> 2 -> 0
+                            $(document).on('click', '.lang-toggle', function(e){
+                                e.preventDefault();
+                                var $btn = $(this);
+                                var state = Number($btn.data('state')) || 0;
+                                var next = (state + 1) % 3;
+                                applyLanguageState($btn, next);
+                                updateLanguageHiddenInputs();
+                            });
+
+                            // Update on init
+                            updateLanguageHiddenInputs();
+                        });
+                    })(jQuery);
+                </script>
               
                 {# Button group for types: cycles neutral -> success -> danger -> neutral #}
                 <div class="form-group row">

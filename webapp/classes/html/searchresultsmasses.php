@@ -25,13 +25,22 @@ class SearchResultsMasses extends Html {
             $search->filters[] = "Egyházmegye: <b>" . htmlspecialchars($ehmnev) ." egyházmegye</b>";                              
         }
             
-        // nyelvek filter
-        $tnyelv = isset($_REQUEST['tnyelv']) ? $_REQUEST['tnyelv'] : false;
-        if($tnyelv == "h") $tnyelv = "hu";
-        if ($tnyelv AND $tnyelv != '0') {
-            $search->addMust(["term" => ['church.nyelvek' => $tnyelv ]]); 
-            $search->filters[] = "Amelyik templomban van <b>" . htmlspecialchars(t('LANGUAGES.'.$tnyelv)) . "</b> nyelvű mise.";                              
+        // nyelvek filter        
+        if(isset($_REQUEST['lang']) AND is_array($_REQUEST['lang'])) {
+            $langsShould = isset($_REQUEST['lang']['should']) ? array_filter(array_map('trim', explode(',', $_REQUEST['lang']['should']))) : [];
+            $langsMustNot = isset($_REQUEST['lang']['must_not']) ? array_filter(array_map('trim', explode(',', $_REQUEST['lang']['must_not']))) : [];
+
+            if (!empty($langsShould)) {
+                $search->languages($langsShould);                                              
+            }
+
+            if (!empty($langsMustNot)) {
+                $search->addMustNot([ 'terms' => ['church.nyelvek.keyword' => $langsMustNot] ]);
+                $translated = array_map(function($l){ return t('LANGUAGES.'.$l); }, $langsMustNot);
+                $search->filters[] = "A liturgia nyelve ne legyen <b>" . implode('</b> se <b>', $translated) . "</b>";                              
+            }
         }
+        
         
         // Main keyword search
         if (isset($_REQUEST['kulcsszo']) AND $_REQUEST['kulcsszo'] != '') {            
@@ -52,13 +61,7 @@ class SearchResultsMasses extends Html {
         $search->timeRange($from, $until);
         $api = new \ExternalApi\NapilelkibatyuApi();
         $this->liturgicalDays = $api->getLiturgicalDaysInRange($from, $until);
-                   
-        // Languages
-        $nyelv = isset($_REQUEST['nyelv']) ? $_REQUEST['nyelv'] : false;        
-        if (!empty($nyelv)) {
-            $search->languages([$nyelv]);
-        }
-      
+                                 
         // Process advanced rites/types filters (if provided)
         $typesReq = isset($_REQUEST['types']) ? $_REQUEST['types'] : [];
         $ritesReq = isset($_REQUEST['rites']) ? $_REQUEST['rites'] : [];
@@ -153,7 +156,7 @@ class SearchResultsMasses extends Html {
             }
             
         }
-
+printr($search);
 
         $min = isset($_REQUEST['min']) ? $_REQUEST['min'] : 0;       
 		$leptet = isset($_REQUEST['leptet']) ? $_REQUEST['leptet'] : 25;	
@@ -170,17 +173,19 @@ class SearchResultsMasses extends Html {
                 $result->mass = \Eloquent\CalMass::find($result->mass_id)->toArray();
                 if($result->mass['rrule'])
                     $rrule = new \SimpleRRule($result->mass['rrule']);
-                    $result->mass['rrule']['readable'] = $rrule->toText();
+                    if(isset($rrule)) {
+                        $result->mass['rrule']['readable'] = $rrule->toText();
+                    }
                 if(isset($result->mass['periodId'])) {
                     $result->period = \Eloquent\CalPeriod::find($result->mass['periodId'])->toArray();                    
                 }
             }
         }            
-           
+
         //Data for pagination
 		$params = [];
-		foreach( ['varos','tavolsag','hely','kulcsszo','tnyelv','espker','ehm','types','rites',
-            'mikordatum', 'mikortol','nyelv','zene','kor','ritus','tnyelv'] as $param ) {
+		foreach( ['varos','tavolsag','hely','kulcsszo','espker','ehm','types','rites',
+            'mikordatum', 'mikortol','zene','kor','ritus','lang'] as $param ) {
 		
 			if( isset($_REQUEST[$param]) AND $_REQUEST[$param] != ''  AND $_REQUEST[$param] != '0' ) {
 				$params[$param] = $_REQUEST[$param];
