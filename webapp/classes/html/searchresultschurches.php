@@ -76,9 +76,8 @@ class SearchResultsChurches extends Html {
             addMessage('A keresés nem hozott eredményt', 'info');
             return;
         } else if ($resultsCount == 1) {
-            $url = '/templom/' . $results['results'][0]->id;
-            $event = ['Search', 'fast', ( isset($_REQUEST['varos']) ? $_REQUEST['varos'] : ''  ). $_REQUEST['kulcsszo'] . ( isset($_REQUEST['e']) ? $_REQUEST['e'] : '' ) ];  
-            $this->redirectWithAnalyticsEvent($url, $event);
+            $url = '/templom/' . $results['results'][0]->id;            
+            $this->redirect($url);
             return;
         } elseif ($resultsCount < $this->pagination->take * $this->pagination->active) {
             addMessage('Csupán ' . $resultsCount . " templomot találtunk.", 'info');
