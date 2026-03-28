@@ -2,6 +2,8 @@
 
 namespace Html;
 
+use Exception;
+use ExternalApi\NapilelkibatyuApi;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class SearchResultsMasses extends Html {
@@ -36,14 +38,21 @@ class SearchResultsMasses extends Html {
             $search->keyword($_REQUEST['kulcsszo']);
         }
     
-        // Time range search       
-        if(isset($_REQUEST['mikordatum']) AND $_REQUEST['mikordatum'] != '') {            
-            $mikordatum = $_REQUEST['mikordatum'];         
+        // Time range search
+        if(isset($_REQUEST['mikordatum']) AND $_REQUEST['mikordatum'] != '') {
+            $mikordatum = $_REQUEST['mikordatum'];
             $hourFrom = ( isset($_REQUEST['mikortol']) and $_REQUEST['mikortol'] != '') ? $_REQUEST['mikortol'] : '00:00';
             $hourTo = "23:59";
-            $search->timeRange($mikordatum."T".$hourFrom.":00", $mikordatum."T".$hourTo.":00");
-        } else 
-            $search->timeRange(date('Y-m-d')."T00:00", date('Y-m-d',strtotime("+ 6 days"))."T23:59");
+            $from = $mikordatum."T".$hourFrom.":00";
+            $until = $mikordatum."T".$hourTo.":00";
+        } else {
+            $from = date('Y-m-d')."T00:00:00";
+            $until = date('Y-m-d',strtotime("+ 6 days"))."T23:59:00";
+        }
+        $search->timeRange($from, $until);
+        $api = new \ExternalApi\NapilelkibatyuApi();
+        $this->liturgicalDays = $api->getLiturgicalDaysInRange($from, $until);
+                   
         // Languages
         $nyelv = isset($_REQUEST['nyelv']) ? $_REQUEST['nyelv'] : false;        
         if (!empty($nyelv)) {
@@ -151,15 +160,23 @@ class SearchResultsMasses extends Html {
         $offset = $this->pagination->take * $this->pagination->active;
         $limit = $this->pagination->take;     	        
         $results = $search->getResults($offset, $limit, false);
-                
-                        
+                                        
         if ($search->total != 0) {                   
             foreach ($results as &$result) {
-                $result->church = \Eloquent\Church::find($result->church_id)->toArray();       
+                $church = \Eloquent\Church::find($result->church_id);
+                $result->church = $church->toArray();       
+                //$result->rrule = $church->getGeneratedMassRRulesAttribute();
                 
+                $result->mass = \Eloquent\CalMass::find($result->mass_id)->toArray();
+                if($result->mass['rrule'])
+                    $rrule = new \SimpleRRule($result->mass['rrule']);
+                    $result->mass['rrule']['readable'] = $rrule->toText();
+                if(isset($result->mass['periodId'])) {
+                    $result->period = \Eloquent\CalPeriod::find($result->mass['periodId'])->toArray();                    
+                }
             }
-        }
-
+        }            
+           
         //Data for pagination
 		$params = [];
 		foreach( ['varos','tavolsag','hely','kulcsszo','tnyelv','espker','ehm','types','rites',

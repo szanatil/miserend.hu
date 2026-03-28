@@ -17,57 +17,154 @@ class NapilelkibatyuApi extends \ExternalApi\ExternalApi {
         $this->rawQuery = $this->query;        
     }
 	
+	function liturgicalDay($date = false) {
+		if($date == false)
+			$date = date('Y-m-d');
+				
+		$this->fetchApiData(date('Y'));
+		
+		if(!isset($this->jsonData->$date)) {
+			//throw new \Exception("There is no data for date '$date' from napilelkibatyu.");
+			return false;
+		}
+		
+		return $this->extractDateInfo();
+	}
+
+	/**
+	 * Get liturgical days for a date range
+	 * @param string $from ISO 8601 datetime string (e.g., "2026-03-28T00:00:00")
+	 * @param string $until ISO 8601 datetime string (e.g., "2026-04-03T23:59:00")
+	 * @return array Associative array with dates as keys and liturgical info as values
+	 */
+	function getLiturgicalDaysInRange($from, $until) {
+		// Parse ISO 8601 datetime strings to extract dates (YYYY-MM-DD)
+		$fromDate = explode('T', $from)[0];
+		$untilDate = explode('T', $until)[0];
+		
+		// Get start and end timestamps
+		$startTimestamp = strtotime($fromDate);
+		$endTimestamp = strtotime($untilDate);
+		
+		// Collect years to fetch
+		$yearsToFetch = [];
+		$currentDate = $startTimestamp;
+		while ($currentDate <= $endTimestamp) {
+			$year = date('Y', $currentDate);
+			if (!in_array($year, $yearsToFetch)) {
+				$yearsToFetch[] = $year;
+			}
+			$currentDate = strtotime('+1 day', $currentDate);
+		}
+		
+		// Fetch API data for all needed years
+		foreach ($yearsToFetch as $year) {
+			$this->fetchApiData($year);
+		}
+		
+		// Build result array
+		$result = [];
+		$currentDate = $startTimestamp;
+		while ($currentDate <= $endTimestamp) {
+			$dateStr = date('Y-m-d', $currentDate);
+			
+			if (isset($this->jsonData->$dateStr)) {
+				$result[$dateStr] = $this->extractDateInfo($dateStr);
+			}
+			
+			$currentDate = strtotime('+1 day', $currentDate);
+		}
+		
+		return $result;
+	}
+
 	function liturgicalAlert($date = false) {
 		if($date == false)
 			$date = date('Y-m-d');
 				
 		$nextDay = date('Y-m-d', strtotime($date . ' +1 day'));
 
-		$this->query = date('Y').".json";						
-		$this->run();
+		// Fetch API data
+		$this->fetchApiData(date('Y'));
 		
 		if(!isset($this->jsonData->$date)) {
-			throw new \Exception("There is no data for date '$date' from napilelkibatyu.");
+			//throw new \Exception("There is no data for date '$date' from napilelkibatyu.");
+			return false;
 		}
 
-		$isDateSunday = date('N', strtotime($date)) == 7;
-		$levelOfDate = $this->jsonData->$date->celebration[0]->level;
+		// Extract information for current date and next day
+		$dateInfo = $this->extractDateInfo($date);
+		$nextDayInfo = $this->extractDateInfo($nextDay);
+
+		// Check if we should render alert and return rendered output if yes
+		return $this->renderAlertIfNeeded($date, $nextDay, $dateInfo, $nextDayInfo);
+	}
+
+	/**
+	 * Fetch API data for the given year
+	 * @param string $year
+	 */
+	private function fetchApiData($year) {
+		$this->query = $year . ".json";
+		$this->run();
+	}
+
+	/**
+	 * Extract liturgical information for a given date
+	 * @param string $date
+	 * @return array
+	 */
+	private function extractDateInfo($date) {
+		$isSunday = date('N', strtotime($date)) == 7;
+		$level = $this->jsonData->$date->celebration[0]->level;
+		
 		// use the last celebration entry instead of the first (index 0)
 		$celebrations = $this->jsonData->$date->celebration;
 		if (is_array($celebrations) && count($celebrations) > 0) {
 			$lastCelebration = end($celebrations);
-			$nameOfDate = isset($lastCelebration->name) ? $lastCelebration->name : '';
+			$name = isset($lastCelebration->name) ? $lastCelebration->name : '';
 		} else {
-			$nameOfDate = '';
+			$name = '';
 		}
 		
-		$isNextDaySunday = date('N', strtotime($nextDay)) == 7;
-		$levelOfNextDay = $this->jsonData->$nextDay->celebration[0]->level;
-		$nameOfNextDay = $this->jsonData->$nextDay->celebration[0]->name;
-
-		//echo "Date: $date, Level: $levelOfDate, Is Sunday: " . ($isDateSunday ? 'Yes' : 'No') . ", Next Day: $nextDay, Level: $levelOfNextDay, Is Next Day Sunday: " . ($isNextDaySunday ? 'Yes' : 'No'). "<br/>\n";
-
-		if($levelOfDate <= 4 or $levelOfNextDay <= 4) {
-			global $twig;
-			global $_honapok;
-			return $twig->render('alert_liturgicalday.html', 
-				array(
-					'honapok' => $_honapok,
-					'date' => [
-						'date' => $date,
-						'name' => $nameOfDate,
-						'level' => $levelOfDate,
-						'isSunday' => $isDateSunday
-					],
-					'nextDay' => [
-						'date' => $nextDay,
-						'name' => $nameOfNextDay,
-						'level' => $levelOfNextDay,
-						'isSunday' => $isNextDaySunday
-					],
-				));
+		return [
+			'date' => $date,
+			'name' => $name,
+			'level' => $level,
+			'isSunday' => $isSunday
+		];
 	}
+
+	/**
+	 * Check if alert should be rendered and render if conditions are met
+	 * @param string $date
+	 * @param string $nextDay
+	 * @param array $dateInfo
+	 * @param array $nextDayInfo
+	 * @return bool|string
+	 */
+	private function renderAlertIfNeeded($date, $nextDay, $dateInfo, $nextDayInfo) {
+		if($dateInfo['level'] <= 4 || $nextDayInfo['level'] <= 4) {
+			return $this->renderAlert($dateInfo, $nextDayInfo);
+		}
 		return false;
+	}
+
+	/**
+	 * Render the liturgical alert template
+	 * @param array $dateInfo
+	 * @param array $nextDayInfo
+	 * @return string
+	 */
+	private function renderAlert($dateInfo, $nextDayInfo) {
+		global $twig;
+		global $_honapok;
+		return $twig->render('alert_liturgicalday.html',
+			array(
+				'honapok' => $_honapok,
+				'date' => $dateInfo,
+				'nextDay' => $nextDayInfo,
+			));
 	}
 }
 
