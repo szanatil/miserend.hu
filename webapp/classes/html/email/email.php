@@ -10,7 +10,7 @@ class Email extends \Html\Html {
         }
 
         $this->mail = new \Eloquent\Email();
-        if (isset($_REQUEST['send'])) {
+        if (\Request::Boolean('send')) {
             $this->send();
             $this->template = 'layout_simpliest.twig';
             $this->body = "Köszönjük, elküldtük.";

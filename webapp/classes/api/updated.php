@@ -50,8 +50,8 @@ class Updated extends Api {
 
         $this->format = isset($this->input['format']) ? $this->input['format'] : $this->fields['format']['default'];
 
-        if (isset($_REQUEST['date']) and preg_match('#^\d{4}-\d{2}-\d{2}$#',$_REQUEST['date'])) {
-            $this->date = $_REQUEST['date'];
+        if (\Request::Date('date')) {
+            $this->date = \Request::Date('date');
         } elseif (isset($this->input['date'])) {
            $this->date = $this->input['date'];
         } else {

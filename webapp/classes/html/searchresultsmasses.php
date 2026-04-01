@@ -12,23 +12,39 @@ class SearchResultsMasses extends Html {
         parent::__construct();
         global $user, $config;
 
-        $search = new \Search('masses', $_REQUEST);
-        if(isset($_REQUEST['timezone']) AND $_REQUEST['timezone'] != '') {
-            $search->timezone = $_REQUEST['timezone'];
+        $this->setTitle("Szentmise kereső");
+        $search = new \Search('masses');
+
+        //Data for pagination
+		$params = [
+            'q' => 'SearchResultsMasses',
+            'varos' => \Request::Text('varos'),
+            'tavolsag' => \Request::IntegerwDefault('tavolsag', 4),
+            'hely' => \Request::Text('hely'),
+            'kulcsszo' => \Request::Text('kulcsszo'),
+            'espker' => \Request::Integer('espker'),
+            'ehm' => \Request::Integer('ehm'),
+            'types' => \Request::ArrayArray('types'),  // Be aware: this is a nested array with rite keys, e.g. types[rite1][should], types[rite1][must_not], types[rite2][should], etc.
+            'rites' => \Request::StringArray('rites'), // Be aware: this is an array with 'should' and 'must_not' keys, e.g. rites[should], rites[must_not]
+            'mikordatum' => \Request::Text('mikordatum'),
+            'mikortol' => \Request::Text('mikortol'),
+            'lang' => \Request::StringArray('lang'), // Be aware: this is an array with 'should' and 'must_not' keys, e.g. lang[should], lang[must_not]
+            'timezone' => \Request::Text('timezone')
+        ];
+                
+        $search->timezone =  $params['timezone'];
+
+        // egyhazmegye filter
+        if ($params['ehm'] > 0) {
+            $ehmnev = DB::table('egyhazmegye')->where('id',$params['ehm'])->pluck('nev')[0];
+            $search->addMust(["wildcard" => ['church.egyhazmegye.keyword' => $ehmnev ]]);
+            $search->filters[] = "Egyházmegye: <b>" . htmlspecialchars($ehmnev) ." egyházmegye</b>";
         }
 
-        // Diocese filter
-        $ehm = isset($_REQUEST['ehm']) ? $_REQUEST['ehm'] : 0;
-        if ($ehm > 0) {
-            $ehmnev = DB::table('egyhazmegye')->where('id',$ehm)->pluck('nev')[0];
-            $search->addMust(["wildcard" => ['church.egyhazmegye.keyword' => $ehmnev ]]); 
-            $search->filters[] = "Egyházmegye: <b>" . htmlspecialchars($ehmnev) ." egyházmegye</b>";                              
-        }
-            
-        // nyelvek filter        
-        if(isset($_REQUEST['lang']) AND is_array($_REQUEST['lang'])) {
-            $langsShould = isset($_REQUEST['lang']['should']) ? array_filter(array_map('trim', explode(',', $_REQUEST['lang']['should']))) : [];
-            $langsMustNot = isset($_REQUEST['lang']['must_not']) ? array_filter(array_map('trim', explode(',', $_REQUEST['lang']['must_not']))) : [];
+        // nyelvek filter
+        if($params['lang']) {
+            $langsShould = isset($params['lang']['should']) ? array_filter(array_map('trim', explode(',', $params['lang']['should']))) : [];
+            $langsMustNot = isset($params['lang']['must_not']) ? array_filter(array_map('trim', explode(',', $params['lang']['must_not']))) : [];
 
             if (!empty($langsShould)) {
                 $search->languages($langsShould);                                              
@@ -41,16 +57,15 @@ class SearchResultsMasses extends Html {
             }
         }
         
-        
         // Main keyword search
-        if (isset($_REQUEST['kulcsszo']) AND $_REQUEST['kulcsszo'] != '') {            
-            $search->keyword($_REQUEST['kulcsszo']);
+        if ($params['kulcsszo']) {
+            $search->keyword($params['kulcsszo']);
         }
     
         // Time range search
-        if(isset($_REQUEST['mikordatum']) AND $_REQUEST['mikordatum'] != '') {
-            $mikordatum = $_REQUEST['mikordatum'];
-            $hourFrom = ( isset($_REQUEST['mikortol']) and $_REQUEST['mikortol'] != '') ? $_REQUEST['mikortol'] : '00:00';
+        if(isset($params['mikordatum']) AND $params['mikordatum'] != '') {
+            $mikordatum = $params['mikordatum'];
+            $hourFrom = ( isset($params['mikortol']) and $params['mikortol'] != '') ? $params['mikortol'] : '00:00';
             $hourTo = "23:59";
             $from = $mikordatum."T".$hourFrom.":00";
             $until = $mikordatum."T".$hourTo.":00";
@@ -63,8 +78,8 @@ class SearchResultsMasses extends Html {
         $this->liturgicalDays = $api->getLiturgicalDaysInRange($from, $until);
                                  
         // Process advanced rites/types filters (if provided)
-        $typesReq = isset($_REQUEST['types']) ? $_REQUEST['types'] : [];
-        $ritesReq = isset($_REQUEST['rites']) ? $_REQUEST['rites'] : [];
+        $typesReq = isset($params['types']) ? $params['types'] : [];
+        $ritesReq = isset($params['rites']) ? $params['rites'] : [];
 
         if (!empty($typesReq) || !empty($ritesReq)) {
             // 1) Handle rites.must_not - exclude these rites entirely
@@ -157,8 +172,6 @@ class SearchResultsMasses extends Html {
             
         }
 
-        $min = isset($_REQUEST['min']) ? $_REQUEST['min'] : 0;       
-		$leptet = isset($_REQUEST['leptet']) ? $_REQUEST['leptet'] : 25;	
         $offset = $this->pagination->take * $this->pagination->active;
         $limit = $this->pagination->take;     	        
         $results = $search->getResults($offset, $limit, false);
@@ -180,25 +193,13 @@ class SearchResultsMasses extends Html {
                 }
             }
         }            
-
-        //Data for pagination
-		$params = [];
-		foreach( ['varos','tavolsag','hely','kulcsszo','espker','ehm','types','rites',
-            'mikordatum', 'mikortol','zene','kor','ritus','lang'] as $param ) {
-		
-			if( isset($_REQUEST[$param]) AND $_REQUEST[$param] != ''  AND $_REQUEST[$param] != '0' ) {
-				$params[$param] = $_REQUEST[$param];
-			}
-		}
-		$params['q'] = 'SearchResultsMasses';
+       
         $url = \Pagination::qe($params, '/?' );
         $this->pagination->set($search->total, $url );
 
         $this->filters = $search->getFilters();
 
         $this->alert = (new \ExternalApi\NapilelkibatyuApi())->LiturgicalAlert(isset($mikordatum) ? $mikordatum : false);
-
-        $this->setTitle("Szentmise kereső");
                 
         $this->template = 'search/resultsmasses.twig';
         

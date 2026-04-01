@@ -61,7 +61,7 @@ class EditPhotos extends \Html\Html {
         global $user;
         $this->church->log .= "\nFotók: " . $user->login . " (" . date('Y-m-d H:i:s') . ")";
                
-        switch ($this->input['modosit']) {
+        switch (\Request::Simpletext('modosit')) {
             case 'n':
                 $this->redirect("/church/catalogue");
                 break;

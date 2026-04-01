@@ -50,6 +50,7 @@ $loader = new \Twig\Loader\FilesystemLoader(PATH . 'templates');
 $twig = new \Twig\Environment($loader);
 $twig->addFilter(new \Twig\TwigFilter('miserend_date', 'twig_hungarian_date_format'));
 $twig->addFilter(new \Twig\TwigFilter('trans', 'twig_translate'));
+$twig->addFilter(new \Twig\TwigFilter('floor', 'floor'));
 // DANGER: a twig declarálva van / meg van hívva a Class/Html/Html.php -ban is. Így ott is módosítani kellhet a filterket
 
 //

@@ -20,9 +20,11 @@ if (!headers_sent()) {
 class Generate extends \Html\Calendar\CalendarApi {
 
     protected $elastic;
+    public $format = 'json';
 
     public function __construct($path = false) {
-
+        $this->format = 'json';
+        parent::__construct($path);
         if($_SERVER['REQUEST_METHOD'] === false ) {
             return;            
         }   
@@ -32,13 +34,13 @@ class Generate extends \Html\Calendar\CalendarApi {
             $this->createMassIndex();            
         }
 
-        $this->tids = !empty($_GET['tids']) ? (is_array($_GET['tids']) ? $_GET['tids'] : [$_GET['tids']]) : [];
+        $this->tids = \Request::IntegerArrayRequired('tids');
         if (empty($this->tids)) {
             $this->sendJsonError('Nincs templom ID megadva.', 400);
             exit;
         }
 
-        $this->years = !empty($_GET['years']) ? (is_array($_GET['years']) ? $_GET['years'] : [$_GET['years']]) : [];
+        $this->years = \Request::IntegerArrayRequired('years');
         if (empty($this->years)) {
             $this->sendJsonError('Nincs év megadva.', 400);
             exit;
@@ -55,10 +57,8 @@ class Generate extends \Html\Calendar\CalendarApi {
                   // Itt egy keresés volt korábban, de úgy tűnt semmi nem használja. 
                   break;
                               
-            case 'PUT':
-                $years = is_array($this->years) ? $this->years : [$this->years];
-                
-                $debug = \ExternalApi\ElasticsearchApi::updateMasses($years, $this->tids);
+            case 'PUT':                                
+                $debug = \ExternalApi\ElasticsearchApi::updateMasses($this->years, $this->tids);
 
                 echo json_encode([
                     'success' => true,

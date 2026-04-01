@@ -9,13 +9,13 @@ class AutocompleteKeyword extends Ajax {
 	public $format = "json";
 
     public function __construct() {
-        $this->input = $_REQUEST;
+        $kulcsszo = \Request::Text('text');
 		// TODO: kezeljük azért valahogy, nehogy bajt csináljon!
 
 		$limit = 9;
 		
 		$return = [];
-		$results = searchChurches(['kulcsszo'=>$this->input['text']], 0, $limit);
+		$results = searchChurches(['kulcsszo'=>$kulcsszo], 0, $limit);
 		// FIXME for Issue #257
 		foreach ($results['results'] as $key => $result) {
 			$label = $result['nev']. " (";
@@ -24,13 +24,12 @@ class AutocompleteKeyword extends Ajax {
 			//$label .= " (score: ".$result['score'].")";
 
 			$return[] = ['label' => $label, 'value' => $result['nev'] . ' id:' . $result['id']];
-			
 		}
-	
-		if($results['sum'] > $limit ) {			
-			$return[] = ['label' => 'Van még további '.( $results['sum'] - $limit ).' találat ...', 'value' => $this->input['text']];
+
+		if($results['sum'] > $limit ) {
+			$return[] = ['label' => 'Van még további '.( $results['sum'] - $limit ).' találat ...', 'value' => $kulcsszo];
 		}
-		
+
 		$this->content = json_encode(array('results' => $return));
 		
 		return;

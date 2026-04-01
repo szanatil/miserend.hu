@@ -47,6 +47,7 @@ class Html {
         include_once('twig_extras.php');
         $this->twig->addFilter(new \Twig\TwigFilter('miserend_date', 'twig_hungarian_date_format'));
         $this->twig->addFilter(new \Twig\TwigFilter('trans', 'twig_translate'));
+        $this->twig->addFilter(new \Twig\TwigFilter('floor', 'floor'));
         // DANGER: a twig declarálva van / meg van hívva a Load.php -ban is. Így ott is módosítani kellhet a filterket
 
     }

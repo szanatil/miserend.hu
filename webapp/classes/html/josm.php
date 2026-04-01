@@ -8,7 +8,7 @@ class Josm extends Html {
 
     public function __construct($path) {
 
-        if (isset($_REQUEST['update'])) {
+        if (\Request::Boolean('update')) {
             set_time_limit('300');
             $cache = new \ExternalApi\OverpassApi();
             $cache->cache = '1 sec';

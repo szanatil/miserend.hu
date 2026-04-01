@@ -267,29 +267,39 @@ class Api {
         $dir = __DIR__ . '/';
         $files = scandir($dir);
         $result = [];
-        foreach ($files as $file) {
+        $filesIncluded = get_included_files();
+        
+        foreach ($files as $file) { 
+            if(in_array($dir . $file, $filesIncluded)) {
+                continue; // Skip files that are already included
+            }
             if (substr($file, -4) === '.php' && $file !== 'api.php') {
                 $before = get_declared_classes();
-                include_once($dir . $file);
+                try {
+                  include_once($dir . $file);
+                } catch (\Throwable $e) {                    
+                    throw new \Exception("Error including API endpoint file '$file'.");
+                } 
                 $after = get_declared_classes();
                 $new = array_diff($after, $before);
-                foreach ($new as $class) {
-                    $result[] = preg_replace('/^Api\\\/', '', $class);
+                if(count($new) == 0) {
+                    throw new \Exception("No new class found in API endpoint file '$file'.");
+                } else if(count($new) > 1) {
+                    throw new \Exception("Multiple new classes found in API endpoint file '$file'. This is not allowed.");
+                } else {  
+                    $class = preg_replace('/^Api\\\/', '', reset($new));                  
+                    if (strtolower($class).".php" != $file)
+                    {
+                        throw new \Exception("The class name '$class' in file '$file' does not match the expected format. The class name should be the same as the file name (without .php).");
+                    }
+                    
+                    $result[] = $class;
                 }
             }
         }
-
-        // Az Api osztály nem külön endpoint, ezért kivesszük a listából
-        if (($key = array_search('Api', $result)) !== false) {
-            unset($result[$key]);
-            $result = array_values($result);
-        }
-        
+                
         sort($result);
         return $result;
     }
 
-    public function getAlternativeUrlPatterns() {        
-        return isset($this->extraUri) ? $this->extraUri : [""];
-    }   
 }

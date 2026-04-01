@@ -68,7 +68,7 @@ class UploadImage extends Html {
 
     function ajax() {
         try {
-            $tid = $_POST['id'];
+            $tid = \Request::IntegerRequired('tid');
             if ($tid != $this->tid) {
                 throw new \Exception("The church.id of the page and the form are not the same.");
             }
@@ -77,7 +77,7 @@ class UploadImage extends Html {
             $photo->church_id = $this->church->id;
             $photo->uploadFile($_FILES["FileInput"]);
 
-            $photo->title = htmlspecialchars($_REQUEST['description']);
+            $photo->title = htmlspecialchars(\Request::Text('description'));
             $photo->save();
             
             // Set JSON response header

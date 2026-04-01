@@ -321,6 +321,7 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 
             $rrule = new \SimpleRRule($mass['rrule']);
             $occs = $rrule->getOccurrences();
+			echo "Talált időpontok száma: " . count($occs)."<br>\n";
 			//printr($occs); exit;
 			foreach($occs as $occ) {
 				$bulkInsert[] = [

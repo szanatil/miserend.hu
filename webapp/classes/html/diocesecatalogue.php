@@ -14,7 +14,7 @@ class DioceseCatalogue extends Html {
         }
 
         $this->title = "Templomok listája egyházmegyénként";
-        $ehm = !empty($_REQUEST['ehm']) ? $_REQUEST['ehm'] : 'false';
+        $ehm = \Request::Integer('ehm');
         
         $ehmsDB = DB::table('egyhazmegye')->where('ok','i')->orderBy('sorrend')->get();
         $this->ehms = $options = array();        

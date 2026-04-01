@@ -34,6 +34,7 @@ class Home extends Html {
             'kulcsszo' => array(
                 'name' => "kulcsszo",
                 'id' => 'keyword',
+                'value' => \Request::Text('kulcsszo'),
                 'size' => 20,
                 'class' => 'keresourlap',
                 'placeholder' => 'név, település, kulcsszó'),           
@@ -41,21 +42,23 @@ class Home extends Html {
                 'name' => "hely",
                 'size' => 20,
                 'id' => 'varos',
-                'class' => 'keresourlap'),
+                'class' => 'keresourlap',
+                'value' => \Request::Text('hely')
+            ),
             'tavolsag' => array(
                 'name' => "tavolsag",
                 'size' => 1,
                 'id' => 'tavolsag',
                 'class' => 'keresourlap',
-                'value' => 4)
+                'value' => \Request::IntegerwDefault('tavolsag',4)
+            )
         );
-        if($_REQUEST['kulcsszo']) $searchform['kulcsszo']['value'] = $_REQUEST['kulcsszo'];
-        if($_REQUEST['hely']) $searchform['hely']['value'] = $_REQUEST['hely'];
-        if($_REQUEST['tavolsag']) $searchform['tavolsag']['value'] = $_REQUEST['tavolsag'];
-
+        
         $searchform['ehm'] = array(
             'name' => "ehm",
-            'class' => 'keresourlap');            						
+            'selected' => \Request::IntegerwDefault('ehm', 0),
+            'class' => 'keresourlap'
+        );
         $searchform['ehm']['options'][0] = 'mindegy';
         
         $egyhmegyes = DB::table('egyhazmegye')
@@ -65,9 +68,7 @@ class Home extends Html {
                     ->get();
                     foreach ($egyhmegyes as $egyhmegye) {
                         $searchform['ehm']['options'][$egyhmegye->id] = $egyhmegye->nev;
-                    }
-        if(isset($_REQUEST['ehm']) AND $_REQUEST['ehm'] != '') $searchform['ehm']['selected'] = $_REQUEST['ehm'];
-                       
+                    }                               
         
         //Mikor
         $mainap = date('w');

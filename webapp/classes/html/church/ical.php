@@ -33,7 +33,7 @@ class Ical extends \Html\Html {
         $ical = $this->generateIcal($massPeriods, $church, $tid);
 
         // Output headers for .ics
-        if(!isset($_GET['text'])) {
+        if(!\Request::Boolean('text')) {
             header('Content-Type: text/calendar; charset=utf-8');
             header('Content-Disposition: inline; filename="miserend_church_' . $tid . '.ics"');
         }

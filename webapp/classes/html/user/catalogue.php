@@ -26,15 +26,15 @@ class Catalogue extends \Html\Html {
         $this->buildQuery();
 	
 		$maxResults = count($this->query->get());
-		
+
 		//Data for pagination
-		$params = [];
-		foreach( ['kulcsszo','sort','adminok','take'] as $param ) {		
-			if( isset($_REQUEST[$param]) AND $_REQUEST[$param] != ''  AND $_REQUEST[$param] != '0' ) {
-				$params[$param] = $_REQUEST[$param];
-			}
-		}
-		$params['q'] = 'user/catalogue';
+        $params = [
+            'q' => 'user/catalogue',
+            'kulcsszo' => $this->input['kulcsszo'],
+            'sort' => $this->input['sort'],
+            'adminok' => $this->input['adminok']
+        ];
+
         $url = \Pagination::qe($params, '/?' );
         $this->pagination->set($maxResults, $url );
 		        

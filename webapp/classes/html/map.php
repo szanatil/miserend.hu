@@ -8,11 +8,12 @@ class Map extends Html {
     public function __construct() {
         $this->setTitle("OSM Térkép");
 
-        if (isset($_REQUEST['tid']) AND is_numeric($_REQUEST['tid'])) {
-            $church = \Eloquent\Church::find($_REQUEST['tid']);
-            
+        $tid = \Request::Integer('tid');
+        if ($tid) {
+            $church = \Eloquent\Church::find($tid);
+
             $this->location = $church->location;
-            $this->church_id = $_REQUEST['tid'];   
+            $this->church_id = $tid;
         }
         
         if(isset($_REQUEST['map'])) {

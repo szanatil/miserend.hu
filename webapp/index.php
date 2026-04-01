@@ -21,8 +21,8 @@ try {
     $action = \Request::Text('q');
     $path = new Path($action);
 
-    if ($path->url == 'home' AND isset($_REQUEST['templom'])) {
-        $path = new Path('templom/' . $_REQUEST['templom']);
+    if ($path->url == 'home' AND \Request::Integer('templom') > 0) {
+        $path = new Path('templom/' . \Request::Integer('templom'));
     }
 
     $class = $path->className;

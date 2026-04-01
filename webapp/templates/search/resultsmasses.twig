@@ -54,7 +54,7 @@
                     {% endif %}
                     <tr>
                         <td class="align-middle">                           
-                            <span class="badge badge-primary" >{{ result.start_date|date('H:i') }}</span>
+                            <span class="badge badge-primary">{{ "%02d:%02d"|format((result.start_minutes / 60)|floor, (result.start_minutes % 60)) }}</span>
                         </td>
 
                         <td class="align-middle">

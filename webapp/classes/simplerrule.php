@@ -17,11 +17,14 @@ class SimpleRRule
     private $byWeekNo;
     private $exDate;
     private $debugCallback;
+    private $timezone;
 
-    public function __construct(array $rrule, callable $debugCallback = null)
+
+    public function __construct(array $rrule, callable $debugCallback = null, string $timezone = 'Europe/Budapest')
     {
-        $this->start      = Carbon::parse($rrule['dtstart']);
-        $this->until      = !empty($rrule['until']) ? Carbon::parse($rrule['until']) : null;
+        $this->timezone   = $timezone;
+        $this->start      = Carbon::parse($rrule['dtstart'], $this->timezone);
+        $this->until      = !empty($rrule['until']) ? Carbon::parse($rrule['until'], $this->timezone) : null;
         $this->count      = $rrule['count'] ?? null;
         $this->freq       = strtoupper($rrule['freq'] ?? 'DAILY');
         $this->interval   = $rrule['interval'] ?? 1;
@@ -78,10 +81,28 @@ class SimpleRRule
             'bySetpos'  => $this->bySetpos,
         ]);
 
-        while (
-            (!$this->count || $generated < $this->count) &&
-            (!$this->until || $current->lte($this->until))
-        ) {
+        $maxIterationsPerFreq = [
+            'DAILY' => 100000,
+            'WEEKLY' => 10000,
+            'MONTHLY' => 2000,
+            'YEARLY' => 3  // Limit to 3 iterations to support count up to 3
+        ];
+        $iterations = 0;
+        $maxIterations = $maxIterationsPerFreq[$this->freq] ?? 10000;
+        
+        while (true) {
+            // Check if we should stop
+            if ($this->count !== null && $generated >= $this->count) {
+                break;
+            }
+            if ($this->until && $current->gt($this->until)) {
+                break;
+            }
+            // Safety check: prevent infinite loops with iteration limit
+            if (++$iterations > $maxIterations) {
+                break;
+            }
+            
             switch ($this->freq) {
                 case 'DAILY':
                     // Ha van BYDAY, akkor csak a megadott napokon generálunk
@@ -95,7 +116,8 @@ class SimpleRRule
                             'generated' => $generated
                         ]);
                     }
-                    $current->addDays($this->interval);
+                    // Use addDay on a clone to avoid timezone issues with direct mutation
+                    $current = $current->copy()->addDays($this->interval)->setTimezone($this->timezone);
                     break;
 
                 case 'WEEKLY':
@@ -104,14 +126,19 @@ class SimpleRRule
 
                     // ha van megadva byWeekNo, és az aktuális hét száma nincs benne, akkor ugorjuk át
                     if (!empty($this->byWeekNo) && !in_array((int)$weekStart->format('W'), $this->byWeekNo, true)) {
-                        $current->addWeeks($this->interval);
+                        $current = $weekStart->copy()->addWeeks($this->interval)->setTimezone($this->timezone);
                         break;
                     }
 
-                    foreach ($this->byWeekday as $weekday) {
-                        $occurrence = $weekStart->copy()->addDays($weekday - 1)
-                            ->setTimeFrom($this->start);
-
+                    // Ha nincs BYDAY megadva, akkor az indulás napját használjuk
+                    $weekdaysToProcess = !empty($this->byWeekday) ? $this->byWeekday : [($this->start->dayOfWeek === 0 ? 7 : $this->start->dayOfWeek)];
+                    
+                    foreach ($weekdaysToProcess as $weekday) {
+                        // Create occurrence by first getting the date, then explicitly setting time components
+                        // This avoids DST issues by not relying on setTimeFrom() after date arithmetic
+                        $occurrence = $weekStart->copy()->addDays($weekday - 1);
+                        $occurrence->setTime($this->start->hour, $this->start->minute, $this->start->second, 0);
+                        $occurrence->setTimezone($this->timezone); // Ensure timezone is consistent
                         if ($occurrence->gte($current->copy()->startOfWeek()) &&
                             $occurrence->lte($current->copy()->endOfWeek()) &&
                             (!$this->until || $occurrence->lte($this->until)) &&
@@ -127,7 +154,7 @@ class SimpleRRule
                             ]);
                         }
                     }
-                    $current = $weekStart->copy()->addWeeks($this->interval);
+                    $current = $weekStart->copy()->addWeeks($this->interval)->setTimezone($this->timezone); 
                     break;
 
                 case 'MONTHLY':
@@ -146,13 +173,16 @@ class SimpleRRule
                                     throw new Exception("Unsupported BYSETPOS value: {$this->bySetpos}");
                                 }
                                 // pySetpos 5 esetén gyarkan előfordulhat, hogy nincs ilyen nap a hónapban
-                                if($occurrence)                                
-                                    $occurrence->setTimeFrom($this->start);
+                                if($occurrence) {
+                                    $occurrence->setTime($this->start->hour, $this->start->minute, $this->start->second, 0);
+                                    $occurrence->setTimezone($this->timezone); // Ensure timezone is consistent
+                                }
 
                             } else {
                                 // Ha nincs BYSETPOS → alapértelmezés: első ilyen nap
-                                $occurrence = $monthStart->copy()->nthOfMonth(1, $weekdayMap[$weekday])
-                                    ->setTimeFrom($this->start);
+                                $occurrence = $monthStart->copy()->nthOfMonth(1, $weekdayMap[$weekday]);
+                                $occurrence->setTime($this->start->hour, $this->start->minute, $this->start->second, 0);
+                                $occurrence->setTimezone($this->timezone); // Ensure timezone is consistent
                             }
 
                             if ($occurrence &&
@@ -169,6 +199,8 @@ class SimpleRRule
                                 ]);
                             }
                         }
+                        // For BYDAY case, move to start of next month interval
+                        $current = $current->copy()->addMonths($this->interval)->startOfMonth()->setTimezone($this->timezone);  
                     } else {
                         // Nincs BYDAY → simán ugyanaz a nap minden hónapban
                         $occurrence = $current->copy();
@@ -181,25 +213,36 @@ class SimpleRRule
                                 'generated' => $generated
                             ]);
                         }
+                        // For no-BYDAY case, just add months without resetting time/day
+                        $current = $current->copy()->addMonths($this->interval)->setTimezone($this->timezone);
                     }
-                    $current->addMonths($this->interval)->startOfMonth();
                     break;
                 
                 case 'YEARLY':
                     // Éves ismétlődés: csak byMonth és byMonthDay tömbök alapján generálunk konkrét dátumokat
-                    $months = !empty($this->byMonth) ? $this->byMonth : [$current->month];
-                    $days = !empty($this->byMonthDay) ? $this->byMonthDay : [$current->day];
+                    // Use start date's month/day when not explicitly specified to avoid changing them across years
+                    $months = !empty($this->byMonth) ? $this->byMonth : [$this->start->month];
+                    $days = !empty($this->byMonthDay) ? $this->byMonthDay : [$this->start->day];
 
+                    $yearToProcess = (int)$current->year;
+                    
+                    // Generate all valid date combinations for this year
                     foreach ($months as $m) {
+                        if ($this->count && $generated >= $this->count) break; // Early exit if count reached
                         foreach ($days as $d) {
+                            if ($this->count && $generated >= $this->count) break; // Early exit if count reached
+                            
                             $m = (int)$m; $d = (int)$d;
                             // Ellenőrizzük, hogy létezik-e ilyen nap az adott évben
-                            if (!checkdate($m, $d, (int)$current->year)) {
+                            if (!checkdate($m, $d, $yearToProcess)) {
                                 continue;
                             }
 
                             try {
-                                $occurrence = Carbon::create($current->year, $m, $d, $this->start->hour, $this->start->minute, $this->start->second, $this->start->getTimezone());
+                                // Create date without time first, then set time explicitly to avoid DST issues
+                                $occurrence = Carbon::createFromDate($yearToProcess, $m, $d, $this->timezone);
+                                $occurrence->setTime($this->start->hour, $this->start->minute, $this->start->second, 0);
+                                $occurrence->setTimezone($this->timezone); // Ensure timezone is consistent
                             } catch (Exception $e) {
                                 continue;
                             }
@@ -216,16 +259,12 @@ class SimpleRRule
                                     'generated' => $generated
                                 ]);
                             }
-
-                            // ha elértük a count limitet, hagyjuk abba a további generálást
-                            if ($this->count && $generated >= $this->count) {
-                                break 2;
-                            }
                         }
                     }
 
                     // Tovább lépünk az év intervallumával
-                    $current->addYears($this->interval)->startOfYear();
+                    // Simply advance by the interval - this preserves month and day
+                    $current = $current->copy()->addYears($this->interval)->setTimezone($this->timezone);
                     break;
 
                 default:

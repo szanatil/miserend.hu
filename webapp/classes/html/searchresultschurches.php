@@ -12,32 +12,38 @@ class SearchResultsChurches extends Html {
         parent::__construct();
         global $user, $config;
 
-        $this->input = $_REQUEST;
-
         $this->setTitle('Templom keresése');
 
+        //Data for pagination        
+		$params = [
+            'q' => 'SearchResultsChurches',
+            'kulcsszo' => \Request::Text('kulcsszo'),
+            'lang' => \Request::StringArray('lang'),
+            'ehm' => \Request::IntegerwDefault('ehm', 0)
+        ];
+                        
         $search = new \Search('churches');
         
         // Main keyword search
-        if (isset($this->input['kulcsszo'])) {
-            $search->keyword($this->input['kulcsszo']);    
-            $this->form['kulcsszo']['value'] = $this->input['kulcsszo'];        
+        if (isset($params['kulcsszo'])) {
+            $search->keyword($params['kulcsszo']);
+            $this->form['kulcsszo']['value'] = $params['kulcsszo'];
         } else {
              $this->form['kulcsszo']['value'] = '';
         }
-    
-        // Diocese filter		
-        $ehm = isset($_REQUEST['ehm']) ? $_REQUEST['ehm'] : 0;
-        if ($ehm > 0) {
-            $ehmnev = DB::table('egyhazmegye')->where('id',$ehm)->pluck('nev')[0];
-            $search->addMust(["wildcard" => ['egyhazmegye.keyword' => $ehmnev ]]); 
-            $search->filters[] = "Egyházmegye: <b>" . htmlspecialchars($ehmnev) ." egyházmegye</b>";                              
+
+        // Diocese filter
+        if ($params['ehm'] > 0) {
+            $ehmnev = DB::table('egyhazmegye')->where('id',$params['ehm'])->pluck('nev')[0];
+            $search->addMust(["wildcard" => ['egyhazmegye.keyword' => $ehmnev ]]);
+            $search->filters[] = "Egyházmegye: <b>" . htmlspecialchars($ehmnev) ." egyházmegye</b>";
         }
 
         // nyelvek filter
-        if(isset($_REQUEST['lang']) AND is_array($_REQUEST['lang'])) {
-            $langsShould = isset($_REQUEST['lang']['should']) ? array_filter(array_map('trim', explode(',', $_REQUEST['lang']['should']))) : [];
-            $langsMustNot = isset($_REQUEST['lang']['must_not']) ? array_filter(array_map('trim', explode(',', $_REQUEST['lang']['must_not']))) : [];
+        $lang = $params['lang'];
+        if (!empty($lang)) {
+            $langsShould = isset($lang['should']) ? array_filter(array_map('trim', explode(',', $lang['should']))) : [];
+            $langsMustNot = isset($lang['must_not']) ? array_filter(array_map('trim', explode(',', $lang['must_not']))) : [];
 
             if (!empty($langsShould)) {
                 $search->addMust([ 'terms' => ['nyelvek' => $langsShould] ]);
@@ -59,14 +65,8 @@ class SearchResultsChurches extends Html {
         $results['results'] = $search->getResults($offset, $limit, false);                
         $resultsCount = $search->total;
                 		
-        //Data for pagination
-		$params = [];
-        $params['q'] = 'SearchResultsChurches';
-		foreach( ['kulcsszo', 'lang','ehm'] as $param ) {
-			if( isset($_REQUEST[$param]) AND $_REQUEST[$param] != ''  AND $_REQUEST[$param] != '0' ) {
-				$params[$param] = $_REQUEST[$param];
-			}
-		}		
+        
+
         $url = \Pagination::qe($params, '/?' );
         $this->pagination->set($resultsCount, $url );
 

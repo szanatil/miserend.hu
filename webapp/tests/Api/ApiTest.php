@@ -7,15 +7,26 @@ require_once __DIR__ . '/../../classes/MockPhpInputStreamWrapper.php';
 
 class ApiTest extends TestCase {
 
+    protected array $testFilesCreated = [];
+
     protected function setUp(): void {
         parent::setUp();
         // Mock $_REQUEST for version parameter
         $_REQUEST = [];
+        // Initialize test file tracking
+        $this->testFilesCreated = [];
     }
 
     protected function tearDown(): void {
         parent::tearDown();
         $_REQUEST = [];
+        // Clean up any test files created during the test
+        foreach ($this->testFilesCreated as $filePath) {
+            if (file_exists($filePath)) {
+                unlink($filePath);
+            }
+        }
+        $this->testFilesCreated = [];
     }
 
     // Version validation tests
@@ -541,4 +552,79 @@ class ApiTest extends TestCase {
         MockPhpInputStreamWrapper::restorePhpInput();        
     }
 
+    // Test for collectApiEndpoints()
+    
+    public function testCollectApiEndpointsReturns() {
+        $api = new Api();
+        $endpoints = $api->collectApiEndpoints();
+        
+        // Ensure the base Api class itself is not returned as an endpoint
+        $this->assertIsArray($endpoints);
+        $this->assertNotEmpty($endpoints);
+    }
+
+    public function testCollectApiEndpointsReadFileWithError() {
+         $filePath = __DIR__ . '/../../classes/api/test.php';
+         file_put_contents($filePath, '<?php valami namespace Api; class Church extends Api {  }'); // Create a test file with invalid PHP code
+         $this->testFilesCreated[] = $filePath;
+
+         $this->expectException(\Exception::class);
+         $this->expectExceptionMessage('Error including API endpoint file \'test.php\'.');
+         $api = new Api();
+         $endpoints = $api->collectApiEndpoints();
+     }
+
+    public function testCollectApiEndpointsReadFileWithNoClass() {
+         $filePath = __DIR__ . '/../../classes/api/test2.php';
+         file_put_contents($filePath, '<?php namespace Api; function Test2() { }');
+         $this->testFilesCreated[] = $filePath;
+
+         $this->expectException(\Exception::class);
+         $this->expectExceptionMessage('No new class found in API endpoint file \'test2.php\'.');
+         $api = new Api();
+         $endpoints = $api->collectApiEndpoints();
+     }
+
+        public function testCollectApiEndpointsReadFileWithMultipleClass() {
+         $filePath = __DIR__ . '/../../classes/api/test3.php';
+         file_put_contents($filePath, '<?php namespace Api; class Test3 extends Api {  } class Test3b extends Api {  } ');
+         $this->testFilesCreated[] = $filePath;
+
+         $this->expectException(\Exception::class);
+         $this->expectExceptionMessage('Multiple new classes found in API endpoint file \'test3.php\'. This is not allowed.');
+         $api = new Api();
+         $endpoints = $api->collectApiEndpoints();
+     }
+
+    public function testCollectApiEndpointsNewTestApi() {
+        $filePath = __DIR__ . '/../../classes/api/test4.php';
+        file_put_contents($filePath, '<?php namespace Api; class Test4 extends Api { }'); // Create a test file with a valid API endpoint
+        $this->testFilesCreated[] = $filePath;
+
+        $api = new Api();
+        $endpoints = $api->collectApiEndpoints();
+        
+        // Ensure the new test API endpoint is included
+        $this->assertContains('Test4', $endpoints);
+    }
+
+    public function testCollectApiEndpointsNewTestApiWithBadName() {
+        $filePath = __DIR__ . '/../../classes/api/test5.php';
+        file_put_contents($filePath, '<?php namespace Api; class Test5b extends Api { }'); // Create a test file with a valid API endpoint
+        $this->testFilesCreated[] = $filePath;
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('The class name \'Test5b\' in file \'test5.php\' does not match the expected format. The class name should be the same as the file name (without .php).');
+        $api = new Api();
+        $endpoints = $api->collectApiEndpoints();
+    }
+
+    // Az "Api" nevű endpointot nem szabad visszaadni, mivel az maga az alap osztály, nem egy külön API endpoint
+    public function testCollectApiEndpointsNoApi() {
+        $api = new Api();
+        $endpoints = $api->collectApiEndpoints();
+        
+        // Ensure the base Api class itself is not returned as an endpoint
+        $this->assertNotContains('Api', $endpoints);
+    }
 }
