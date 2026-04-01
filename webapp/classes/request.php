@@ -198,7 +198,7 @@ class Request {
         $value = self::get($name);
         if (!$value) return false;
         
-        if (!is_bool($value) && $value !== '1' && $value !== '0' && $value !== 1 && $value !== 0 && $value !== 'true' && $value !== 'false') {
+        if (!is_bool($value) && $value !== '1' && $value !== '0' && $value !== 1 && $value !== 0 && $value !== 'true' && $value !== 'false' && $value !== '') {
             throw new Exception("'$name' is not a Boolean.");
         }
         

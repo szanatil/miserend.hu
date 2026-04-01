@@ -9,8 +9,8 @@ class Email extends \Html\Html {
             throw new \Exception("Nincs jogod levélküldéshez.");
         }
 
-        $this->mail = new \Eloquent\Email();
-        if (\Request::Boolean('send')) {
+        $this->mail = new \Eloquent\Email();        
+        if (\Request::text('send') == 'Küldés') {
             $this->send();
             $this->template = 'layout_simpliest.twig';
             $this->body = "Köszönjük, elküldtük.";
