@@ -10,8 +10,14 @@ class NapilelkibatyuApi extends \ExternalApi\ExternalApi {
     public $apiUrl = "https://szentjozsefhackathon.github.io/napi-lelki-batyu/" ;    
 	public $format = 'json';
 	public $cache = "1 week"; //false or any time in strtotime() format
-	public $testQuery = '';
-    
+	public $testQuery = false;
+
+	function __construct()
+	{
+		$this->testQuery = date('Y-m-d') . ".json";
+		parent::__construct();
+	}
+
     function buildQuery() {
         global $config;
         $this->rawQuery = $this->query;        

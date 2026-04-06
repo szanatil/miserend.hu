@@ -282,20 +282,9 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 			return;
 		}
 
-		$elastic = new \ExternalApi\ElasticsearchApi();		
-		// Delete existing masses for the given church IDs		
-		$elastic->curl_setopt(CURLOPT_CUSTOMREQUEST, "POST");
-		$elastic->buildQuery('mass_index/_delete_by_query', json_encode([
-			"conflicts" => "proceed",
-			"query" => [
-				"terms" => ["church_id" => $tids]
-			]
-		]));
-		$elastic->run();
-		if(isset($elastic->error)) {			
-			throw new \Exception("Could not delete existing masses!\n" . $elastic->error);
-		}
-		
+		$elastic = new \ExternalApi\ElasticsearchApi();
+		$elastic->deleteMasses($tids); //Sajnos egyszerre törlük több templomét, de ha aztán a legenárálás elhasal valamelyiknél, akkor elvesztettünk csomót.				
+
 		$churchTimezones = [];		
 		$churches = \Eloquent\Church::whereIn('id', $tids)->get()->keyBy('id');
 		foreach($churches as $church_id => $church) {
@@ -373,5 +362,49 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 		echo "Elkészült a frissítés " . (time() - $startTime) . " másodperc alatt azaz ".round((time() - $startTime)/60,2)." perc alatt.<br>\n";
 		return $debug;
 	}
-	
+
+	function deleteMasses($tids = []) {
+		
+		// Delete existing masses for the given church IDs		
+		$this->curl_setopt(CURLOPT_CUSTOMREQUEST, "POST");
+		$this->buildQuery('mass_index/_delete_by_query', json_encode([
+			"conflicts" => "proceed",
+			"query" => [
+				"terms" => ["church_id" => $tids]
+			]
+		]));
+		$this->run();
+		if(isset($this->error)) {			
+			throw new \Exception("Could not delete existing masses!\n" . $this->error);
+		}
+		
+		return true;		
+	}
+
+	function churchIdsWithMassesInPeriod($startDate, $endDate) {
+		$this->curl_setopt(CURLOPT_CUSTOMREQUEST, "GET");
+		$this->buildQuery('mass_index/_search', json_encode([
+			"size" => 0,
+			"query" => [
+				"range" => ["start_date" => [
+					"gte" => $startDate, 
+					"lte" => $endDate
+				]]
+			],
+			"aggs" => [
+				"churches_with_masses_in_period" => [
+					"terms" => ["field" => "church_id", "size" => 10000]
+				]
+			]
+		]));
+		$this->run();
+		if($this->responseCode != 200) {
+			throw new \Exception("Could not search mass_index!\n".$this->error);
+		}
+				
+		return array_map(function($bucket) {
+			return $bucket->key;
+		}, $this->jsonData->aggregations->churches_with_masses_in_period->buckets);
+	}
+
 }

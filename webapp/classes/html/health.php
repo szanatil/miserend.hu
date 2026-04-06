@@ -111,7 +111,10 @@ class Health extends Html {
 		if(isset($elastic->jsonData))
 			$this->elasticsearch = $elastic->jsonData;
 
-
+		$ids = $elastic->churchIdsWithMassesInPeriod(date('Y-01-01'), date('Y-12-31'));
+		$this->churchesWithNoElasticMasses = \Eloquent\Church::whereNotIn('id', $ids)->has('massrules')->get()->toArray();
+		$this->churchesWithNoElasticMassesCount = count($this->churchesWithNoElasticMasses);
+		
 		// Health of ExternalApis
 		$this->externalapis = [];		
 		$apisToTest = \ExternalApi\ExternalApi::collectExternalApis();
