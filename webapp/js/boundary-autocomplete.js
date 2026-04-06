@@ -283,7 +283,14 @@ const BoundaryAutocomplete = (function() {
      * Fetch autocomplete results from API
      */
     function fetchAutocomplete(inputField, text) {
-        const url = state.apiUrl + '?text=' + encodeURIComponent(text);
+        // Build URL with text parameter
+        let url = state.apiUrl + '?text=' + encodeURIComponent(text);
+        
+        // Add excluded_ids parameter - already selected boundaries should not appear again
+        if (state.selectedBoundaries.length > 0) {
+            const excludedIds = state.selectedBoundaries.map(b => b.id).join(',');
+            url += '&excluded_ids=' + encodeURIComponent(excludedIds);
+        }
 
         fetch(url)
             .then(response => response.json())
