@@ -15,6 +15,9 @@ class ExternalApi {
 	public $strictFormat = true; // if rawData not in XML/JSON format throw new \Exception
 	private $curl_opts = [];
 	
+    function __construct() {
+        
+    }
 
     function run() {
         $this->runQuery();
@@ -37,7 +40,10 @@ class ExternalApi {
                 $this->downloadData();
             }
 
-            if ($this->cache) {
+            // Ha a cache be van kapcsolva, akkor szeretnénk elmenteni a letöltött adatokat.
+            // De pl. az overpass API-nál gyakori az 503, ha túlterhelt, és ilyenkor nem szeretnénk elmenteni a cache-be a hibás választ.
+            // Viszont pl. a kozossegek.hu talán 404-et ad vissza sokszor, ha nem találja a keresett adatot, és ezeket a cache-be menteni szeretnénk, hogy ne kelljen újra lekérdezni az API-t.
+            if ($this->cache AND ( isset($this->responseCode) && !in_array($this->responseCode, [503, 504]) ) ) {
                 $this->saveToCache();
             }
             

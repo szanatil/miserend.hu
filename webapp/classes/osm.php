@@ -10,6 +10,7 @@ class OSM {
      */
 
     function checkBoundaries($limit = 50) {
+        $this->deleteOrphanBoundaries();
 
         $churches = \Eloquent\Church::where('ok','i')->where('lat','<>','')
                 ->doesntHave('boundaries')
@@ -30,14 +31,74 @@ class OSM {
                 $churches[] = \Eloquent\Church::find($result->church_id);
             }
         }
+        
         /**/
-        foreach($churches as $church) {    
-            $church->MdownloadOSMBoundaries();            
-            $church->MmigrateBoundaries();            
+        foreach($churches as $church) {
+            $this->checkBoundariesForOne($church);
         }
-                
+
+    }
+
+    function checkBoundariesForOne($church) {
+        $boundaries = $this->downloadBoundaries($church->lat, $church->lon);
+        if($boundaries AND count($boundaries) < 1) return;            
+        $church->boundaries()->sync($boundaries);
+        $church->MmigrateBoundaries();
     }
     
+    function deleteOrphanBoundaries() {
+        $boundaries = \Eloquent\Boundary::doesntHave('churches')->get();
+        foreach($boundaries as $boundary) {
+            $boundary->delete();
+        }
+    }
+
+    static function downloadBoundaries($lat, $lon) {
+        $return = [];
+
+        try {
+            $overpass = new \ExternalApi\OverpassApi();
+            $overpass->downloadEnclosingBoundaries($lat, $lon); // Ha responseCode 503, akkor nem JSON a result és akkor elszállna, ezért a try-catch blokk
+        } catch (\Exception $e) {
+            addMessage("Hiba történt az OSM API lekérdezése során: " . $e->getMessage(), 'danger');
+            
+        }
+        
+        if(in_array($overpass->responseCode, [502, 503, 504])) {
+            //Az OSM API túlterhelt, ezért nem tudunk adatot lekérni. Ez nem a mi hibánk. Később újrapróbáljuk
+            //addMessage("Az OSM API jelenleg nem elérhető (HTTP $overpass->responseCode). Kérem próbálja meg később.", 'danger');
+            return;
+        }
+
+        if (!$overpass->jsonData->elements) {
+            printr($overpass);
+            throw new \Exception("Missing Json Elements from OverpassApi Query");
+            return;
+        }
+         
+        foreach($overpass->jsonData->elements as $element) {            
+            $boundary = \Eloquent\Boundary::firstOrNew(['osmtype' => $element->type, 'osmid' => $element->id]);
+            
+            $changed = false;
+            foreach ( array('boundary','admin_level','name','alt_name','denomination') as $key ) {
+                if(isset($element->tags->$key) AND $element->tags->$key != $boundary->$key ) {
+                    $boundary->$key = $element->tags->$key;
+                    $changed = true;
+                }                
+            }
+            if(isset($element->tags->{'name:hu'}) AND $element->tags->{'name:hu'} != $boundary->name) {
+                $boundary->name = $element->tags->{'name:hu'};
+                $changed = true;
+            }
+
+            $changed ? $boundary->save() : false;
+
+            $return[] = $boundary->id;
+        }
+        
+        return $return;
+    }
+
     /*
      * Az OSM-ből az url:miserend -es cuccok lekérése és a templomok azok 
      * alapján való mentése.

@@ -18,6 +18,7 @@ class SearchResultsChurches extends Html {
 		$params = [
             'q' => 'SearchResultsChurches',
             'kulcsszo' => \Request::Text('kulcsszo'),
+            'boundaries' => \Request::StringArray('boundaries', []),
             'lang' => \Request::StringArray('lang'),
             'ehm' => \Request::IntegerwDefault('ehm', 0)
         ];
@@ -31,7 +32,13 @@ class SearchResultsChurches extends Html {
         } else {
              $this->form['kulcsszo']['value'] = '';
         }
-
+        
+        // Boundaries' based search
+        if (!empty($params['boundaries'])) {
+            $search->boundaries($params['boundaries']);
+            $this->boundaryDataJson = json_encode(\Eloquent\Boundary::whereIn('id', $params['boundaries'])->get()->map->toSimpleArray());
+        }
+        
         // Diocese filter
         if ($params['ehm'] > 0) {
             $ehmnev = DB::table('egyhazmegye')->where('id',$params['ehm'])->pluck('nev')[0];

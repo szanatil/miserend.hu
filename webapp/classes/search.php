@@ -167,6 +167,35 @@ class Search {
                 
     }
 
+    function boundaries(array $boundaryIds) {
+        $boundaries = \Eloquent\Boundary::whereIn('id', $boundaryIds)->get()->map->toSimpleArray();
+        
+        // Build the filter message based on count
+        if (count($boundaries) === 1) {
+            $filterText = "A következő területen:";
+        } else {
+            $filterText = "A következő területek egyikén:";
+        }
+        
+        // Add badges for each boundary
+        $badges = [];
+        foreach ($boundaries as $boundary) {
+            $badges[] = '<span class="badge" style="background-color: ' . htmlspecialchars($boundary['color']) . ';" title="' . htmlspecialchars($boundary['type']) . '">' . htmlspecialchars($boundary['name']) . '</span>';
+        }
+        
+        $this->filters[] = $filterText . ' ' . implode(' ', $badges);
+        
+        if($this->massOrChurch === 'church') {
+            $field = "boundaries";
+        } else {
+            $field = "church.boundaries";
+        }
+
+        if (is_array($boundaryIds) && count($boundaryIds) > 0) {
+            $this->addMust([ 'terms' => [$field => $boundaryIds] ]);
+        }
+    }
+
     function languages(array $languageAbbrevs) {
         $this->addMust([ 'terms' => ['lang.keyword' => $languageAbbrevs] ]);                
         $translated = array_map(function($l){ return t('LANGUAGES.'.$l); }, $languageAbbrevs);

@@ -244,7 +244,8 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 			$bulkData[] = json_encode($church);
 		}
 		
-		if(empty($tids) AND !$elastic->putBulk($bulkData)) {
+		if(!$elastic->putBulk($bulkData)) {
+			
 			$errors = [];
 			foreach($elastic->jsonData->items as $item ) {
 				if(isset($item->index->error)) {					

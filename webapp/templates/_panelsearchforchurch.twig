@@ -4,7 +4,7 @@
 {% set panel = 'primary' %}
 
 {% block body %}
-    <form method=get>
+    <form method=get id="panel-search-church-form">
         <input type=hidden name=q value=SearchResultsChurches>
         <input type=hidden id=keresestipus name=keresestipus value=0>
         <style>
@@ -21,4 +21,18 @@
             </div>
         </div>
     </form>
+    <script>
+    (function() {
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof BoundaryAutocomplete !== 'undefined') {
+                var boundaryDataFromUrl = window.boundaryDataFromUrl || [];
+                BoundaryAutocomplete.init('#keyword', '#panel-search-church-form', boundaryDataFromUrl);
+            }
+        });
+    })();
+    </script>
+    <script>
+        // Inject boundary data from PHP backend           
+        window.boundaryDataFromUrl = {{ boundaryDataJson ? boundaryDataJson|raw : '[]' }};
+	</script>
 {% endblock %}

@@ -163,6 +163,68 @@ class Health extends Html {
 			}
 		}
 		
+		// Health of Boundaries
+		// 1. Boundaries átlagéletkora (updated_at), legfrissebb és legöregebb dátuma, amelyeknek van osmid és osmtype-ja
+		$boundariesWithOsm = DB::table('boundaries')
+			->whereNotNull('osmtype')
+			->whereNotNull('osmid')
+			->where('osmtype', '!=', '')
+			->where('osmid', '!=', 0)
+			->select(
+				DB::raw('COUNT(*) as count'),
+				DB::raw('AVG(DATEDIFF(NOW(), updated_at)) as avg_days_old'),
+				DB::raw('MAX(updated_at) as newest'),
+				DB::raw('MIN(updated_at) as oldest')
+			)
+			->first();
+		
+		$this->boundariesStats = [
+			'with_osm' => [
+				'count' => $boundariesWithOsm->count ?? 0,
+				'avg_days_old' => $boundariesWithOsm->avg_days_old ? round($boundariesWithOsm->avg_days_old, 2) : 0,
+				'newest' => $boundariesWithOsm->newest ?? 'N/A',
+				'oldest' => $boundariesWithOsm->oldest ?? 'N/A'
+			]
+		];
+		
+		// 2. Orphan boundaries száma (lookup_boundary_church-ben nincsen)
+		$orphanBoundaries = DB::table('boundaries')
+			->leftJoin('lookup_boundary_church', 'boundaries.id', '=', 'lookup_boundary_church.boundary_id')
+			->whereNull('lookup_boundary_church.church_id')
+			->count();
+		
+		$this->boundariesStats['orphan_count'] = $orphanBoundaries;
+		
+		// 3. Templomok száma, amiknek nincs olyan boundary, aminek van osmid és osmtype
+		$churchesWithoutOsmBoundary = DB::table('templomok')
+			->where('ok', 'i') // csak engedélyezett templomok
+			->whereNotExists(function($query) {
+				$query->select(DB::raw(1))
+					->from('lookup_boundary_church')
+					->join('boundaries', 'lookup_boundary_church.boundary_id', '=', 'boundaries.id')
+					->where('lookup_boundary_church.church_id', DB::raw('templomok.id'))
+					->whereNotNull('boundaries.osmtype')
+					->whereNotNull('boundaries.osmid')
+					->where('boundaries.osmtype', '!=', '')
+					->where('boundaries.osmid', '!=', 0);
+			})
+			->count();
+		
+		$this->boundariesStats['churches_without_osm_boundary'] = $churchesWithoutOsmBoundary;
+		
+		// 4. Templomok összes száma (engedélyezettekből)
+		$totalChurches = DB::table('templomok')
+			->where('ok', 'i')
+			->count();
+		
+		// Templomok with osm boundaries száma
+		$churchesWithOsmBoundary = $totalChurches - $churchesWithoutOsmBoundary;
+		
+		$this->boundariesStats['total_churches'] = $totalChurches;
+		$this->boundariesStats['churches_with_osm_boundary'] = $churchesWithOsmBoundary;
+		$this->boundariesStats['churches_with_osm_percentage'] = $totalChurches > 0 ? round(($churchesWithOsmBoundary / $totalChurches) * 100, 2) : 0;
+		$this->boundariesStats['churches_without_osm_percentage'] = $totalChurches > 0 ? round(($churchesWithoutOsmBoundary / $totalChurches) * 100, 2) : 0;
+		
 		// Health of Mailing
 		$this->emails = DB::table('emails')
 			->select('type', 'status', DB::raw('COUNT(*) as total'))

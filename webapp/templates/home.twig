@@ -32,6 +32,7 @@
             display: block;
         }
     </style>
+    <script src="/js/boundary-autocomplete.js"></script>
     
 {% endblock %}
 
@@ -719,14 +720,31 @@
 	</script>
 	
 	  <script src="/node_modules/jquery-ui/ui/i18n/datepicker-hu.js"></script>
-    <script>
-	$( function() {    
-        $('input.datepicker').datepicker({
-			regional: 'hu',
-            dateFormat: "yy-mm-dd"		
-        });
+	   <script>
+	$( function() {
+	       $('input.datepicker').datepicker({
+	  regional: 'hu',
+	           dateFormat: "yy-mm-dd"
+	       });
 	} );
-    </script>
+	   </script>
+
+	   <script>
+	       // Inject boundary data from PHP backend           
+	       window.boundaryDataFromUrl = {{ boundaryDataJson ? boundaryDataJson|raw : '[]' }};
+	   </script>
+
+	   <script>
+	   (function() {
+	       // Initialize boundary autocomplete for the keyword field
+	       document.addEventListener('DOMContentLoaded', function() {
+	           if (typeof BoundaryAutocomplete !== 'undefined') {
+	               var boundaryDataFromUrl = window.boundaryDataFromUrl || [];
+	               BoundaryAutocomplete.init('#keyword', '#kereses', boundaryDataFromUrl);
+	           }
+	       });
+	   })();
+	   </script>
 	
 {%  endblock %}
 

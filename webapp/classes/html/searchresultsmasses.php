@@ -18,6 +18,7 @@ class SearchResultsMasses extends Html {
         //Data for pagination
 		$params = [
             'q' => 'SearchResultsMasses',
+            'boundaries' => \Request::StringArray('boundaries', []),
             'varos' => \Request::Text('varos'),
             'tavolsag' => \Request::IntegerwDefault('tavolsag', 4),
             'hely' => \Request::Text('hely'),
@@ -31,9 +32,15 @@ class SearchResultsMasses extends Html {
             'lang' => \Request::StringArray('lang'), // Be aware: this is an array with 'should' and 'must_not' keys, e.g. lang[should], lang[must_not]
             'timezone' => \Request::Text('timezone')
         ];
-                
-        $search->timezone =  $params['timezone'];
 
+        if($params['timezone']) $search->timezone =  $params['timezone'];
+
+        // Boundaries' based search
+        if (!empty($params['boundaries'])) {
+            $search->boundaries($params['boundaries']);
+            $this->boundaryDataJson = json_encode(\Eloquent\Boundary::whereIn('id', $params['boundaries'])->get()->map->toSimpleArray());
+        }
+        
         // egyhazmegye filter
         if ($params['ehm'] > 0) {
             $ehmnev = DB::table('egyhazmegye')->where('id',$params['ehm'])->pluck('nev')[0];

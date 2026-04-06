@@ -6,6 +6,17 @@
     
 
 {% block content %}
+	<style>
+		.testresult-truncated {
+			cursor: pointer;
+			user-select: none;
+		}
+		.testresult-truncated.expanded {
+			overflow: visible !important;
+			text-overflow: clip !important;
+			white-space: normal !important;
+		}
+	</style>
     
 	<p>Az ellenőrzést kezdeményezte <a href="/user/{{ user.uid }}/edit">{{ user.login }}</a> vagyis {{ user.name }}.</p>
 	
@@ -98,11 +109,11 @@
 		</tr>
 		{% for externalapi in externalapis %}
 			<tr>
-				<td class="{% if externalapi.testresult != 'OK' %}table-danger{% endif %}">
+				<td class="text-truncate {% if externalapi.testresult != 'OK' %}table-danger{% endif %}">
 					{% if externalapi.testresult == 'OK' %}
 						<span class="badge bg-success">OK</span>
 					{% else %}
-						{{ externalapi.testresult }}
+						<span class="testresult-truncated" style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Click to expand">{{ externalapi.testresult }}</span>
 					{% endif %}
 				</td>
 				<td class="text-truncate">
@@ -114,6 +125,81 @@
 											
 			</tr>
 		{% endfor %}
+	</table>
+
+	<h3 id="boundaries">Területi elhelyezkedési adatok (Boundaries) állapota</h3>
+	<p>Azt, hogy melyik megyében/egyházmegyében/városban/körzetben van egy templom, azt az OSM (OpenStreetMap) adatokból az overpassapi-val olvassuk ki.</p>
+
+	<table class="table table-hover table-condensed table-striped">
+		<tr>
+			<td><strong>Átlagosan frissítettség</strong></td>
+			<td>{{ boundariesStats.with_osm.avg_days_old }} nap</td>
+		</tr>
+		<tr>
+			<td><strong>Legfrissebb</strong></td>
+			<td>
+				{% set newestDate = boundariesStats.with_osm.newest|date('Y-m-d', 'UTC') %}
+				{% set now = "now"|date('Y-m-d', 'UTC') %}
+				{% set newestDateTime = date(newestDate) %}
+				{% set nowDateTime = date(now) %}
+				{% set daysDiff = ((nowDateTime.timestamp - newestDateTime.timestamp) / 86400)|round(0, 'floor') %}
+				{% if daysDiff < 7 %}
+					<span class="badge bg-success">{{ boundariesStats.with_osm.newest }}</span>
+				{% elseif daysDiff > 30 %}
+					<span class="badge bg-danger">{{ boundariesStats.with_osm.newest }}</span>
+				{% else %}
+					<span class="badge">{{ boundariesStats.with_osm.newest }}</span>
+				{% endif %}
+			</td>
+		</tr>
+		<tr>
+			<td><strong>Legöregebb</strong></td>
+			<td>
+				{% set oldestDate = boundariesStats.with_osm.oldest|date('Y-m-d', 'UTC') %}
+				{% set oldestDateTime = date(oldestDate) %}
+				{% set daysDiffOldest = ((nowDateTime.timestamp - oldestDateTime.timestamp) / 86400)|round(0, 'floor') %}
+				{% if daysDiffOldest < 365 %}
+					<span class="badge bg-success">{{ boundariesStats.with_osm.oldest }}</span>
+				{% else %}
+					<span class="badge bg-danger">{{ boundariesStats.with_osm.oldest }}</span>
+				{% endif %}
+			</td>
+		</tr>
+		<tr>
+			<td style="width: 40%;"><strong>Orphan Boundaries</strong> (nincs templomhoz kötve)</td>
+			<td>
+				{% if boundariesStats.orphan_count == 0 %}
+						<span class="badge bg-success">0</span>
+				{% else %}
+						<span class="badge bg-danger">{{ boundariesStats.orphan_count }}</span>							
+				{% endif %}
+			</td>
+		</tr>
+		<tr>
+			<td colspan="2">
+				<div style="display: flex; height: 40px; border-radius: 4px; overflow: hidden; background-color: #e9ecef;">
+					<!-- With OSM Boundaries - Zöld -->
+					<div style="width: {{ boundariesStats.churches_with_osm_percentage }}%; background-color: #28a745; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">
+						{% if boundariesStats.churches_with_osm_percentage > 5 %}
+							{{ boundariesStats.churches_with_osm_boundary }} ({{ boundariesStats.churches_with_osm_percentage }}%)
+						{% endif %}
+					</div>
+					<!-- Without OSM Boundaries - Piros -->
+					<div style="width: {{ boundariesStats.churches_without_osm_percentage }}%; background-color: #dc3545; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">
+						{% if boundariesStats.churches_without_osm_percentage > 5 %}
+							{{ boundariesStats.churches_without_osm_boundary }} ({{ boundariesStats.churches_without_osm_percentage }}%)
+						{% else %}
+							{{ boundariesStats.churches_without_osm_boundary }}
+						{% endif %}
+					</div>
+				</div>
+				<div style="margin-top: 8px; font-size: 12px; color: #666;">
+					<span style="color: #28a745;">■</span>Templomok OSM lokációval: {{ boundariesStats.churches_with_osm_boundary }}/{{ boundariesStats.total_churches }}
+					&nbsp;&nbsp;
+					<span style="color: #dc3545;">■</span>Templomok OSM lokáció nélkül: {{ boundariesStats.churches_without_osm_boundary }}/{{ boundariesStats.total_churches }}
+				</div>
+			</td>
+		</tr>
 	</table>
 
 	<h3 id="externalapis">Levelezőrendszer egészsége</h3>
@@ -157,4 +243,13 @@
 		<div class="alert alert-danger">Az elmúlt 30 napban nem volt kiküldött email.</div>
 	{% endif %}
 
+	<script>
+		document.querySelectorAll('.testresult-truncated').forEach(function(element) {
+			element.addEventListener('click', function(e) {
+				e.stopPropagation();
+				this.classList.toggle('expanded');
+				this.title = this.classList.contains('expanded') ? 'Click to collapse' : 'Click to expand';
+			});
+		});
+	</script>
 {% endblock%}

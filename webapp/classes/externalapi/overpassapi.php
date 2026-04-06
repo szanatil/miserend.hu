@@ -17,7 +17,7 @@ class OverpassApi extends \ExternalApi\ExternalApi {
     }
 
     function buildEnclosingBoundariesQuery($lat, $lon) {
-        $this->queryFilter = "['type'='boundary']";
+        $this->queryFilter = "['type'='boundary' ]['disused:boundary'!~'.*']"; // A nem aktuális disued:boundary-knak nincs nevük meg ilyenek olykor, és az hibát tud generálni
         $this->buildEnclosingFeaturesQuery($lat, $lon);
     }
 

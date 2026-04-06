@@ -1,5 +1,12 @@
 {% extends "layout.twig" %}
 
+{% block extraHead %}
+    <script src="/js/boundary-autocomplete.js"></script>
+    <script>
+        window.boundaryDataFromUrl = {{ boundaryDataJson|raw|default('[]') }};
+    </script>
+{% endblock %}
+
 {% block content %}
 
      {{ alert|raw }}
@@ -9,7 +16,7 @@
      <strong><span class=kiscim>Keresési paraméterek:</span></strong><br/>
     {% if filters is defined and filters|length %}
         {% for filter in filters %}
-            <span class="alap"><img src="/img/negyzet_lila.gif" align="absmidle"> {{ filter|striptags('<b><i>')|raw }}</span><br/>
+            <span class="alap"><img src="/img/negyzet_lila.gif" align="absmidle"> {{ filter|raw }}</span><br/>
         {% endfor %}
     {% endif %}
     <br/>

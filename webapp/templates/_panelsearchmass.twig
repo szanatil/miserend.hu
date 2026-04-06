@@ -1,14 +1,47 @@
 {% extends 'panel.twig' %}
+{% import "forms.twig" as forms %}
 
 {% set title = 'Új keresés' %}
 {% set panel = 'primary' %}
 
 
-{% block body %}  
-  <i class="fas fa-search"></i>  
-  <a href="/" class=link onclick="return goBackWithoutQ();">
-    <b>Vissza a főoldali keresőhöz</b>
-  </a>
-{% endblock %}    
+{% block body %}
+  <form method=get id="panel-search-mass-form">
+    <input type=hidden name=q value=SearchResultsMasses>
+    <style>
+        #panel-search-mass-form .row {
+            margin-bottom:10px;
+        }
+    </style>
+    <div style="padding-right:10px;padding-left:10px">
+        <div class="row">
+            <input type=text name=kulcsszo id='keyword-mass' size=20 class="keresourlap form-control" value="{{ form.kulcsszo.value }}">
+        </div>
+        <div class="row">
+            <input type=submit value="keresés" class="keresourlap form-control">
+        </div>
+    </div>
+  </form>
 
- 
+  <div style="margin-top:10px; padding-top:10px; border-top:1px solid #ddd;">
+    <i class="fas fa-search"></i>
+    <a href="/" class=link onclick="return goBackWithoutQ();">
+      <b>Vissza a főoldali keresőhöz</b>
+    </a>
+  </div>
+
+  <script>
+  (function() {
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof BoundaryAutocomplete !== 'undefined') {
+            var boundaryDataFromUrl = window.boundaryDataFromUrl || [];
+            BoundaryAutocomplete.init('#keyword-mass', '#panel-search-mass-form', boundaryDataFromUrl);
+        }
+    });
+  })();
+  </script>
+  <script>
+        // Inject boundary data from PHP backend           
+        window.boundaryDataFromUrl = {{ boundaryDataJson ? boundaryDataJson|raw : '[]' }};
+	</script>  
+{% endblock %}

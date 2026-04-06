@@ -52,7 +52,7 @@ class Church extends \Html\Html {
          * 
          */
         if( $church->lat != '' AND !isset($church->location->city)) {
-            $church->MdownloadOSMBoundaries();
+            (new \OSM())->checkBoundariesForOne($church);
         }
 
         $church->MgetReligious_administration();

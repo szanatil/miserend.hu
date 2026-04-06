@@ -29,7 +29,14 @@ class Home extends Html {
             $espkerT[$espker->ehm][$espker->id] = $espker->nev;# code...
         }
     
-        //MISEREND űRLAP	
+        //MISEREND űRLAP
+       
+        $boundaryIds =  \Request::StringArray('boundaries', []);                
+        if (!empty($boundaryIds)) {
+            $this->boundaryDataJson = json_encode(\Eloquent\Boundary::whereIn('id', $boundaryIds)->get()->map->toSimpleArray());
+        }
+         
+
         $searchform = array(
             'kulcsszo' => array(
                 'name' => "kulcsszo",

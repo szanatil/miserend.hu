@@ -4,6 +4,13 @@
 
 {% set pageTitle = 'Szentmise keresés | Miserend' %}
 
+{% block extraHead %}
+    <script src="/js/boundary-autocomplete.js"></script>
+    <script>
+        window.boundaryDataFromUrl = {{ boundaryDataJson|raw|default('[]') }};
+    </script>
+{% endblock %}
+
 
 {% block pageHeader %}
     <div class="page-header">
@@ -19,7 +26,7 @@
     <strong><span class=kiscim>Keresési paraméterek:</span></strong><br/>
     {% if filters is defined and filters|length %}
         {% for filter in filters %}
-            <span class="alap"><img src="/img/negyzet_lila.gif" align="absmiddle"> {{ filter|striptags('<i><b>')|raw }}</span><br/>
+            <span class="alap"><img src="/img/negyzet_lila.gif" align="absmiddle"> {{ filter|raw }}</span><br/>
         {% endfor %}
     {% else %}
         <span class="alap">Nincsenek szűrők</span><
@@ -54,7 +61,7 @@
                     {% endif %}
                     <tr>
                         <td class="align-middle">                           
-                            <span class="badge badge-primary">{{ "%02d:%02d"|format((result.start_minutes / 60)|floor, (result.start_minutes % 60)) }}</span>
+                            <span class="badge badge-primary">{{ "%02d:%02d"|format((result.start_minutes / 60)|round(0, 'floor'), (result.start_minutes % 60)) }}</span>
                         </td>
 
                         <td class="align-middle">
