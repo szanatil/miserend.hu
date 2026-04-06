@@ -297,6 +297,7 @@ class CalMass extends CalModel
         foreach ($years as $year) {
             $globalStart = Carbon::create($year, 1, 1)->startOfDay();
             $globalEnd = Carbon::create($year, 12, 31)->endOfDay();
+            $massesFromImport = [];
 
             foreach ($masses as $mass) {
                 /*
@@ -344,11 +345,15 @@ class CalMass extends CalModel
                 if (!is_array($rrule) || empty($rrule)) {
                     
                     // throw new \Exception('Ilyennek igazából nem szabadna lennie, mert egy napos rrule-t kapnak az egyedi alkalmak. ');
-                    //echo "Ilyennek igazából nem szabadna lennie, mert egy napos rrule-t kapnak az egyedi alkalmak. ".$mass->id;
+                    //echo "Ilyennek igazában nem szabadna lennie, mert egy napos rrule-t kapnak az egyedi alkalmak. ".$mass->id;
+                    
+                    // DIAGNOSTIC LOG: mass object has invalid/empty RRULE
+                    error_log("DEBUG: Mass ID {$mass->id} has empty/invalid RRULE. start_date={$mass->start_date}, church_id={$mass->church_id}");
+                    
                     $rrule = [
                         "freq" => "daily",
                         "count" => 1,
-                        "dtstart" => $start->copy()->format('Y-m-d\TH:i:s'),
+                        "dtstart" => $mass->start_date ? Carbon::parse($mass->start_date)->format('Y-m-d\TH:i:s') : date('Y-m-d\TH:i:s'),
                     ];
 
                     
@@ -423,7 +428,11 @@ class CalMass extends CalModel
                         }
 
                     } else {
-                        throw new \Exception('Nincs period_id és az RRULE sem egy napos eseményre van beállítva. Ez nem támogatott. Mass: '.print_r($mass->toArray(),1));
+                        // Nincs period_id mégis van több napos RRULE. A szerkesztő felületből nem szabad ilyennek létrejönnie
+                        // De külső naptár importjakor szabad ilyennek történnie.
+                        $massesFromImport[] = $mass;                   
+                           
+                        //throw new \Exception('Nincs period_id és az RRULE sem egy napos eseményre van beállítva. Ez nem támogatott. Mass: '.print_r($mass->toArray(),1));
                     }
                 }
                 else {
@@ -528,8 +537,54 @@ class CalMass extends CalModel
 
                 }
             }
+
+            // Periódus nélküli RRULE-os események kezelése. Ez főleg importált naptáraknál fordulhat elő, ahol nem tudjuk biztosan megkövetelni a period_id-t, de lehetnek RRULE-juk.
+            foreach($massesFromImport as $mass) {
+echo "Period nélküli RRULE-os mise: ".$mass->id." - ".$mass->title." in year ".$year."<br>\n";
+
+                $endsBeforeGlobalEnd = false;
+                if(isset($mass->rrule['until'])) {
+                    $until = Carbon::parse($mass->rrule['until']);
+                    if($until->lt($globalStart)) {
+                        $endsBeforeGlobalEnd = true;
+                    }
+                }
+                $startsBeforeGlobalStart = false;
+                if(isset($mass->rrule['dtstart'])) {
+                    $dtstart = Carbon::parse($mass->rrule['dtstart']);
+                    if($dtstart->gt($globalEnd)) {
+                        $startsBeforeGlobalStart = true;
+                    }
+                }
+
+                if(!$endsBeforeGlobalEnd and !$startsBeforeGlobalStart) {
+                    
+                $newRrule = $mass->rrule;  // Az aktuális tömb lekérése
+                $newRrule['until'] = $until->toIso8601String();  // Módosítás
+                $mass->rrule = $newRrule;  // Explicit reasszignálás az Eloquentnek
+               
+                $newMassPeriod = [
+                    'mass_id' => $mass->id,
+                    'period_id' => null,
+                    'generated_period_id' => null,
+                    
+                    'church_id' => $mass->church_id,
+                    'start_date' =>  $globalStart->toDateString(),
+                    'end_date' =>  $globalEnd->toDateString(),
+                    'rite' => $mass->rite,
+                    'types' => $mass->types,
+                    'title' => $mass->title,
+                    'duration_minutes' => 0, // A $mass->duration-ből ki tudnánk találni. TODO
+                    'lang' => $mass->lang,
+                    'comment' => "extra ".$mass->comment,
+                    'rrule' => $mass->rrule, 
+                    
+                ];
+                $massPeriods[] = $newMassPeriod;
+                }
+            }
         }
-        
+
         return $massPeriods;
     }
 
