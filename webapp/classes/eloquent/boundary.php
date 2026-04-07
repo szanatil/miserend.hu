@@ -34,6 +34,7 @@ class Boundary extends \Illuminate\Database\Eloquent\Model {
                     5 => ['name' => 'érseki tartomány', 'color' => '#B19CD9'],
                     6 => ['name' => 'egyházmegye', 'color' => '#9370DB'],
                     7 => ['name' => 'espereskerület', 'color' => '#7B68EE'],
+                    8 => ['name' => 'plébánia', 'color' => '#6A5ACD'],
                 ],
             ],
             'administrative' => [
@@ -46,9 +47,9 @@ class Boundary extends \Illuminate\Database\Eloquent\Model {
                     9 => ['name' => 'kerület', 'color' => '#C9A876'],
                     10 => ['name' => 'városrész', 'color' => '#E8D4A8'],                    
             ],
-            'postal_code' => [
-                    'default' => ['name' => 'postai kód', 'color' => '#F0D966'],
-            ],
+            'postal_code' => 
+                    ['name' => 'postai kód', 'color' => '#F0D966']
+            ,
         ];
     }
     
@@ -75,16 +76,17 @@ class Boundary extends \Illuminate\Database\Eloquent\Model {
         
         // Postal code
         if ($boundary === 'postal_code') {
-            return $definitions[$boundary]['default'] ?? ['name' => ucfirst($boundary), 'color' => '#9E9E9E'];
+            return $definitions[$boundary];
         }
         
         // Default fallback
         if($boundary === 'religious_administration') {
-            return ['name' => ucfirst($boundary) . ' (' . $denomination . ')', 'color' => '#9E9E9E'];
+            return ['name' => $boundary . ' (' . $denomination . ')', 'color' => '#9E9E9E'];
         }
 
+        $t = \Translator::translate('BOUNDARY.' . $boundary);
 
-        return ['name' => ucfirst($boundary), 'color' => '#9E9E9E'];
+        return ['name' => $t, 'color' => '#9E9E9E'];
     }
     
     private function generateType() {
@@ -100,7 +102,11 @@ class Boundary extends \Illuminate\Database\Eloquent\Model {
              'id' => $this->id,
              'name' => $this->name,
              'type' => $this->type,
-             'color' => $this->color
+             'color' => $this->color,
+             'osm' => [
+                 'type' => $this->osmtype,
+                 'id' => $this->osmid
+             ]
          ];
      }
      

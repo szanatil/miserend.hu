@@ -116,6 +116,29 @@ const BoundaryAutocomplete = (function() {
             flex: 1;
         }
 
+        .boundary-osm-icon {
+            cursor: pointer;
+            color: #007bff;
+            font-size: 0.9em;
+            transition: color 0.2s;
+        }
+
+        .boundary-osm-icon:hover {
+            color: #0056b3;
+        }
+
+        .boundary-badge-osm-icon {
+            cursor: pointer;
+            color: #fff;
+            font-size: 0.9em;
+            margin-left: 2px;
+            transition: opacity 0.2s;
+        }
+
+        .boundary-badge-osm-icon:hover {
+            opacity: 0.7;
+        }
+
         .boundary-hidden-fields-container {
             display: none;
         }
@@ -341,6 +364,21 @@ const BoundaryAutocomplete = (function() {
             item.appendChild(badge);
             item.appendChild(text);
 
+            // Add OSM icon if osm.type and osm.id are present
+            if (result.osm && result.osm.type && result.osm.id) {
+                const osmLink = document.createElement('a');
+                osmLink.href = '/collection/' + encodeURIComponent(result.osm.type) + ':' + encodeURIComponent(result.osm.id);
+                osmLink.className = 'boundary-osm-icon';
+                osmLink.setAttribute('title', 'Open on map');
+                osmLink.setAttribute('target', '_blank');
+                osmLink.setAttribute('rel', 'noopener noreferrer');
+                
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-map-marked-alt';
+                osmLink.appendChild(icon);
+                item.appendChild(osmLink);
+            }
+
             // Click handler
             item.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -401,6 +439,23 @@ const BoundaryAutocomplete = (function() {
         const text = document.createElement('span');
         text.textContent = boundaryData.type + ': ' + boundaryData.name;
 
+        badge.appendChild(text);
+
+        // Add OSM icon if osm.type and osm.id are present
+        if (boundaryData.osm && boundaryData.osm.type && boundaryData.osm.id) {
+            const osmLink = document.createElement('a');
+            osmLink.href = '/collection/' + encodeURIComponent(boundaryData.osm.type) + ':' + encodeURIComponent(boundaryData.osm.id);
+            osmLink.className = 'boundary-badge-osm-icon';
+            osmLink.setAttribute('title', 'Open on map');
+            osmLink.setAttribute('target', '_blank');
+            osmLink.setAttribute('rel', 'noopener noreferrer');
+            
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-map-marked-alt';
+            osmLink.appendChild(icon);
+            badge.appendChild(osmLink);
+        }
+
         const removeBtn = document.createElement('span');
         removeBtn.className = 'boundary-badge-remove';
         removeBtn.textContent = '×';
@@ -421,7 +476,6 @@ const BoundaryAutocomplete = (function() {
             }
         });
 
-        badge.appendChild(text);
         badge.appendChild(removeBtn);
         badgesContainer.appendChild(badge);
     }

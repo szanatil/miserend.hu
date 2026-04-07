@@ -53,6 +53,34 @@ class OSM {
         }
     }
 
+    static function downloadChurchesWithinBoundary($osmtype, $osmid) {
+        $return = [];
+        try {
+            $overpass = new \ExternalApi\OverpassApi();
+            $overpass->downloadChurchesWithinBoundary($osmtype, $osmid); // Ha responseCode 503, akkor nem JSON a result és akkor elszállna, ezért a try-catch blokk
+        } catch (\Exception $e) {
+            printr($e);
+            addMessage("Hiba történt az OSM API lekérdezése során: " . $e->getMessage(), 'danger');
+            
+        }
+        
+        if(isset($overpass->responseCode) and in_array($overpass->responseCode, [502, 503, 504])) {
+            //Az OSM API túlterhelt, ezért nem tudunk adatot lekérni. Ez nem a mi hibánk. Később újrapróbáljuk
+            //addMessage("Az OSM API jelenleg nem elérhető (HTTP $overpass->responseCode). Kérem próbálja meg később.", 'danger');
+            printr($overpass);
+            return;
+        }
+
+        if (!$overpass->jsonData->elements) {
+            printr($overpass);
+            throw new \Exception("Missing Json Elements from OverpassApi Query");
+            return;
+        }
+
+        return $overpass->jsonData->elements;
+         
+    }
+
     static function downloadBoundaries($lat, $lon) {
         $return = [];
 

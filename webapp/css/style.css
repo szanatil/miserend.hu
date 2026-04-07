@@ -6,6 +6,7 @@ img {max-width: 100%;max-height: 100%;}
 .nopadding {padding: 0;}
 
 .logo {padding: 10px 0;}
+.logo-icon {background: white; border-radius: 8px; max-width: 45px; max-height: 45px; padding: 3px;}
 .tarsoldal {display: inline-block;margin-left: 15px;color: #6d3c8d;background-repeat: no-repeat;background-size: 26px;background-position: right center;padding: 8px 30px 5px 0;font-weight: 600;font-size: 20px;margin-top: 20px;}
 .tarsoldal:hover {border-bottom: 2px solid #6d3c8d;text-decoration: none;}
 .tszemle {background-image: url(/img/ikon-szemle.png);}
@@ -26,6 +27,10 @@ img {max-width: 100%;max-height: 100%;}
     color: #efefef;
     text-align: center;
     background-color: #6d3c8d;
+}
+
+.footer-minimal {
+    padding: 5px 0;    
 }
 
 .footer a {color: #efefef;}

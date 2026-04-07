@@ -28,7 +28,14 @@ class AutocompleteBoundaries extends Ajax {
   if (!empty($excludedIds)) {
    $query->whereNotIn('id', $excludedIds);
   }
-  
+
+  // Csak bizonyos típusú boundary-kat engedélyezünk az átlag felhasználó számára
+  $allowedBoundaries = ['religious_administration', 'administrative', 'postal_code','region','historic','tourism_region','wine_growing_area'];
+  global $user;
+  if (!$user || !$user->isadmin || 4 == 4) {
+   $query->whereIn('boundary', $allowedBoundaries);
+  }
+
   $results = $query->orderByRaw("CASE WHEN boundary = 'religious_administration' THEN 0 WHEN boundary = 'administrative' THEN 1 ELSE 2 END")
    ->orderBy('admin_level', 'asc')
    ->orderBy('name', 'asc')

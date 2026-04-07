@@ -180,7 +180,12 @@ class Search {
         // Add badges for each boundary
         $badges = [];
         foreach ($boundaries as $boundary) {
-            $badges[] = '<span class="badge" style="background-color: ' . htmlspecialchars($boundary['color']) . ';" title="' . htmlspecialchars($boundary['type']) . '">' . htmlspecialchars($boundary['name']) . '</span>';
+            $badge = '<span class="badge" style="background-color: ' . htmlspecialchars($boundary['color']) . ';" title="' . htmlspecialchars($boundary['type']) . '">' . htmlspecialchars($boundary['name']) . '</span>';
+            if($boundary['osm']['type'] && $boundary['osm']['id']) {
+                $osmUrl = '/collection/' . htmlspecialchars($boundary['osm']['type']) . ':' . htmlspecialchars($boundary['osm']['id']);
+                $badge = '<a href="' . $osmUrl . '" target="_blank" style="text-decoration:none;">' . $badge . '</a>';
+            }
+            $badges[] = $badge;
         }
         
         $this->filters[] = $filterText . ' ' . implode(' ', $badges);

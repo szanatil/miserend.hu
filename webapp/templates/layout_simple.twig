@@ -1,0 +1,32 @@
+{% extends "layout.twig" %}
+
+{% block body %}	 
+    <div class="menusav">
+      <div class="container" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+        {% block pageHeader %}
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <a href="{{ baseurl }}/" title="Vissza a miserend.hu főoldalára" style="text-decoration: none; color: #fff; font-size: 18px;">
+                <img src="/img/logo-icon.png" alt="Miserend oldal" loading="lazy" class="logo-icon"/>
+            </a>
+            {% if title %}<h3 style="margin: 0; white-space: nowrap; color: #fff;">{{ title|raw }}</h3>{% endif %}
+          </div>
+        {% endblock %}
+        <div style="flex-grow: 1;">{% include 'navbar.twig' %}</div>
+      </div>
+    </div>
+
+    <div class="container">      
+        {% block messages %}
+            {% if messages %}
+                <div id="messages" style="margin-bottom:6px">
+                  {% for message in messages %}
+                      {% include 'message.twig' with message %}
+                  {% endfor %}
+                </div>  
+            {% endif %}
+        {% endblock %}                     
+        {% block content %}{{ content|raw }}{% endblock %}
+    </div>
+
+    {% block footer %}{% include 'footer.twig' with {minimal: true} %}{% endblock %}
+{% endblock %}

@@ -55,6 +55,20 @@ class OverpassApi extends \ExternalApi\ExternalApi {
         $this->run();
     }
 
+    function buildChurchesWithinBoundaryQuery($osmtype, $osmid) {        
+        $this->query = $osmtype."(".$osmid.")->.rel;"
+                . ".rel map_to_area->.searchArea;"
+                . "( nwr[\"url:miserend\"](area.searchArea); );"
+                . "out body;";
+
+        $this->buildQuery();
+    }
+
+    function downloadChurchesWithinBoundary($osmtype, $osmid) {        
+        $this->buildChurchesWithinBoundaryQuery($osmtype, $osmid);
+        $this->run();
+    }
+
 	function loadEnclosingBoundaries($lat,$lon) {
 		$this->downloadEnclosingBoundaries($lat,$lon);
 		

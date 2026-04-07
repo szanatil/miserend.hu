@@ -1,4 +1,5 @@
-{% extends 'layout.twig' %}
+{% extends 'layout_simple.twig' %}
+{% set columns2 = true %}
 
 
 {% block content %}
@@ -11,14 +12,60 @@
             top:0;
         }
     </style>
-    <div class="row" style="height:300px" height="120px" >       
-        {% include '_map_leaflet.twig' %}  
+    
+    <div class="alert alert-info alert-dismissible show" id="syncBoundaryAlert" role="alert">
+        <button type="button" class="btn btn-sm btn-outline-info" id="syncBoundaryBtn" style="margin-right: 10px;">
+            <i class="fa fa-sync"></i>
+        </button>
+        <span id="syncBoundaryText">A területen található templomaink listájának frissítéséért kattintson ide</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
+
+    <script>
+        document.getElementById('syncBoundaryBtn').addEventListener('click', function() {
+            var boundary = '{{ boundary }}';
+            var parts = boundary.split(':');
+            var osmtype = parts[0];
+            var osmid = parts[1];
+
+            var btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+
+            fetch('/ajax/churchesinboundary?osmtype=' + encodeURIComponent(osmtype) + '&osmid=' + encodeURIComponent(osmid) + '&download=true')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        var attached = (data.attached || []).length;
+                        var detached = (data.detached || []).length;
+                        var updated = (data.updated || []).length;
+                        
+                        document.getElementById('syncBoundaryText').textContent =
+                            'Sikeresen frissítettük. Hozzáadtunk ' + attached + ', kitöröltünk ' + detached + ', frissítettük ' + updated + '.';
+                        
+                        // Refresh page after 2 seconds
+                        setTimeout(function() {
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        document.getElementById('syncBoundaryText').textContent = 'Sajnos ez nem jött össze, próbáld később!';
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa fa-sync"></i>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('syncBoundaryText').textContent = 'Sajnos ez nem jött össze, próbáld később!';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa fa-sync"></i>';
+                });
+        });
+    </script>
+
+    <div class="row" style="height:300px" height="120px" >
+        {% include '_map_leaflet.twig' %}
+    </div> 
     {% include '_panelchurchlist.twig' %}
     <div id="osmedit" style="position:absolute;bottom:15px;left:5px"></div>
 {% endblock %}
 
-
-{% block rightsidebar %}   
-        {% include "panel.twig" with {title:'OSM adatok','body': '<div id="messages"><i>A térképen lévő jelekre kattintás után.</i></div>' } %}        
-{% endblock %}

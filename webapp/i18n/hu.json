@@ -219,7 +219,21 @@
 
 
   "MASS_DETAILS_DATETIME": "A liturgia időpontja és ismétlődései",
-  "OTHER_SETTINGS_DETAILS": "A liturgia egyéb tulajdonságai"
+  "OTHER_SETTINGS_DETAILS": "A liturgia egyéb tulajdonságai",
+
+  "BOUNDARY": {
+    "region": "régió",
+    "statistical": "statisztika",
+    "political": "politika",
+    "judicial": "törvénykezés",
+    "forest_planning": "erdészet",
+    "tourism_region": "turisztikai régió",
+    "historic": "történelem",
+    "forestry_authority": "erdészeti hatóság",
+    "wine_community": "borközösség",
+    "wine_growing_area": "borvidék",
+    "police": "rendőrség"
+  }
 
 
 }
