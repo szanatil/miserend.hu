@@ -58,9 +58,10 @@ services:
 
   miserend:
     container_name: miserend
+    platform: linux/amd64
     image: ghcr.io/szentjozsefhackathon/miserend.hu:v2026.3.24
-    volumes: 
-       - tmp:/miserend/webapp/fajlok/tmp
+    volumes:
+      - tmp:/miserend/webapp/fajlok/tmp
     ports:
       - 8000:8000
     user: "www-data"
@@ -68,8 +69,8 @@ services:
     depends_on:
       - mysql
       - tmp-init
-      - elasticsearch    
-    environment: 
+      - elasticsearch
+    environment:
       - MISEREND_WEBAPP_ENVIRONMENT=production
 
     networks:
