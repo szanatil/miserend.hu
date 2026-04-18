@@ -19,24 +19,45 @@ jobs:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Determine image tag
+      - name: Determine ref and tag
         id: tag
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "REF=${{ github.ref }}" >> $GITHUB_OUTPUT
             echo "TAG=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" = "workflow_run" ]; then
-            # Extract tag from the workflow_run event
-            TAG="${{ github.event.workflow_run.head_branch }}"
-            echo "TAG=$TAG" >> $GITHUB_OUTPUT
+            # Use the exact commit and tag from the workflow_run event
+            echo "REF=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
+            echo "TAG=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
           else
+            # Pull request or other events
+            echo "REF=${{ github.ref }}" >> $GITHUB_OUTPUT
             echo "TAG=latest" >> $GITHUB_OUTPUT
           fi
 
-      - name: Run tests with coverage
-        run: bash scripts/run-tests.sh --coverage --runtime docker --tag ${{ steps.tag.outputs.TAG }}
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.tag.outputs.REF }}
+
+      - name: Set up test directories
+        run: |
+          mkdir -p /tmp/tests/coverage/html
+          chmod -R 777 /tmp/tests || true
+
+      - name: Run PHPUnit tests
+        run: |
+          docker run --rm \
+            -v $(pwd)/webapp:/miserend/webapp \
+            -v /miserend/webapp/vendor \
+            -v /tmp/tests:/miserend/webapp/fajlok/tmp/tests \
+            -w /miserend/webapp/tests \
+            --entrypoint /miserend/webapp/vendor/bin/phpunit \
+            ghcr.io/szentjozsefhackathon/miserend.hu-coverage:${{ steps.tag.outputs.TAG }} \
+            -c phpunit.xml \
+            --coverage-html /miserend/webapp/fajlok/tmp/tests/coverage/html \
+            --log-junit /miserend/webapp/fajlok/tmp/tests/junit.xml \
+            --coverage-cobertura /miserend/webapp/fajlok/tmp/tests/coverage/cobertura.xml
 
       - name: Upload coverage HTML
         uses: actions/upload-artifact@v4
