@@ -7,21 +7,16 @@
          stopOnFailure="false">
     <testsuites>
         <testsuite name="simple">
-            <file>SimpleFunctionsTest.php</file>
-            <file>UtilityFunctionsTest.php</file>
+            <directory>Unit</directory>
         </testsuite>
         <testsuite name="api">
             <directory>Api</directory>
         </testsuite>
         <testsuite name="request">
-            <file>RequestTest.php</file>            
-        </testsuite>
-        <testsuite name="simplerrules">
-            <file>SimplerruleTest.php</file>
-            <file>DSTSimplerruleTest.php</file>
+            <directory>Request</directory>
         </testsuite>
         <testsuite name="integration">
-            <file>UserTest.php</file>
+            <directory>Integration</directory>
         </testsuite>
     </testsuites>
     <source>
