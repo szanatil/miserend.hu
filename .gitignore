@@ -54,3 +54,6 @@ composer.phar
 /webapp/tests/.phpunit*
 /webapp/tests/coverage/
 /webapp/tests/junit.xml
+
+# Test results
+/test-results/

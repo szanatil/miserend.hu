@@ -4,7 +4,13 @@
          bootstrap="bootstrap.php"
          colors="true"
          cacheDirectory=".phpunit.cache"
-         stopOnFailure="false">
+         stopOnFailure="false"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         displayDetailsOnTestsThatTriggerErrors="true"
+         displayDetailsOnTestsThatTriggerNotices="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+         displayDetailsOnPhpunitDeprecations="true"
+         >
     <testsuites>
         <testsuite name="simple">
             <directory>Unit</directory>
