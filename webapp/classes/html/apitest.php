@@ -28,10 +28,12 @@ class Apitest extends Html {
             $className = 'Api\\' . $name;
             $endpointClass = new $className();
 
-            $endpoint = new class {};
+            $endpoint = new class {
+                public $name;
+            };
             $endpoint->name = $name;
 
-            $payLoad = false;
+            $payLoad = [];
             foreach($endpointClass->fields as $field => $details) {
                 $parts = explode('/', $field);
                 $ref =& $payLoad;
