@@ -48,11 +48,10 @@ class Church extends \Html\Calendar\CalendarApi {
                     'hasExternalCalendar' => $this->church->hasExternalCalendar,
                     'masses' => $this->getByChurchId($this->tid)
                 ];
-                echo json_encode($response);
+                $this->content = json_encode($response);
                 break;
             default:
                 $this->sendJsonError('Method not allowed', 405);
-                exit;
         }
     }
 
@@ -60,13 +59,4 @@ class Church extends \Html\Calendar\CalendarApi {
         return CalMass::where('church_id', $churchId)->get()->toArray();
     }
 
-    private function sendJsonError($message, $code): void {
-        http_response_code($code);
-        header('Content-Type: application/json');
-        echo json_encode([
-            'error' => true,
-            'message' => $message,
-            'code' => $code,
-        ]);
-    }
 }

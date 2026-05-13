@@ -19,7 +19,6 @@ class Masses extends \Html\Calendar\CalendarApi {
 
         if (empty($path[0])) {
             $this->sendJsonError('Hiányzó templom azonosító.', 400);
-            exit;
         }
 
         $this->tid = $path[0];
@@ -27,7 +26,6 @@ class Masses extends \Html\Calendar\CalendarApi {
         $this->church = \Eloquent\Church::find($this->tid);
         if (!$this->church) {
             $this->sendJsonError('Nincs ilyen templom.', 404);
-            exit;
         }
 
         $this->elastic = new ElasticsearchApi();
@@ -43,11 +41,9 @@ class Masses extends \Html\Calendar\CalendarApi {
                 // Check write access AND external calendar constraint
                 if (!$this->church->writeAccess) {
                     $this->sendJsonError('Hiányzó jogosultság!', 403);
-                    exit;
                 }
                 if ($this->church->hasExternalCalendar) {
                     $this->sendJsonError('Hiányzó jogosultság! Ez a templom külső naptárra van csatlakoztatva.', 403);
-                    exit;
                 }
 
                 $input = json_decode(file_get_contents('php://input'), true);
@@ -57,12 +53,11 @@ class Masses extends \Html\Calendar\CalendarApi {
                 // Ha frissítettünk egy miserendet, akkor mindig és automatikusan a dátuma is legyen friss!                
                 $this->church->frissites = date('Y-m-d');
                 $this->church->save();
-                echo json_encode($this->getByChurchId($this->tid));
+                $this->content = json_encode($this->getByChurchId($this->tid));
                 break;
 
             default:
                 $this->sendJsonError('Method not allowed', 405);
-                exit;
         }
     }
 
@@ -141,13 +136,4 @@ class Masses extends \Html\Calendar\CalendarApi {
         return true;
     }
 
-    private function sendJsonError($message, $code): void {
-        http_response_code($code);
-        header('Content-Type: application/json');
-        echo json_encode([
-            'error' => true,
-            'message' => $message,
-            'code' => $code,
-        ]);
-    }
 }
