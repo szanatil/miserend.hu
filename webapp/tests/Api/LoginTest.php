@@ -151,6 +151,7 @@ class LoginTest extends TestCase {
 
     public function testRunRequiresJsonInput() {
         $_REQUEST['v'] = 4;
+        MockPhpInputStreamWrapper::mockPhpInput('');
         
         $login = new Login();
         
