@@ -39,6 +39,20 @@ class Church extends \Html\Calendar\CalendarApi {
             case 'GET':
                 // Append external calendar info
                 $this->church->append(['hasExternalCalendar']);
+                $confessions = $this->church->getConfessions('-40 days', '20 hours');
+                $c = 1;
+                foreach ($confessions as &$confession) {
+                    $confession['startDate'] = date('Y-m-d\TH:i:s', strtotime($confession['start'])); // TODO timezone kérdések
+                    unset($confession['start']);
+                    unset($confession['end']);
+                    $confession['churchId'] = $this->church->id;
+                    $confession['periodId'] = null;
+                    $confession['title'] = 'Gyóntatás';
+                    $confession['types'] = [];
+                    $confession['rite'] = null;
+                    $confession['id'] = 'confession_' . $c;
+                    $c++;   
+                }
                 
                 $response = [
                     'id' => $this->tid,
@@ -46,7 +60,10 @@ class Church extends \Html\Calendar\CalendarApi {
                     'rite' => strtoupper($this->church->denomination),
                     'timeZone' => 'Europe/Budapest',
                     'hasExternalCalendar' => $this->church->hasExternalCalendar,
-                    'masses' => $this->getByChurchId($this->tid)
+                    'eventsFromSensor' => $confessions,
+                    'sensorEvents' => $confessions,
+                    'masses' => $this->getEventsByChurchId($this->tid)
+                    
                 ];
                 $this->content = json_encode($response);
                 break;
@@ -55,8 +72,10 @@ class Church extends \Html\Calendar\CalendarApi {
         }
     }
 
-    public function getByChurchId(int $churchId): array {
+    public function getEventsByChurchId(int $churchId): array {
         return CalMass::where('church_id', $churchId)->get()->toArray();
     }
+
+    
 
 }

@@ -3,6 +3,7 @@ import {CommonModule} from '@angular/common';
 import {ChurchCalendarComponent} from '../church-calendar/church-calendar.component';
 import {Church} from '../../model/church';
 import {Mass} from '../../model/mass';
+import {SensorEvent} from '../../model/sensor-event';
 import {ActivatedRoute} from '@angular/router';
 import {EventService} from '../../event.service';
 import {SpinnerService} from '../../services/spinner.service';
@@ -21,6 +22,7 @@ export class ChurchComponent implements OnInit {
   public dataLoaded: boolean = false;
   public currentChurch?: Church;
   public masses: Map<number, Mass> = new Map();
+  public sensorEvents: SensorEvent[] = [];
   public loadError: string | null = null;
 
   @ViewChild('churchCalendar') churchCalendar!: ChurchCalendarComponent;
@@ -41,8 +43,12 @@ export class ChurchComponent implements OnInit {
     const churchId: number = +this.activatedRoute.snapshot.params['id'];
     this.eventService.getChurch(churchId).subscribe({
       next: (church: Church) => {
+        console.log('[ChurchComponent] Church data loaded:', church);
+        console.log('[ChurchComponent] Sensor events count:', church.eventsFromSensor?.length || 0);
         this.currentChurch = church;
         this.masses = new Map(church.masses.map(e => [e.id!, e]));
+        this.sensorEvents = church.eventsFromSensor || [];
+        console.log('[ChurchComponent] sensorEvents set to:', this.sensorEvents);
         this.loadError = null;
         this.dataLoaded = true;
         this.spinnerService.hide();
@@ -53,6 +59,7 @@ export class ChurchComponent implements OnInit {
         this.loadError = 'Nem sikerült betölteni a templom adatait, mert az adatszolgáltató oldal nem elérhető. Elnézést kérünk.';
         this.currentChurch = undefined;
         this.masses = new Map();
+        this.sensorEvents = [];
         this.dataLoaded = true;
         this.spinnerService.hide();
       }

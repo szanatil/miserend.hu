@@ -48,27 +48,61 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         return $this->hasMany(Adoration::class);
     }
     
-    public function getConfessionsAttribute()
-    {
+    public function getConfessionStatusAttribute() {
         // Get all confessions related to this church
         $lastConfessionData = \Eloquent\Confession::where('church_id', $this->id)->orderBy('timestamp', 'desc')->limit(1)->get();
         // Ha sosem kaptunk még ilyen adatot, az azt jelenti, hogy a templomban nincs telepítve gyóntatási kapcsoló
-        if ($lastConfessionData->isEmpty()) {
+        
+        if ($lastConfessionData->isEmpty()) {            
             return false;
         }
         
         $confession = $lastConfessionData->first();
         
-        $toleranceSeconds = 10660; // tolerance window in seconds
+        $toleranceString = '20 hours'; // tolerance window as a string
+        $toleranceSeconds = strtotime($toleranceString) - time(); // convert to seconds
 
-        if ($confession->status === 'ON' && ( time() - strtotime($confession->timestamp) ) <= $toleranceSeconds) {
+        if ($confession->status === 'ON' && ( time() - strtotime($confession->timestamp) ) <= $toleranceSeconds ) {
             $status = 'ON';
         } else {
             $status = 'OFF';
         }
-        
+
+        return $status;
+    }
+
+    public function getConfessionsAttribute()
+    {
+        $toleranceString = '20 hours'; // tolerance window as a string
+
+        $status = $this->confessionStatus;
+        if($status === false) {
+            return false;
+        }
+
         // Get all confession status changes for this church, ordered by timestamp DESC
-        $startTime2 = strtotime('-40 days');
+        $periods = $this->getConfessions('-40 days', $toleranceString);
+        $periods = array_reverse($periods);    
+        //$periods = array_slice($periods, 0, 10);
+        
+        return [
+            'status' => $this->confessionStatus, 
+            'last_periods' => $periods
+        ];
+    }
+
+    /**
+     * Get confession periods for this church starting from a given date, with a specified tolerance for determining ON/OFF status.
+     *
+     * @param string $fromString - The starting point for fetching confession data (e.g., '-40 days').
+     * @param string $toleranceString - The time window to consider for determining if the confession is still ON (e.g., '20 hours').
+     * @return array - An array of confession periods with their start and end times, and duration.
+     */
+    public function getConfessions($fromString, $toleranceString)
+    {
+        $toleranceSeconds = strtotime($toleranceString) - time();
+
+        $startTime2 = strtotime($fromString);
         $confessions = \Eloquent\Confession::where('church_id', $this->id)
             ->where('timestamp', '>=', date('Y-m-d H:i:s', $startTime2))
             ->orderBy('timestamp', 'asc')
@@ -107,7 +141,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             }
             
 
-            if(count($currentIds) < 1 AND $current !== []) {                                        
+            if(count($currentIds) < 1 AND $current !== []) {                                      
                     $periods[] = [
                         'start' => date('Y-m-d H:i:s', $current['start']),
                         'end' => date('Y-m-d H:i:s', $current['end']),
@@ -157,20 +191,28 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             
         }
 
-        // Ha még van folyamatban, akkor azt beküldjük vég nélkül.
+        //Ha az utolsó periódus még nem zárult le.
         if($current !== []) {
-            $periods[] = [
-                'start' => date('Y-m-d H:i:s',$current['start']),
-                'duration' => time() - strtotime($current['start'])                
+            if(time() - $toleranceSeconds > $current['start']) {                
+                $periods[] = [
+                    'start' => date('Y-m-d H:i:s',$current['start']),
+                    'end' => date('Y-m-d H:i:s', $current['start'] + $toleranceSeconds),
+                    'duration' => $toleranceSeconds
                 ];
+            } else {
+                $current['end'] = time();
+                $periods[] = [
+                    'start' => date('Y-m-d H:i:s',$current['start']),                    
+                    'duration' => time() - $current['start']
+                ];
+            }
+            
         }
-       
 
-        $periods = array_reverse($periods);
-        
-        //$periods = array_slice($periods, 0, 10);
-        //printr($periods);
-        return ['status' => $status, 'last_periods' => $periods];
+        return $periods;
+
+
+
     }
 
 	public function attributes()

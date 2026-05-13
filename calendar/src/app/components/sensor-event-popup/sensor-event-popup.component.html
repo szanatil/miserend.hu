@@ -1,0 +1,74 @@
+<mat-card class="sensor-event-card">
+  <mat-card-header class="card-header">
+    <mat-card-subtitle>{{ data.churchName }}</mat-card-subtitle>
+    <mat-card-title class="card-title">{{ data.sensorEvent.title }}</mat-card-title>
+    <button mat-icon-button (click)="onClose()" class="close-button" mat-dialog-close>
+      <mat-icon>close</mat-icon>
+    </button>
+  </mat-card-header>
+
+  <mat-divider></mat-divider>
+
+  <mat-card-content class="card-content">
+    
+    <!-- Info Message Card -->
+    <mat-card class="info-card message-card">
+      <mat-card-content>
+        <div class="sensor-info">
+          <mat-icon class="info-icon">info</mat-icon>
+          <div class="info-text">
+            <p class="info-message">Ez a gyóntató szenzor eredménye.</p>
+            <p class="info-description">
+              Ebben a templomban van egy különleges automatikus érzékelő, ami automatikusan figyeli, hogy mikor van használatban a gyóntatószék, fülke, vagy szoba. Ezeket az adatokat gyűjtjük és jelenítjük meg. Az elmúlt gyóntatások időpontjai alapján gyakran sejthető, hogy a jövőben mikor lesz gyóntatás a helyszínen.
+            </p>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Time Range Info Card -->
+    <mat-card class="info-card time-card" *ngIf="getTimeRange() as timeRange">
+      <mat-card-content>
+        <div class="time-range-info">
+          <div class="time-item">
+            <mat-icon class="time-icon">access_time</mat-icon>
+            <div>
+              <div class="time-label">Kezdete</div>
+              <div class="time-value">{{ timeRange.start }}</div>
+            </div>
+          </div>
+
+          <mat-divider class="time-divider"></mat-divider>
+
+          <div class="time-item">
+            <mat-icon class="time-icon">access_time</mat-icon>
+            <div>
+              <div class="time-label">Vége</div>
+              <div class="time-value">{{ timeRange.end }}</div>
+            </div>
+          </div>
+
+          <mat-divider class="time-divider"></mat-divider>
+
+          <div class="time-item">
+            <mat-icon class="time-icon">hourglass_empty</mat-icon>
+            <div>
+              <div class="time-label">Időtartam</div>
+              <div class="time-value">{{ timeRange.duration }}</div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+   
+  </mat-card-content>
+
+  <mat-divider></mat-divider>
+
+  <mat-card-actions class="card-actions">
+    <button mat-flat-button color="primary" (click)="onClose()" mat-dialog-close>
+      <mat-icon>close</mat-icon>
+      Bezár
+    </button>
+  </mat-card-actions>
+</mat-card>
