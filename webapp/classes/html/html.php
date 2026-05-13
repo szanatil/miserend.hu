@@ -21,6 +21,8 @@ class Html {
     public $html;
     public $langs;
     public $alert;
+    public $errorMessage;
+    public $errorTrace;
 
     function __construct() {
         $this->input = $_REQUEST;

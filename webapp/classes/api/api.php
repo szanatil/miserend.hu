@@ -8,6 +8,10 @@ class Api {
     public $format = 'json';    
     public $return = array();
     public $fields = array();
+    public $input = [];
+    public $requiredVersion;
+    public $requiredFields;
+    public $date;
 
     public function run() {
         $this->version = \Request::IntegerRequired('v');

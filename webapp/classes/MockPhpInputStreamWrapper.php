@@ -6,6 +6,7 @@
  */
 class MockPhpInputStreamWrapper {
     public static $content = '';
+    public $context;
     private $position = 0;
 
     public function stream_open($path, $mode, $options, &$opened_path) {
