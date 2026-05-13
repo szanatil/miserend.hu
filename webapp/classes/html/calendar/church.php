@@ -12,6 +12,8 @@ header("Access-Control-Allow-Headers: Content-Type, Authorization");
 class Church extends \Html\Calendar\CalendarApi {
 
     protected $elastic;
+    public $tid;
+    public $church;
 
     public function __construct($path) {
 

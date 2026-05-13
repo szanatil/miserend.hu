@@ -5,6 +5,12 @@ class Pagination {
     public $take = 20;
     public $active = 0;
     public $maxOptionsToShown = 10;
+    public $skip;
+    public $resultsCount;
+    public $count;
+    public $next;
+    public $pages;
+    public $previous;
 
     function set($countResults, $url = false) {
         $this->skip = (int) ( $this->take * $this->active );
@@ -49,7 +55,7 @@ class Pagination {
         if ($url == false) {
             $url = $_SERVER['REQUEST_URI'];
         }
-        parse_str(parse_url($url, PHP_URL_QUERY), $params);
+        parse_str(parse_url($url, PHP_URL_QUERY) ?? '', $params);
         if ($overwrite) {
             $new_params = $new_params + $params;
         } else {

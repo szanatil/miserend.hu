@@ -11,6 +11,7 @@ class OpeninghApi extends \ExternalApi\ExternalApi {
         'warnings_severity' => 7
     ]; 
 	public $testQuery = "validate?value=PH";
+    public $linkForDetails;
     
     function buildQuery() {
         foreach($this->settings as $key => $value) {

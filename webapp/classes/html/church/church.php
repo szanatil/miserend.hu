@@ -3,6 +3,68 @@
 namespace Html\Church;
 
 class Church extends \Html\Html {
+    // Database fields from templomok table
+    public $id;
+    public $nev;
+    public $ismertnev;
+    public $orszag;
+    public $megye;
+    public $varos;
+    public $cim;
+    public $megkozelites;
+    public $plebania;
+    public $pleb_url;
+    public $pleb_eml;
+    public $egyhazmegye;
+    public $espereskerulet;
+    public $leiras;
+    public $megjegyzes;
+    public $miseaktiv;
+    public $misemegj;
+    public $bucsu;
+    public $frissites;
+    public $kontakt;
+    public $kontaktmail;
+    public $adminmegj;
+    public $letrehozta;
+    public $megbizhato;
+    public $created_at;
+    public $modositotta;
+    public $moddatum;
+    public $log;
+    public $ok;
+    public $eszrevetel;
+    public $updated_at;
+    public $deleted_at;
+    public $osmid;
+    public $osmtype;
+    public $lat;
+    public $lon;
+    
+    // Computed/relationship properties
+    public $writeAcess;
+    public $readAcess;
+    public $photos;
+    public $kozossegek;
+    public $confessions;
+    public $adorations;
+    public $religious_administration;
+    public $names;
+    public $alternative_names;
+    public $fullName;
+    public $location;
+    public $links;
+    public $readAccess;
+    public $writeAccess;
+    public $accessibility;
+    public $_honapok;
+    public $hasWorkAccess;
+    public $church;
+    public $neighbours;
+    public $updated;
+    public $isChurchHolder;
+    public $favorite;
+    public $alert;
 
     public function __construct($path) {
         global $user;

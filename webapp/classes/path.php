@@ -1,6 +1,9 @@
 <?php
 
 class Path {
+    public $url;
+    public $arguments;
+    public $className;
 
     public function __construct($path) {
         $this->url = strtolower($path);

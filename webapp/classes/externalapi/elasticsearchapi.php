@@ -12,6 +12,7 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 	public $cache = false; // Az Elasticsearch-nek meg van a saját cache-je. Arra hagyatkozunk
 	
 	public $q; // Ez a solr keresőben a query, nem pedig az API-ban a query
+    public $data;
 			
 	function run() {					
 		$this->curl_setopt(CURLOPT_HTTPHEADER ,['Content-Type: application/json']);		 	

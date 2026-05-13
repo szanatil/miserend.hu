@@ -5,15 +5,26 @@ namespace ExternalApi;
 use Illuminate\Database\Capsule\Manager as DB;
         
 class ExternalApi {
-
     public $cache = "1 week"; //false or any time in strtotime() format
     public $cacheDir = PATH . 'fajlok/tmp/';
     public $queryTimeout = 30;
     public $query;
     public $name = 'external';
-	public $format = 'json'; // enum('json','xml')
-	public $strictFormat = true; // if rawData not in XML/JSON format throw new \Exception
-	private $curl_opts = [];
+    public $format = 'json'; // enum('json','xml')
+    public $strictFormat = true; // if rawData not in XML/JSON format throw new \Exception
+    private $curl_opts = [];
+    public $rawQuery;
+    public $rawData;
+    public $responseCode;
+    public $jsonData;
+    public $xmlData;
+    public $cacheFilePath;
+    public $cacheFileTime;
+    public $error;
+    public $isTesting;
+    public $headerAuthorization;
+    public $postfields;
+    public $apiUrl;
 	
     function __construct() {
         
@@ -196,7 +207,7 @@ class ExternalApi {
     }
 
     function loadCacheFilePath() {
-        $this->cacheFilePath = $this->cacheDir . $this->name . "_" . md5($this->query) . ".".$this->format;
+        $this->cacheFilePath = $this->cacheDir . $this->name . "_" . md5($this->query ?? '') . ".".$this->format;
     }
        
     function saveStat() {

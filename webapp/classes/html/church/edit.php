@@ -3,6 +3,11 @@
 namespace Html\Church;
 
 class Edit extends \Html\Html {
+    public $tid;
+    public $church;
+    public $form;
+    public $help;
+    public $input;
 
     public function __construct($path) {
         global $user;

@@ -3,6 +3,8 @@
 namespace Html\Church;
 
 class SuggestionPackages extends \Html\Html {
+    public $tid;
+    public $church;
     
     public function __construct($path) {
         $this->tid = $path[0];

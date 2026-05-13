@@ -3,6 +3,16 @@
 namespace Html\Church;
 
 class EditOsm extends \Html\Html {
+    public $input;
+    public $tid;
+    public $church;
+    public $administration;
+    public $autocomplete;
+    public $osmtags;
+    public $osmEntity;
+    public $osmtagsToSave;
+    public $form;
+    public $validKeys;
 
     public function __construct($path) {
         global $user;

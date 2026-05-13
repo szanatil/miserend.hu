@@ -6,7 +6,8 @@ use Illuminate\Database\Capsule\Manager as DB;
 
 class AutocompleteKeyword extends Ajax {
 
-	public $format = "json";
+    public $format = "json";
+    public $content;
 
     public function __construct() {
         $kulcsszo = \Request::Text('text');

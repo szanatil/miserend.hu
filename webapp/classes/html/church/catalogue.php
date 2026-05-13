@@ -5,6 +5,9 @@ namespace Html\Church;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class Catalogue extends \Html\Html {
+    public $form;
+    public $search;
+    public $churches;
 
     private $filterDiocese;
     private $filterDeanery;

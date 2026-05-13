@@ -5,6 +5,13 @@ namespace Html;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class Stat extends Html {
+    public $stats;
+    public $s4;
+    public $accessibility;
+    public $s2;
+    public $s5;
+    public $magyar;
+    public $osmtags;
 
     public function __construct() {
         parent::__construct();

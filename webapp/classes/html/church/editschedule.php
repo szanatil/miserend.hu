@@ -5,6 +5,11 @@ namespace Html\Church;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class EditSchedule extends \Html\Html {
+    public $tid;
+    public $church;
+    public $elasticMassesCount;
+    public $elasticMassesExamples;
+    public $tids;
 
     public function __construct($path) {
         $this->tid = $path[0];

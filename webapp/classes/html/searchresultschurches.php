@@ -7,6 +7,10 @@ use Illuminate\Database\Capsule\Manager as DB;
 class SearchResultsChurches extends Html {
 
     public $template = 'search/resultsChurches.twig';
+    public $form = [];
+    public $filters;
+    public $churches;
+    public $boundaryDataJson;
 
     public function __construct() {
         parent::__construct();

@@ -7,8 +7,11 @@ namespace Html;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class Home extends Html {
-
-
+    public $photo;
+    public $favorites;
+    public $searchform;
+    public $admindashboard;
+    public $boundaryDataJson;
 
     public function __construct() {
         global $user, $config;

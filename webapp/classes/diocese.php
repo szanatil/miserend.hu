@@ -5,6 +5,9 @@ use Illuminate\Database\Capsule\Manager as DB;
 class Diocese {
 
     public $id;
+    public $name;
+    public $shortname;
+    public $responsible;
 
     public function getByChurchId($id) {
         $result = DB::table('templomok')

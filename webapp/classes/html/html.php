@@ -3,12 +3,24 @@
 namespace Html;
 
 class Html {
-
     public $template;
     public $menu = array();
-    //public $pageTitle = 'Miserend';
+    public $pageTitle;
     public $templatesPath = 'templates';
     public $extraMeta;
+    public $input;
+    public $pagination;
+    public $environment;
+    public $githash;
+    public $user;
+    public $mychurches;
+    public $chat;
+    public $messages;
+    public $title;
+    public $twig;
+    public $html;
+    public $langs;
+    public $alert;
 
     function __construct() {
         $this->input = $_REQUEST;

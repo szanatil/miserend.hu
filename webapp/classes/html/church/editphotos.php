@@ -3,6 +3,10 @@
 namespace Html\Church;
 
 class EditPhotos extends \Html\Html {
+    public $input;
+    public $tid;
+    public $church;
+    public $title;
 
     public function __construct($path) {
         global $user;

@@ -5,6 +5,7 @@ namespace Html\Ajax;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class Chat extends Ajax {
+    public $content;
 
     public function __construct() {
         global $user;

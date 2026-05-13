@@ -5,7 +5,6 @@ namespace Api;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class Sqlite extends Api {
-
     public $title = 'Adatbázis';
     public $format = false;
     public $sqliteFileName;
@@ -13,6 +12,7 @@ class Sqlite extends Api {
     public $sqlite;
     public $search;
     public $massId = 0; // global-ban kell a mise azonosító, hogy beilleszthessük a táblázatban
+    public $sqliteFilePath;
 
 
     public function docs() {

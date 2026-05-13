@@ -7,6 +7,10 @@ use ExternalApi\NapilelkibatyuApi;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class SearchResultsMasses extends Html {
+    public $liturgicalDays;
+    public $filters;
+    public $results;
+    public $boundaryDataJson;
 
     public function __construct() {
         parent::__construct();

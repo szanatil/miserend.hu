@@ -1,12 +1,14 @@
 <?php
 
 class Jqplots {
-       
     public $title;
-	public $labels = [];
-	public $data = [];
-	
-    
+    public $labels = [];
+    public $data = [];
+    public $id;
+    public $axes;
+    public $html;
+    public $script;
+
     function __construct($id) {
 		$this->id = $id;
 		
