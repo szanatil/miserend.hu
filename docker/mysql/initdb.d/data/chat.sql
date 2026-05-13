@@ -17,17 +17,15 @@
 /*M!100616 SET @OLD_NOTE_VERBOSITY=@@NOTE_VERBOSITY, NOTE_VERBOSITY=0 */;
 
 --
--- Dumping data for table `user`
+-- Dumping data for table `chat`
 --
 
-LOCK TABLES `user` WRITE;
-/*!40000 ALTER TABLE `user` DISABLE KEYS */;
+LOCK TABLES `chat` WRITE;
+/*!40000 ALTER TABLE `chat` DISABLE KEYS */;
 set autocommit=0;
-INSERT INTO `user` VALUES
-(2,'admin','$2b$10$O0oNL8l2UtTpcj2gOphdK.oXPZzltYF/lXiVzdkW4ozXq8yg6UfH6','miserend-user','2026-01-10 21:33:28','0000-00-00 00:00:00',NULL,'admin@nomail.dev',1,'Admin','Administrator',0),
-(3,'esztergom','$2b$10$O0oNL8l2UtTpcj2gOphdK.oXPZzltYF/lXiVzdkW4ozXq8yg6UfH6','','2026-01-10 21:33:28','0000-00-00 00:00:00',NULL,'ehmfelelos@nomail.dev',1,'Esztergom','Egyházmegyei felelős',0),
-(4,'templomgondnok','$2b$10$O0oNL8l2UtTpcj2gOphdK.oXPZzltYF/lXiVzdkW4ozXq8yg6UfH6','','2026-01-10 21:33:28','0000-00-00 00:00:00',NULL,'templomgondnok@nomail.dev',1,'Gondnok','Templom gondnok',0);
-/*!40000 ALTER TABLE `user` ENABLE KEYS */;
+INSERT INTO `chat` (`id`, `datum`, `user`, `kinek`, `szoveg`, `ip`) VALUES
+(1,	'2026-05-13 18:11:06',	'admin',	'',	'Első chat üzenet a betöltésből.',	'');
+/*!40000 ALTER TABLE `chat` ENABLE KEYS */;
 UNLOCK TABLES;
 commit;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -39,4 +37,4 @@ commit;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-01-10 21:37:10
+-- Dump completed on 2026-01-09  1:08:34
