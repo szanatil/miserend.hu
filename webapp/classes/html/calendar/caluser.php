@@ -25,13 +25,10 @@ class caluser extends \Html\Calendar\CalendarApi {
     }
 
     private function getUser(): void {
-
-
-
         global $user;
 
-// Visszatérés a szükséges adatokkal
-        echo json_encode([
+        // Visszatérés a szükséges adatokkal
+        $this->content = json_encode([
             'uid' => $user->uid,
             'username' => $user->username,
             'nickname' => $user->nickname,
@@ -40,13 +37,4 @@ class caluser extends \Html\Calendar\CalendarApi {
         ]);
     }
 
-    private function sendJsonError($message, $code): void {
-        http_response_code($code);
-        header('Content-Type: application/json');
-        echo json_encode([
-            'error' => true,
-            'message' => $message,
-            'code' => $code,
-        ]);
-    }
 }

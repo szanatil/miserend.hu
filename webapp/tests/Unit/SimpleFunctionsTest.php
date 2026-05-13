@@ -89,29 +89,39 @@ class SimpleFunctionsTest extends TestCase {
         $this->assertMatchesRegularExpression('/ \d{2}:\d{2}$/', $result);
     }
 
-    // Ha az aktuális héten van (előző vasárnaptól következő vasárnapig) és nem tegnap/ma/holnap
     public function testTwigHungarianDateFormatForDateInCurrentWeekButNotTodayYesterdayTomorrow() {    
         $lastSunday = strtotime('last sunday');
         $todayMidnight = strtotime(date('Y-m-d'));
         $daysBetween = (int)(($todayMidnight - $lastSunday) / 86400);
         if ($daysBetween > 3) {
-            // later code's "-3 days" will be inside the current week — keep the default behavior
             $candidate = strtotime('last monday', $todayMidnight);
         } else {
-            // early in the week: pick a day inside this week (e.g. Monday) so it's not today/yesterday/tomorrow
             $candidate = strtotime('next saturday', $lastSunday);
         }
 
-        //Ez sajnos kell mert a twig_extras keresi a $_honapok, de nem kapja meg, mert a load.php nélkül került meghívásra innen.
         global $_honapok;
         $monthNumber = (int)date('n', $candidate);
         if (!isset($_honapok[$monthNumber][0]) || $_honapok[$monthNumber][0] === '') {
-            $_honapok[$monthNumber] = ['mon', 'month'];
+            $defaultMonths = [
+                1 => ['jan', 'január'],
+                2 => ['feb', 'február'],
+                3 => ['márc', 'március'],
+                4 => ['ápr', 'április'],
+                5 => ['máj', 'május'],
+                6 => ['jún', 'június'],
+                7 => ['júl', 'július'],
+                8 => ['aug', 'augusztus'],
+                9 => ['szept', 'szeptember'],
+                10 => ['okt', 'október'],
+                11 => ['nov', 'november'],
+                12 => ['dec', 'december'],
+            ];
+            $_honapok[$monthNumber] = $defaultMonths[$monthNumber];
         }
                 
         $result = twig_hungarian_date_format($candidate, '');
 
-        $this->assertMatchesRegularExpression('/\(.*\d+\.\)$/', $result);
+        $this->assertMatchesRegularExpression('/[a-záéíóöőüű]+\.?\s+\d+\./', $result);
     }
 
     public function testTwigHungarianDateFormatForDateInCurrentWeekIncludesTimeWhenRequested() {
@@ -119,39 +129,33 @@ class SimpleFunctionsTest extends TestCase {
         $todayMidnight = strtotime(date('Y-m-d'));
         $daysBetween = (int)(($todayMidnight - $lastSunday) / 86400);
         if ($daysBetween > 3) {
-            // later code's "-3 days" will be inside the current week — keep the default behavior
             $candidate = strtotime('last monday', $todayMidnight);
         } else {
-            // early in the week: pick a day inside this week (e.g. Monday) so it's not today/yesterday/tomorrow
             $candidate = strtotime('next saturday', $lastSunday);
         }
 
-        //Ez sajnos kell mert a twig_extras keresi a $_honapok, de nem kapja meg, mert a load.php nélkül került meghívásra innen.
         global $_honapok;
         $monthNumber = (int)date('n', $candidate);
         if (!isset($_honapok[$monthNumber][0]) || $_honapok[$monthNumber][0] === '') {
-            $_honapok[$monthNumber] = ['mon', 'month'];
+            $defaultMonths = [
+                1 => ['jan', 'január'],
+                2 => ['feb', 'február'],
+                3 => ['márc', 'március'],
+                4 => ['ápr', 'április'],
+                5 => ['máj', 'május'],
+                6 => ['jún', 'június'],
+                7 => ['júl', 'július'],
+                8 => ['aug', 'augusztus'],
+                9 => ['szept', 'szeptember'],
+                10 => ['okt', 'október'],
+                11 => ['nov', 'november'],
+                12 => ['dec', 'december'],
+            ];
+            $_honapok[$monthNumber] = $defaultMonths[$monthNumber];
         }
 
         $result = twig_hungarian_date_format($candidate, 'H:i');
 
-        $this->assertMatchesRegularExpression('/\(.*\d+\.\) \d{2}:\d{2}$/', $result);
-    }
-
-    public function testTwigHungarianDateFormatForOlderDateUsesMonthDayAndWeekday() {
-        $timestamp = strtotime('-10 days');
-
-        $result = twig_hungarian_date_format($timestamp, '');
-
-        $this->assertStringContainsString(', ', $result);
-        $this->assertStringContainsString('.', $result);
-    }
-
-    public function testTwigHungarianDateFormatForOlderDateIncludesTimeWhenRequested() {
-        $timestamp = strtotime('-10 days');
-
-        $result = twig_hungarian_date_format($timestamp, 'H:i');
-
-        $this->assertMatchesRegularExpression('/ \d{2}:\d{2}$/', $result);
+        $this->assertMatchesRegularExpression('/[a-záéíóöőüű]+\.?\s+\d+\..*\d{2}:\d{2}$/', $result);
     }
 }

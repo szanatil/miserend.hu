@@ -4,21 +4,25 @@
          bootstrap="bootstrap.php"
          colors="true"
          cacheDirectory=".phpunit.cache"
-         stopOnFailure="false">
+         stopOnFailure="false"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         displayDetailsOnTestsThatTriggerErrors="true"
+         displayDetailsOnTestsThatTriggerNotices="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+         displayDetailsOnPhpunitDeprecations="true"
+         >
     <testsuites>
         <testsuite name="simple">
-            <file>SimpleFunctionsTest.php</file>
-            <file>UtilityFunctionsTest.php</file>
+            <directory>Unit</directory>
         </testsuite>
         <testsuite name="api">
             <directory>Api</directory>
         </testsuite>
         <testsuite name="request">
-            <file>RequestTest.php</file>            
+            <directory>Request</directory>
         </testsuite>
-        <testsuite name="simplerrules">
-            <file>SimplerruleTest.php</file>
-            <file>DSTSimplerruleTest.php</file>
+        <testsuite name="integration">
+            <directory>Integration</directory>
         </testsuite>
     </testsuites>
     <source>

@@ -24,7 +24,9 @@ LOCK TABLES `user` WRITE;
 /*!40000 ALTER TABLE `user` DISABLE KEYS */;
 set autocommit=0;
 INSERT INTO `user` VALUES
-(2,'admin','$2b$10$O0oNL8l2UtTpcj2gOphdK.oXPZzltYF/lXiVzdkW4ozXq8yg6UfH6','miserend','2026-01-10 21:33:28','0000-00-00 00:00:00',NULL,'admin@nomail.dev',1,'admin','Administrator',0);
+(2,'admin','$2b$10$O0oNL8l2UtTpcj2gOphdK.oXPZzltYF/lXiVzdkW4ozXq8yg6UfH6','miserend-user','2026-01-10 21:33:28','0000-00-00 00:00:00',NULL,'admin@nomail.dev',1,'Admin','Administrator',0),
+(3,'esztergom','$2b$10$O0oNL8l2UtTpcj2gOphdK.oXPZzltYF/lXiVzdkW4ozXq8yg6UfH6','','2026-01-10 21:33:28','0000-00-00 00:00:00',NULL,'ehmfelelos@nomail.dev',1,'Esztergom','Egyházmegyei felelős',0),
+(4,'templomgondnok','$2b$10$O0oNL8l2UtTpcj2gOphdK.oXPZzltYF/lXiVzdkW4ozXq8yg6UfH6','','2026-01-10 21:33:28','0000-00-00 00:00:00',NULL,'templomgondnok@nomail.dev',1,'Gondnok','Templom gondnok',0);
 /*!40000 ALTER TABLE `user` ENABLE KEYS */;
 UNLOCK TABLES;
 commit;

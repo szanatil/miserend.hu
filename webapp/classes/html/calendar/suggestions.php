@@ -27,7 +27,6 @@ class Suggestions extends \Html\Calendar\CalendarApi
     {
         if (empty($path[0])) {
             $this->sendJsonError('Nem megfelelő URL!', 400);
-            exit;
         }
 
         //ekkor konkrét javaslat elfogadás/elutasítás érkezik
@@ -35,7 +34,6 @@ class Suggestions extends \Html\Calendar\CalendarApi
 
         if (empty($path[1])) {
             $this->sendJsonError('Hiányzó templom azonosító.', 400);
-            exit;
         }
 
         if (!$this->modify) {
@@ -44,7 +42,6 @@ class Suggestions extends \Html\Calendar\CalendarApi
             $this->church = \Eloquent\Church::find($this->tid);
             if (!$this->church) {
                 $this->sendJsonError('Nincs ilyen templom.', 404);
-                exit;
             }
         }
 
@@ -52,17 +49,14 @@ class Suggestions extends \Html\Calendar\CalendarApi
             case 'GET':
                 if ($this->modify) {
                     $this->sendJsonError('Method not allowed', 405);
-                    exit;
                 }
                 $this->church->append(['writeAccess', 'hasExternalCalendar']);
 
                 if (!$this->church->writeAccess) {
                     $this->sendJsonError('Hiányzó jogosultság!', 403);
-                    exit;
                 }
                 if ($this->church->hasExternalCalendar) {
                     $this->sendJsonError('Hiányzó jogosultság! Ez a templom külső naptárra van csatlakoztatva.', 403);
-                    exit;
                 }
 
                 $state = isset($path[2]) ? strtolower($path[2]) : null;
@@ -79,9 +73,8 @@ class Suggestions extends \Html\Calendar\CalendarApi
                     ->map(fn($mass) => $mass->toArray())
                     ->values();
 
-                echo json_encode($filtered);
-
-                exit;
+                $this->content = json_encode($filtered);
+                
             case 'POST':
 
                 if ($this->modify) {
@@ -93,8 +86,7 @@ class Suggestions extends \Html\Calendar\CalendarApi
                     $modifyChurch->append(['hasExternalCalendar']);
                     if ($modifyChurch && $modifyChurch->hasExternalCalendar) {
                         $this->sendJsonError('Ez a templom külső naptárra van csatlakoztatva, módosítás nem lehetséges.', 403);
-                        exit;
-                    }
+                   }
                     
                     $this->handleModifiedPost($path[0], $path[1], $input);
                 } else {
@@ -102,17 +94,13 @@ class Suggestions extends \Html\Calendar\CalendarApi
                     $this->church->append(['hasExternalCalendar']);
                     if ($this->church->hasExternalCalendar) {
                         $this->sendJsonError('Ez a templom külső naptárra van csatlakoztatva, módosítás nem lehetséges.', 403);
-                        exit;
                     }
                     
                     $this->handleNewSuggestionPackage();
                 }
-
-                exit();
-
+                
             default:
                 $this->sendJsonError('Method not allowed', 405);
-                exit;
         }
     }
 
@@ -168,7 +156,7 @@ class Suggestions extends \Html\Calendar\CalendarApi
 
         $calendarMasses = CalMass::where('church_id', $package->church_id)->get();
 
-        echo json_encode([
+        $this->content = json_encode([
             'suggestionPackages' => $filtered,
             'calendarMasses' => $calendarMasses->map(fn($mass) => $mass->toArray())->values(),
         ]);
@@ -281,9 +269,7 @@ class Suggestions extends \Html\Calendar\CalendarApi
         $input = json_decode(file_get_contents('php://input'), true);
 
         if (!$input || !isset($input['churchId']) || !isset($input['suggestions']) || !isset($input['state'])) {
-            http_response_code(400);
-            echo json_encode(["error" => "Érvénytelen adat"]);
-            exit;
+            $this->sendJsonError("Érvénytelen adat", 400);
         }
 
         Capsule::connection()->transaction(function () use ($input) {
@@ -308,17 +294,8 @@ class Suggestions extends \Html\Calendar\CalendarApi
                 }
             }
 
-            echo json_encode(["success" => true, "id" => $package->id]);
+            $this->content = json_encode(["success" => true, "id" => $package->id]);
         });
     }
-
-    private function sendJsonError($message, $code): void {
-        http_response_code($code);
-        header('Content-Type: application/json');
-        echo json_encode([
-            'error' => true,
-            'message' => $message,
-            'code' => $code,
-        ]);
-    }
+        
 }

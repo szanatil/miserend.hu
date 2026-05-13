@@ -5,6 +5,13 @@ namespace Html;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class Stat extends Html {
+    public $stats;
+    public $s4;
+    public $accessibility;
+    public $s2;
+    public $s5;
+    public $magyar;
+    public $osmtags;
 
     public function __construct() {
         parent::__construct();
@@ -83,17 +90,17 @@ class Stat extends Html {
         $this->s4 = ['data'=>[],'labels'=>[]];
         
         $data = \Eloquent\ChurchHolder::select('user_id',DB::raw('count(*) as count'))->groupBy('user_id')->orderBy('count')->get();
-        
+        $tmp = [];
         foreach($data as $uid => $count ) {
             if(isset($tmp[$count->count]))
              $tmp[$count->count]++;
             else
                 $tmp[$count->count] = 1;
         }   
-		if($tmp)
-			foreach($tmp as $k => $v)
-				$this->s4['data'][] = [$k,$v];
-        
+		
+		foreach($tmp as $k => $v)
+			$this->s4['data'][] = [$k,$v];
+	
 		
 		/*
 		* Templomok ahol van Accessibility adat

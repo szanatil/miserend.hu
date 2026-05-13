@@ -3,6 +3,7 @@
 namespace Html\Church;
 
 class ChangeHolders extends \Html\Html {
+    public $holder;
     
     public function __construct($path) {
         $where = [];

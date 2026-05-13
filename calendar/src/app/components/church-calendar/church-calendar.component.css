@@ -20,3 +20,20 @@
   column-gap: 1em;
   max-width: 60em;
 }
+
+/* Sensor event styling - border only, transparent background */
+::ng-deep .fc-timeGridWeek-view .fc-event.fc-event-sensor {  
+  border-width: 3px !important;
+}
+
+::ng-deep  .fc-event-sensor .fc-list-item-title {  
+  color: #3788d9;
+}
+
+::ng-deep  .fc-event-sensor .fc-event-title {  
+  color: #3788d9;
+}
+
+::ng-deep .fc-dayGridMonth-view .fc-list-event-dot {
+  margin-right: 0.2em;
+}

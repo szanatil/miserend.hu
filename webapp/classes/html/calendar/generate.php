@@ -23,7 +23,7 @@ class Generate extends \Html\Calendar\CalendarApi {
     public $format = 'json';
 
     public function __construct($path = false) {
-        $this->format = 'json';
+        
         parent::__construct($path);
         if($_SERVER['REQUEST_METHOD'] === false ) {
             return;            
@@ -60,7 +60,7 @@ class Generate extends \Html\Calendar\CalendarApi {
             case 'PUT':                                
                 $debug = \ExternalApi\ElasticsearchApi::updateMasses($this->years, $this->tids);
 
-                echo json_encode([
+                $this->content = json_encode([
                     'success' => true,
                     'debug'   => array_merge($debug, $this->debugLog)
                 ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
@@ -77,16 +77,7 @@ class Generate extends \Html\Calendar\CalendarApi {
         $this->debugLog[] = $line;
     }
 
-
-    private function sendJsonError($message, $code): void {
-        http_response_code($code);
-        echo json_encode([
-            'error' => true,
-            'message' => $message,
-            'code' => $code,
-        ]);
-    }
-
+    
     private function convertRangeToUtc(?int $min, ?int $max, Carbon $date): array
     {
         $range = [];

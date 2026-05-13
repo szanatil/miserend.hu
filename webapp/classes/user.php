@@ -3,6 +3,35 @@
 use Illuminate\Database\Capsule\Manager as DB;
 
 class User {
+    // Database fields from user table
+    public $uid;
+    public $login;
+    public $jelszo;
+    public $jogok;
+    public $regdatum;
+    public $lastlogin;
+    public $lastactive;
+    public $email;
+    public $notifications;
+    public $becenev;
+    public $nev;
+    public $volunteer;
+    
+    // Derived/computed properties
+    public $username;
+    public $nickname;
+    public $name;
+    public $roles;
+    public $isadmin;
+    public $loggedin;
+    public $responsible;
+    public $responsibilities;
+    public $remarksCount;
+    public $remarks;
+    public $newpwd;
+    public $presaved;
+    public $favorites;
+    public $inactiveDays;
 
     function __construct($uid = false) {
         if (isset($uid) AND $uid != false) {
@@ -313,7 +342,7 @@ class User {
         if(isset($this->jogok))
             $this->roles = explode('-', trim($this->jogok, " \t\n\r\0\x0B-"));
         else
-            $this->rolse = [];
+            $this->roles = [];
 
         unset($this->presaved);
 

@@ -5,6 +5,13 @@ namespace Html;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class Josm extends Html {
+    public $cron;
+    public $multipleOSMids;
+    public $osmWBadChurch;
+    public $countOsmData;
+    public $churchesWNoOsm;
+    public $churchesWBadOsm;
+    public $churchesWBad;
 
     public function __construct($path) {
 

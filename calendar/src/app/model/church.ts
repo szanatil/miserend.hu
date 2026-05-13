@@ -1,4 +1,5 @@
 import {Mass, Rite} from './mass';
+import {SensorEvent} from './sensor-event';
 
 export interface Church {
   id: number;
@@ -6,4 +7,5 @@ export interface Church {
   rite: Rite;
   timeZone: string;
   masses: Mass[];
+  eventsFromSensor?: SensorEvent[];
 }

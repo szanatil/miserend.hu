@@ -4,6 +4,11 @@ namespace Html;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class Map extends Html {
+    public $center;
+    public $dioceseslayer;
+    public $location;
+    public $church_id;
+    public $boundary;
 
     public function __construct() {
         $this->setTitle("OSM Térkép");

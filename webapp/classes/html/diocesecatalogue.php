@@ -5,6 +5,10 @@ namespace Html;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class DioceseCatalogue extends Html {
+    public $ehms;
+    public $form;
+    public $espkers;
+    public $churchesGroupByEspker;
 
     public function __construct($path) {
         global $user;

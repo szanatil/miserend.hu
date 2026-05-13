@@ -8,6 +8,10 @@ class Api {
     public $format = 'json';    
     public $return = array();
     public $fields = array();
+    public $input = [];
+    public $requiredVersion;
+    public $requiredFields;
+    public $date;
 
     public function run() {
         $this->version = \Request::IntegerRequired('v');
@@ -263,8 +267,9 @@ class Api {
      *
      * @return array Az endpoint osztályok nevei (string)
      */
-    public static function collectApiEndpoints() {
-        $dir = __DIR__ . '/';
+    public static function collectApiEndpoints(?string $dir = null) {
+        $dir = $dir ?? (__DIR__ . '/');
+        $dir = rtrim($dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
         $files = scandir($dir);
         $result = [];
         $filesIncluded = get_included_files();

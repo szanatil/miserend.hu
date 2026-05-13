@@ -16,6 +16,8 @@ class Search {
     public $defaultTimezone = 'Europe/Budapest';   
     public $timezone = 'Europe/Budapest';
     private $index;
+    public $rawQuery;
+    public $countHits;
     
     /**
      * Constructor

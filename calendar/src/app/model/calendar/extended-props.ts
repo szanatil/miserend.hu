@@ -1,5 +1,7 @@
 export interface ExtendedProps {
-  massId: number;
+  massId?: number;
+  sensorEventId?: string;
+  isSensorEvent?: boolean;
   recentExDates?: string[];
   recentModifiedDates?: string[];
 

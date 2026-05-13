@@ -24,11 +24,13 @@ import {MassUtil} from '../../util/mass-util';
 import {Mass} from '../../model/mass';
 import {CalendarEvent} from '../../model/calendar/calendar-event';
 import {Church} from '../../model/church';
+import {SensorEvent} from '../../model/sensor-event';
 import {TranslatePipe, TranslateService} from '@ngx-translate/core';
 import {MatButton} from '@angular/material/button';
 import {DialogEvent} from '../../model/dialog-event';
 import {DialogResponse} from '../../enum/dialog-response';
 import {EventViewerDialogComponent} from '../event-viewer-dialog/event-viewer-dialog.component';
+import {SensorEventPopupComponent, SensorEventDialogData} from '../sensor-event-popup/sensor-event-popup.component';
 import {DateTimeUtil} from '../../util/date-time-util';
 import {SuggestionPackage, SuggestionState} from '../../model/suggestion-package';
 import {SuggestionUtil} from '../../util/suggestion-util';
@@ -89,6 +91,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
   @Input() deletedMasses: number[] = [];
   @Input() deletedDates: Map<number, string[]> = new Map();
   @Input() changedMasses: number[] = [];
+  @Input() sensorEvents: SensorEvent[] = [];
 
 
   datesSet = output<string>();
@@ -171,6 +174,9 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+      if (changes['sensorEvents']) {
+        console.log('[ChurchCalendarComponent] sensorEvents changed:', this.sensorEvents);
+      }
       this.reLoadCalendar();
   }
 
@@ -191,9 +197,57 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
             this.deletedMasses,
             this.deletedDates
           );
+          console.log('[ChurchCalendarComponent] Mass calendar events count:', events.length);
+          
+          // Add sensor events to the calendar
+          const sensorCalendarEvents = this.convertSensorEventsToCalendarEvents();
+          console.log('[ChurchCalendarComponent] Sensor calendar events count:', sensorCalendarEvents.length);
+          events.push(...sensorCalendarEvents);
+          console.log('[ChurchCalendarComponent] Total events to display:', events.length);
+          
           resolve(events);
         });
     });
+  }
+
+  /**
+   * Convert sensor events to FullCalendar events
+   * Sensor events have no rrule and are single occurrences
+   */
+  private convertSensorEventsToCalendarEvents(): CalendarEvent[] {
+    if (!this.sensorEvents || this.sensorEvents.length === 0) {
+      return [];
+    }
+
+    return this.sensorEvents.map(sensor => {
+    // Convert seconds to minutes and hours
+    let duration = undefined;
+    if (sensor.duration) {
+      const totalMinutes = Math.floor(sensor.duration / 60);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      duration = { hours, minutes };
+    }
+
+    return {
+      title: sensor.title,
+      duration: duration,
+      rrule: {
+        // Single event, no recurrence
+        freq: 'daily',
+        count: 1,
+        dtstart: sensor.startDate
+      },
+      backgroundColor: 'white',
+      borderColor: '#3788d9',
+      textColor: '#3788d9',
+      className: 'fc-event-sensor',
+      extendedProps: {
+        isSensorEvent: true,
+        sensorEventId: sensor.id
+      } as any
+    } as CalendarEvent;
+  });
   }
 
   private initializeCalendar(): void {
@@ -227,10 +281,33 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
   private handleEventClick(arg: any) {
     this.selectedDate = undefined;
-    this.selectedMassId = arg.event.extendedProps.massId;
-    this.selectedEvent = arg.event;
-    this.selectedEventStart = new Date(arg.event.startStr);
-    this.openEventViewerDialog();
+    const extendedProps = arg.event.extendedProps;
+    
+    // Check if this is a sensor event
+    if (extendedProps.isSensorEvent && extendedProps.sensorEventId) {
+      this.openSensorEventPopup(extendedProps.sensorEventId);
+    } else {
+      // Regular mass event
+      this.selectedMassId = extendedProps.massId;
+      this.selectedEvent = arg.event;
+      this.selectedEventStart = new Date(arg.event.startStr);
+      this.openEventViewerDialog();
+    }
+  }
+
+  private openSensorEventPopup(sensorEventId: string): void {
+    const sensorEvent = this.sensorEvents.find(e => e.id === sensorEventId);
+    if (!sensorEvent) {
+      console.error('Sensor event not found:', sensorEventId);
+      return;
+    }
+
+    const dialogRef = this.dialog.open(SensorEventPopupComponent, {
+      data: {
+        sensorEvent: sensorEvent,
+        churchName: this.currentChurch.name
+      } as SensorEventDialogData
+    });
   }
 
   handleEventMount(info: any) {
@@ -791,7 +868,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
       if (globalChanged) {
         this.calEvents = this.calEvents
-          .filter(event => !lowerPeriodWeightMassIds.includes(event.extendedProps.massId));
+          .filter(event => !event.extendedProps.massId || !lowerPeriodWeightMassIds.includes(event.extendedProps.massId));
         lowerPeriodWeightMassIds.forEach(lowerPeriodWeightMassId => {
           const lowerPeriodWeightMass = this.changes.get(lowerPeriodWeightMassId);
           if (ScriptUtil.isNotNull(lowerPeriodWeightMass)) {
@@ -962,6 +1039,9 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
   // Create event HTML that includes time, title, a flag, and other icons (if available)
   renderEventContent(info: any) {
     try {
+      // Check if this is a sensor event - if so, apply special styling
+      const isSensorEvent = info.event.extendedProps?.isSensorEvent === true;
+
       // determine current view type (use info.view when available)
       const viewType = info.view?.type || (this.calendarComponent ? this.calendarComponent.getApi().view.type : '');
       const isListView = typeof viewType === 'string' && viewType.startsWith('list');
@@ -1062,7 +1142,8 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
           timeHtml = `<span class="fc-event-time">${info.timeText}</span>`;
         }
       }
-
+    
+      // Regular mass event rendering
       const dotHtml = `<span class="fc-list-event-dot" style="background-color:${info.event.backgroundColor || '#3788d8'}; border-color:${info.event.borderColor || '#3788d8'};"></span>`;
       const titleHtml = `<span class="fc-event-title">${info.event.title}</span>`;
       

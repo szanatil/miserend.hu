@@ -28,7 +28,7 @@ RUN apt-get update && apt-get install -y \
         libpng-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) gd \
-    && docker-php-ext-install mysqli pdo pdo_mysql \
+    && docker-php-ext-install mysqli pdo pdo_mysql zip \
     && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/*
 
@@ -62,7 +62,8 @@ RUN composer install --no-interaction --no-progress
 COPY docker/miserend/php.ini /usr/local/etc/php/conf.d/php.ini
 
 # Apache vhost
-COPY docker/miserend/apache.conf /etc/apache2/sites-available/miserend.conf
+COPY docker/miserend/apache/apache.conf /etc/apache2/sites-available/miserend.conf
+COPY docker/miserend/apache/ports.conf /etc/apache2/ports.conf
 RUN a2dissite 000-default \
  && a2ensite miserend \
  && apache2ctl configtest

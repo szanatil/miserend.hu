@@ -3,9 +3,11 @@
 use Illuminate\Database\Capsule\Manager as DB;
 
 class Chat {
-    
     public $limit = 10;
     public $alert = 0;
+    public $comments;
+    public $lastcomment;
+    public $users;
     
     function load() {
         $this->loadComments();		

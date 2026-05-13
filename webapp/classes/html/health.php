@@ -6,6 +6,16 @@ use Illuminate\Database\Capsule\Manager as DB;
 use Carbon\Carbon;
 
 class Health extends Html {
+    public $infos;
+    public $cronjobs;
+    public $elasticsearch;
+    public $churchesWithNoElasticMasses;
+    public $churchesWithNoElasticMassesCount;
+    public $externalapis;
+    public $boundariesStats;
+    public $emails;
+    public $mailing;
+    public $foremail;
 
     public function __construct() {
         parent::__construct();

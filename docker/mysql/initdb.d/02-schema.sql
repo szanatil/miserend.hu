@@ -262,6 +262,7 @@ CREATE TABLE IF NOT EXISTS `confessions` (
   `local_id` int(11) NOT NULL,
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `fulldata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`fulldata`)),
+  `status` enum('ON','OFF') NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `deduplicationId` (`deduplicationId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;

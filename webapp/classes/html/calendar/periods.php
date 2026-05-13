@@ -73,7 +73,7 @@ class Periods extends \Html\Calendar\CalendarApi {
 
                     $periodsYear = CalPeriodYear::whereIn('start_year', $this->years)->get();
 
-                    echo json_encode($periodsYear->toArray());
+                    $this->content = json_encode($periodsYear->toArray());
                 } else {
                     //ha csak simán lekérjük a periódusokat
                     
@@ -85,7 +85,7 @@ class Periods extends \Html\Calendar\CalendarApi {
                         'generatedPeriods' => $generatedPeriods->toArray()
                     ];
 
-                    echo json_encode($result);
+                    $this->content = json_encode($result);
                 }
                 break;
             case 'POST':
@@ -116,11 +116,10 @@ class Periods extends \Html\Calendar\CalendarApi {
                 CalPeriod::generateCalGeneratedPeriods($year);
             } catch (\Exception $e) {
                 $this->sendJsonError("$year: " . $e->getMessage(), 422);
-                return;
             }
         }
 
-        echo json_encode([
+        $this->content = json_encode([
             'message' => "Sikeresen generált évek: " . implode(", ", $this->years)
         ]);
     }
@@ -157,21 +156,10 @@ class Periods extends \Html\Calendar\CalendarApi {
                 ['period_id', 'start_year', 'start_date', 'end_date', 'created_at', 'updated_at']);
         }
 
-        echo json_encode([
+        $this->content = json_encode([
             'message' => 'Sikeres mentés! Ne felejts el generálni se! :)',
             'count' => count($upsert),
         ]);
     }
 
-    private function sendJsonError($message, $code): void {
-        http_response_code($code);
-        header('Content-Type: application/json');
-        echo json_encode([
-            'error' => true,
-            'message' => $message,
-            'code' => $code,
-        ]);
-    }
-
-   
 }
