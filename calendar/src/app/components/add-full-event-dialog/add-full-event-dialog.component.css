@@ -52,29 +52,39 @@
 }
 
 .single-recurrence-selector {
-  display: flex;
-  text-align: center;
-  margin-bottom: 1.5em;
-  flex-direction: column;
+   display: flex;
+   text-align: center;
+   margin-bottom: 1.5em;
+   flex-direction: column;
 
-  & mat-radio-group {
-    display: flex;
-    justify-content: space-evenly;
-  }
+   & mat-radio-group {
+     display: flex;
+     justify-content: space-evenly;
+   }
+ }
+
+.period-color-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  margin-right: 8px;
 }
 
-@media screen and (max-width: 600px) {
-  .datetime-settings {
-    display: flex;
-    flex-direction: column;
-  }
+ @media screen and (max-width: 600px) {
+   .datetime-settings {
+     display: flex;
+     flex-direction: column;
+   }
 
-  .single-recurrence-selector {
-    & mat-radio-group {
-      flex-direction: column;
-      align-items: start;
-    }
-  }
-}
+   .single-recurrence-selector {
+     & mat-radio-group {
+       flex-direction: column;
+       align-items: start;
+     }
+   }
+ }
 
-
+ 

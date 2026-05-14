@@ -35,7 +35,10 @@
                      [matAutocomplete]="auto">
               <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayPeriod">
                 @for (period of filteredPeriods$ | async; track period.id) {
-                  <mat-option [value]="period">{{period.name}}</mat-option>
+                  <mat-option [value]="period">
+                    <span class="period-color-dot" [style.background-color]="period.color"></span>
+                    {{period.name}}
+                  </mat-option>
                 }
               </mat-autocomplete>
               <button matSuffix class="input-suffix" mat-icon-button title="" (click)="resetPeriod($event)">
