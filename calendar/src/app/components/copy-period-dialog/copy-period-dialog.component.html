@@ -1,0 +1,70 @@
+<div mat-dialog-title>
+  {{ 'COPY_PERIOD_DIALOG.TITLE' | translate }}
+</div>
+
+<div mat-dialog-content>
+  <div class="current-period-info">
+    <h4>{{ 'COPY_PERIOD_DIALOG.CURRENT_PERIOD' | translate }}</h4>
+    <p>
+      <span class="period-color-dot" [style.background-color]="sourcePeriodColor"></span>
+      <strong>{{ data.sourcePeriodName }}</strong>
+    </p>
+    @if (data.sourcePeriodInfo) {
+      <p class="text-muted small">
+        {{ getPeriodRangeInfo(data.sourcePeriodInfo) }}
+      </p>
+    }
+  </div>
+
+  <div class="copy-info">
+    <p>{{ 'COPY_PERIOD_INFO' | translate: {count: data.massCount} }}</p>
+  </div>
+
+  <form [formGroup]="form">
+    <mat-form-field class="full-width">
+      <mat-label>{{ 'COPY_PERIOD_DIALOG.TARGET_PERIOD' | translate }}</mat-label>
+      <input type="text"
+             placeholder="{{ 'COPY_PERIOD_DIALOG.TARGET_PERIOD' | translate }}"
+             matInput
+             [formControl]="targetPeriodCtr"
+             [matAutocomplete]="auto">
+      <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayPeriod">
+        @for (period of filteredPeriods$ | async; track period.id) {
+          <mat-option [value]="period">
+            <span class="period-color-dot" [style.background-color]="period.color"></span>
+            {{ period.name }}
+          </mat-option>
+        }
+      </mat-autocomplete>
+      <button matSuffix class="input-suffix" mat-icon-button title="" (click)="resetPeriod($event)">
+        <mat-icon>delete</mat-icon>
+      </button>
+
+      @if (targetPeriodCtr.invalid) {
+        @if (targetPeriodCtr.hasError('required')) {
+          <mat-error class="input-error">{{ 'ERRORS.REQUIRED_PERIOD' | translate }}</mat-error>
+        }
+      }
+    </mat-form-field>
+  </form>
+
+  @if (selectedPeriodInfo) {
+    <div class="target-period-info">
+      <h4>{{ 'COPY_PERIOD_DIALOG.SELECTED_TARGET' | translate }}</h4>
+      <p>
+        <span class="period-color-dot" [style.background-color]="selectedPeriodInfo.color"></span>
+        <strong>{{ selectedPeriodInfo.name }}</strong>
+      </p>
+      <p class="text-muted small">
+        {{ getPeriodRangeInfo(selectedPeriodInfo) }}
+      </p>
+    </div>
+  }
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">{{ 'CANCEL' | translate }}</button>
+  <button mat-flat-button color="primary" (click)="onOk()" [disabled]="!selectedPeriodInfo">
+    {{ 'OK' | translate }}
+  </button>
+</div>

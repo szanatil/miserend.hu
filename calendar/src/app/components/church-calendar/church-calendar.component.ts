@@ -51,6 +51,10 @@ import {SearchService} from '../../services/search.service';
 import {GeneratedPeriod} from "../../model/generated-period";
 import { eventListTemplate, EventListTemplateVars } from './event-list-template';
 import {EditConfirmationService} from '../../services/edit-confirmation.service';
+import {CopyPeriodDialogComponent, CopyPeriodDialogData} from '../copy-period-dialog/copy-period-dialog.component';
+import {DeletePeriodDialogComponent, DeletePeriodDialogData} from '../delete-period-dialog/delete-period-dialog.component';
+import {DeleteWarningDialogComponent} from '../delete-warning-dialog/delete-warning-dialog.component';
+import { co } from '@fullcalendar/core/internal-common';
 
 export interface SimpleDialogData {
   dateTime: Date;
@@ -175,7 +179,6 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
   ngOnChanges(changes: SimpleChanges): void {
       if (changes['sensorEvents']) {
-        console.log('[ChurchCalendarComponent] sensorEvents changed:', this.sensorEvents);
       }
       this.reLoadCalendar();
   }
@@ -197,17 +200,56 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
             this.deletedMasses,
             this.deletedDates
           );
-          console.log('[ChurchCalendarComponent] Mass calendar events count:', events.length);
           
           // Add sensor events to the calendar
           const sensorCalendarEvents = this.convertSensorEventsToCalendarEvents();
-          console.log('[ChurchCalendarComponent] Sensor calendar events count:', sensorCalendarEvents.length);
           events.push(...sensorCalendarEvents);
-          console.log('[ChurchCalendarComponent] Total events to display:', events.length);
           
           resolve(events);
         });
     });
+  }
+
+  // IMPROVED: Synchronous version that combines all mass sources and regenerates events
+  private generateFreshCalendarEvents(): CalendarEvent[] {
+    // Combine masses from both original and changes maps (changes override original)
+    const combinedMasses = new Map<number, Mass>();
+    
+    // Add all original masses
+    for (const mass of this.masses.values()) {
+      combinedMasses.set(mass.id!, mass);
+    }
+    
+    // Override with any pending changes
+    for (const [id, changedMass] of this.changes.entries()) {
+      combinedMasses.set(id, changedMass);
+    }
+    
+    // Remove deleted masses
+    for (const deletedId of this.deletedMasses) {
+      combinedMasses.delete(deletedId);
+    }
+    
+    // Get current periods - use getValue() to get the latest emitted value
+    const periods = this.periodService.generatedPeriods$.getValue();
+    if (!periods || periods.length === 0) {      
+      return [];
+    }
+
+    // Generate calendar events from the combined mass set
+    const events = MassUtil.createCalendarEvents(
+      Array.from(combinedMasses.values()),
+      periods,
+      [], // changedMasses is empty since we're generating from combined set
+      [], // deletedMasses is empty since we've already removed them
+      this.deletedDates
+    );
+
+    // Add sensor events to the calendar
+    const sensorCalendarEvents = this.convertSensorEventsToCalendarEvents();
+    events.push(...sensorCalendarEvents);
+
+    return events;
   }
 
   /**
@@ -408,11 +450,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
               mass.exdate = [currentStartStr];
             }
 
-            this.calEvents = this.calEvents.filter(event => event.extendedProps.massId !== this.selectedMassId);
-            this.calEvents.push(
-              ...MassUtil.createCalendarEvent(mass, this.periodService.generatedPeriods$.getValue())
-            );
-            
+            // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
             this.refreshCalendarAndMassList();
           }
         }
@@ -425,7 +463,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
         this.changes.delete(this.selectedMassId);
       }
 
-      this.calEvents = this.calEvents.filter(event => event.extendedProps.massId !== this.selectedMassId);
+      // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
       this.refreshCalendarAndMassList();
 
     } else if(result === DialogResponse.EVENT_VIEWER_EDIT_ALL || result === DialogResponse.EVENT_VIEWER_EDIT_ONE) {
@@ -521,13 +559,11 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     }
 
     const newMassId = MassUtil.generateTmpMassId();
-    const simpleCalendarEvent: CalendarEvent =
-      MassUtil.createSimpleCalendarEventByDate(this.selectedDate, this.currentChurch!.rite, newMassId, this.translateService);
     const simpleMass: Mass = MassUtil.createSimpleMassByDate(this.selectedDate, this.currentChurch!, newMassId, this.translateService);
 
     this.changes.set(simpleMass.id!, simpleMass);
 
-    this.calEvents.push(simpleCalendarEvent);
+    // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
     this.refreshCalendarAndMassList();
   }
 
@@ -551,8 +587,12 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
           //EBBEN AZ ESETBEN LÉTREHOZUNK EGY TELJESEN ÚJ MISÉT, AMI NEM TARTOZIK A SZÜLŐHÖZ
           const parentMassId: number | undefined = this.selectedMassId;
           const newMassId: number = MassUtil.generateTmpMassId();
-          const newSingleCalendarEvent: CalendarEvent = MassUtil.createEventByType(this.dialogEvent, newMassId);
-          const newSingleMass: Mass = MassUtil.createMass(newSingleCalendarEvent, this.dialogEvent, this.currentChurch!, newMassId);
+          const newSingleMass: Mass = MassUtil.createMass(
+            MassUtil.createEventByType(this.dialogEvent, newMassId),
+            this.dialogEvent,
+            this.currentChurch!,
+            newMassId
+          );
 
           if (parentMassId) {
             let parentMass: Mass | undefined;
@@ -570,18 +610,13 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
                 parentMass.exdate = [startStr];
               }
 
-              this.calEvents = this.calEvents.filter(event => event.extendedProps.massId !== parentMassId);
-              this.calEvents.push(
-                ...MassUtil.createCalendarEvent(parentMass, this.periodService.generatedPeriods$.getValue())
-              );
-
               this.changes.set(parentMassId, parentMass);
             }
           }
 
           this.changes.set(newSingleMass.id!, ScriptUtil.clone(newSingleMass));
-          this.calEvents.push(newSingleCalendarEvent);
 
+          // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
           this.refreshCalendarAndMassList();
 
         } else {
@@ -592,17 +627,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
           const calendarEvent: CalendarEvent = MassUtil.createEventByType(this.dialogEvent, newMassId, specialPeriodType);
           const mass: Mass = MassUtil.createMass(calendarEvent, this.dialogEvent, this.currentChurch!, newMassId);
 
-          this.calEvents = this.calEvents.filter(event => event.extendedProps.massId !== newMassId);
-
           const recentlyExclusionSourcePeriodIds: number[] = this.excludeNewMassFromLowerPeriodMasses(periodId, periodWeight);
-
-          if (periodId) {
-            const generatedPeriods = this.periodService.getGeneratedPeriodsByPeriodId(periodId);
-            const calendarEvents: CalendarEvent[] = MassUtil.createEventByPeriods(calendarEvent, generatedPeriods);
-            this.calEvents.push(...calendarEvents);
-          } else {
-            this.calEvents.push(calendarEvent);
-          }
 
           const recentlyExcludedPeriodIds = this.excludeHigherPeriodMassesFromNewMass(mass, periodId, periodWeight);
 
@@ -610,6 +635,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
           this.changes.set(mass.id!, ScriptUtil.clone(mass));
 
+          // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
           this.refreshCalendarAndMassList();
         }
       }
@@ -759,16 +785,24 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
   }
 
   // Ensure FullCalendar shows current calEvents and rebuild editable list when visible
+  // IMPROVED: Now regenerates events from current masses/changes/deletedMasses to guarantee consistency
   private refreshCalendarAndMassList(): void {
+    // Regenerate all calendar events from the current data model (combines masses/changes/deletedMasses)
+    const freshEvents = this.generateFreshCalendarEvents();
+    this.calEvents = freshEvents; // Update with freshly generated events
+
+    // Update the calendar with the fresh events
     if (this.calendarComponent && this.calendarComponent.getApi) {
       try {
         this.calendarComponent.getApi().removeAllEvents();
         this.calendarComponent.getApi().removeAllEventSources();
-        this.calendarComponent.getApi().addEventSource(this.calEvents);
+        this.calendarComponent.getApi().addEventSource(freshEvents);
       } catch (e) {
         // calendar not initialized yet or api error - ignore
       }
     }
+
+    // Rebuild the editable mass list
     if (this.showMassListInEdit) {
       this.buildMassList();
     }
@@ -844,13 +878,13 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
         let changed: boolean = false;
         if (ScriptUtil.isNotNull(m.periodId) && m.periodId === periodId) {
-          changed = false;          
+          changed = false;
         } else if (ScriptUtil.isNotNull(m.experiod)) {
-          if (!m.experiod.includes(periodId)) {
+          if (!m.experiod.includes(periodId) && m.periodId !== periodId) {
             m.experiod.push(periodId);
             changed = true;
           }
-        } else {
+        } else if (m.periodId !== periodId) {
           m.experiod = [periodId];
           changed = true;
         }
@@ -867,20 +901,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       }
 
       if (globalChanged) {
-        this.calEvents = this.calEvents
-          .filter(event => !event.extendedProps.massId || !lowerPeriodWeightMassIds.includes(event.extendedProps.massId));
-        lowerPeriodWeightMassIds.forEach(lowerPeriodWeightMassId => {
-          const lowerPeriodWeightMass = this.changes.get(lowerPeriodWeightMassId);
-          if (ScriptUtil.isNotNull(lowerPeriodWeightMass)) {
-            this.calEvents.push(
-              ...MassUtil.createCalendarEvent(
-                lowerPeriodWeightMass,
-                this.periodService.generatedPeriods$.getValue(),
-              )
-            );
-          }
-        });
-        // ensure calendar UI and the editable mass list reflect the changes
+        // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
         this.refreshCalendarAndMassList();
       }
     }
@@ -922,7 +943,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
         mass.experiod = [];
       }
       higherPeriodIds.forEach(higherPeriodId => {
-        if (!mass.experiod!.includes(higherPeriodId)) {
+        if (!mass.experiod!.includes(higherPeriodId) && mass.periodId !== higherPeriodId) {
           mass.experiod!.push(higherPeriodId);
           globalChanged = true;
 
@@ -936,14 +957,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       if (globalChanged) {
         this.changes.set(mass.id, mass);
 
-        this.calEvents = this.calEvents.filter(event => event.extendedProps.massId !== mass.id);
-        this.calEvents.push(
-          ...MassUtil.createCalendarEvent(
-            mass,
-            this.periodService.generatedPeriods$.getValue(),
-          )
-        );
-        // ensure calendar UI and the editable mass list reflect the changes
+        // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
         this.refreshCalendarAndMassList();
       }
     }
@@ -962,6 +976,301 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       }
     }
     return false;
+  }
+
+  public openCopyPeriodDialog(group: any): void {
+    if (!group || !group.weight || group.weight <= 0) {
+      return;
+    }
+
+    const sourcePeriodId = group.weight ? this.getGroupPeriodId(group) : null;
+    if (!sourcePeriodId) {
+      return;
+    }
+
+    // Get the source period info
+    const sourcePeriodInfo = this.periodService.getPeriodById(sourcePeriodId);
+
+    // Get all available periods for selection (exclude the source period)
+    const allPeriods = this.periodService.periods$.getValue();
+    const availablePeriods = allPeriods.filter(p => p.id !== sourcePeriodId && p.selectable);
+
+    // Count masses with this period
+    const massCount = group.masses ? group.masses.length : 0;
+
+    const dialogData: CopyPeriodDialogData = {
+      sourcePeriodId: sourcePeriodId,
+      sourcePeriodName: group.periodName,
+      sourcePeriodInfo: sourcePeriodInfo || undefined,
+      availablePeriods: availablePeriods,
+      massCount: massCount
+    };
+
+    const dialogRef = this.dialog.open(CopyPeriodDialogComponent, {
+      data: dialogData,
+      width: '500px'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.targetPeriodId) {
+        this.copyMassesToNewPeriod(sourcePeriodId, result.targetPeriodId);
+      }
+    });
+  }
+
+  public openDeletePeriodDialog(group: any): void {
+    if (!group || !group.weight || group.weight <= 0) {
+      return;
+    }
+
+    const periodId = this.getGroupPeriodId(group);
+    if (!periodId) {
+      return;
+    }
+
+    // Get the period info
+    const periodInfo = this.periodService.getPeriodById(periodId);
+    if (!periodInfo) {
+      return;
+    }
+
+    // Get generated periods for the color
+    const generatedPeriods = this.periodService.getGeneratedPeriodsByPeriodId(periodId);
+
+    // Count masses with this period
+    const massCount = group.masses ? group.masses.length : 0;
+
+    const dialogData: DeletePeriodDialogData = {
+      period: periodInfo,
+      generatedPeriods: generatedPeriods || [],
+      massCount: massCount
+    };
+
+    const dialogRef = this.dialog.open(DeletePeriodDialogComponent, {
+      data: dialogData,
+      width: '500px'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === true) {
+        this.deletePeriodMasses(periodId);
+      }
+    });
+  }
+
+  // Open delete dialog for a mass from the mass list
+  public openDeleteMassDialog(m: any): void {
+    if (!m || !m.id) return;
+
+    // Get the original Mass object
+    let mass: Mass | undefined;
+    if (this.changes.has(m.id)) {
+      mass = this.changes.get(m.id);
+    } else if (this.masses.has(m.id)) {
+      mass = this.masses.get(m.id);
+    }
+
+    if (!mass) {
+      console.error('NINCS ILYEN MISE ID: ' + m.id);
+      return;
+    }
+
+    // Prepare the dialog data for delete all
+    const eventViewerData: EventViewerDialogData = {
+      churchName: this.currentChurch.name,
+      mass: mass,
+      suggestOrEditable: this.editable || this.suggestible,
+      start: new Date(m.startDate)
+    };
+
+    const deleteDialogData: DeleteDialogData = {
+      eventData: eventViewerData,
+      deleteOne: false
+    };
+
+    const messageDialogRef = this.dialog.open(DeleteWarningDialogComponent, {
+      data: deleteDialogData
+    });
+
+    messageDialogRef.afterClosed().subscribe(result => {
+      if (result === DialogResponse.CONTINUE) {
+        // Delete all occurrences of this mass
+        if (m.id >= 0) {
+          this.deletedMasses.push(m.id);
+        }
+        if (this.changes.has(m.id)) {
+          this.changes.delete(m.id);
+        }
+
+        // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
+        this.refreshCalendarAndMassList();
+      }
+    });
+  }
+
+  private getGroupPeriodId(group: any): number | null {
+    // The group's period ID is stored implicitly in the massListGrouped structure
+    // We need to find it by looking at the masses' periodId values
+    if (group.masses && group.masses.length > 0) {
+      const firstMass = group.masses[0];
+      return firstMass.periodId || null;
+    }
+    return null;
+  }
+
+  private deletePeriodMasses(periodId: number): void {
+    const massesToDelete: number[] = [];
+    
+    // Find all masses with this period ID
+    for (const mass of this.masses.values()) {
+      if (mass.periodId === periodId) {
+        massesToDelete.push(mass.id);
+      }
+    }
+    
+    // Also check in changes
+    for (const mass of this.changes.values()) {
+      if (mass.periodId === periodId && !massesToDelete.includes(mass.id)) {
+        massesToDelete.push(mass.id);
+      }
+    }
+    
+    // Remove from changes and add to deletedMasses if not a temporary mass
+    for (const massId of massesToDelete) {
+      if (this.changes.has(massId)) {
+        this.changes.delete(massId);
+      }
+      
+      // Only add to deletedMasses if it's not a temporary ID (negative numbers)
+      if (massId >= 0) {
+        if (!this.deletedMasses.includes(massId)) {
+          this.deletedMasses.push(massId);
+        }
+      }
+    }
+    
+    // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
+    this.refreshCalendarAndMassList();
+    
+    const periodName = this.periodService.getPeriodNameById(periodId);
+    this.snackBarService.success(`${massesToDelete.length} mise törölve az "${periodName}" időszakból.`);
+
+    // Check if there are any remaining masses with this periodId
+    const remainingMassesWithPeriod = Array.from(this.masses.values()).some(m => m.periodId === periodId) ||
+                                     Array.from(this.changes.values()).some(m => m.periodId === periodId);
+    
+    // If no remaining masses with this periodId, remove it from all other masses' experiod lists
+    if (!remainingMassesWithPeriod) {
+      this.removeExcludedPeriodFromAllMasses(periodId);
+    }
+  }
+
+  /**
+   * Eltávolítja az adott periodId-t az összes mise experiod listájából
+   * Ezt akkor kell meghívni, amikor egy periódusból már nincs mise
+   */
+  private removeExcludedPeriodFromAllMasses(periodId: number): void {
+    let changed = false;
+
+    // Check all masses in the original masses map
+    for (const mass of this.masses.values()) {
+      if (ScriptUtil.isNotNull(mass.experiod) && mass.experiod.includes(periodId)) {
+        mass.experiod = mass.experiod.filter(id => id !== periodId);
+        this.changes.set(mass.id, ScriptUtil.clone(mass));
+        changed = true;
+      }
+    }
+
+    // Check all masses in the changes map
+    for (const mass of this.changes.values()) {
+      if (ScriptUtil.isNotNull(mass.experiod) && mass.experiod.includes(periodId)) {
+        mass.experiod = mass.experiod.filter(id => id !== periodId);
+        changed = true;
+      }
+    }
+
+    // Refresh the calendar if any changes were made
+    if (changed) {
+      this.refreshCalendarAndMassList();
+    }
+  }
+
+  private copyMassesToNewPeriod(sourcePeriodId: number, targetPeriodId: number): void {
+    // Get all masses with the source period ID
+    const massesToCopy: Mass[] = [];
+
+    // From original masses
+    for (const mass of this.masses.values()) {
+      if (mass.periodId === sourcePeriodId) {
+        massesToCopy.push(ScriptUtil.clone(mass));
+      }
+    }
+
+    // From changes (pending edits)
+    for (const mass of this.changes.values()) {
+      if (mass.periodId === sourcePeriodId) {
+        // Check if this mass is not already copied from originals
+        const alreadyIncluded = massesToCopy.some(m => m.id === mass.id);
+        if (!alreadyIncluded) {
+          massesToCopy.push(ScriptUtil.clone(mass));
+        } else {
+          // Replace with the changed version
+          const index = massesToCopy.findIndex(m => m.id === mass.id);
+          if (index !== -1) {
+            massesToCopy[index] = ScriptUtil.clone(mass);
+          }
+        }
+      }
+    }
+
+    if (massesToCopy.length === 0) {
+      this.snackBarService.warning('Nincs mise a kiválasztott időszakban.');
+      return;
+    }
+
+    // Clone masses for the new period
+    const targetPeriodWeight = this.periodService.getPeriodById(targetPeriodId)?.weight;
+    let globalChanged = false;
+
+    massesToCopy.forEach(massToClone => {
+      // Create a new mass with the target period ID but without an ID (so API treats it as new)
+      const newMass: Mass = ScriptUtil.clone(massToClone);
+      newMass.id = MassUtil.generateTmpMassId(); // Generate new temporary ID
+      newMass.periodId = targetPeriodId; // Set to new period
+      // Keep all other properties: rrule, exdate, types, lang, comment, etc.
+
+      // Remove the new period from the experiod list if it exists (a mise nem zárhatja ki magát)
+      if (ScriptUtil.isNotNull(newMass.experiod)) {
+        newMass.experiod = newMass.experiod.filter(id => id !== targetPeriodId);
+        if (newMass.experiod.length === 0) {
+          newMass.experiod = null;
+        }
+      }
+
+      // Add to changes map
+      this.changes.set(newMass.id, newMass);
+      globalChanged = true;
+    });
+
+    if (globalChanged) {
+      // Recalculate excluded periods for the newly copied masses
+      // This ensures proper experiod values based on period weights
+      massesToCopy.forEach(sourceMass => {
+        const newMasses = Array.from(this.changes.values()).filter(m =>
+          m.periodId === targetPeriodId && m.id! < 0 // Temporary IDs are negative
+        );
+        
+        newMasses.forEach(newMass => {
+          const recentlyExclusionSourcePeriodIds = this.excludeNewMassFromLowerPeriodMasses(targetPeriodId, targetPeriodWeight);
+          const recentlyExcludedPeriodIds = this.excludeHigherPeriodMassesFromNewMass(newMass, targetPeriodId, targetPeriodWeight);
+          this.showExclusionDialogIfNeed(targetPeriodId, recentlyExclusionSourcePeriodIds, recentlyExcludedPeriodIds);
+        });
+      });
+
+      // IMPROVED: Use refreshCalendarAndMassList() instead of reLoadCalendar() for immediate sync refresh
+      this.refreshCalendarAndMassList();
+      this.snackBarService.success(`${massesToCopy.length} mise sikeresen másolt az új időszakra.`);
+    }
   }
 
   private showExclusionDialogIfNeed(periodId: number, recentlyExclusionSourcePeriodIds: number[], recentlyExcludedPeriodIds: number[]) {

@@ -66,8 +66,20 @@
   "CONTINUE": "Folytatás",
   "OK": "Rendben",
   "SEND": "Beküldés",
+  "EDIT": "Szerkesztés",
+  "DELETE": "Törlés",
   "DELETE_WARNING": "Biztosan törölni szeretnéd az alábbi eseményt?",
   "DELETE_CONFIRM": "Törlés",
+  "DELETE_PERIOD": "Időszak eseményeinek törlése",
+  "DELETE_PERIOD_TITLE": "Időszak eseményeinek törlése",
+  "DELETE_PERIOD_WARNING": "Valóban törölni szeretnéd az időszak összesen {{count}} eseményét? A törlés vissza nem vonható, de az átalakított miserend mentéséig nem kerül rögzítésre az adatbázisban.",
+  "COPY_PERIOD": "Időszak másolása",
+  "COPY_PERIOD_INFO": "Az időszak összesen {{count}} eseménye kerül lemásolásra az új időszakra.",
+  "PERIODS": {
+    "START_DATE": "Kezdete",
+    "END_DATE": "Vége",
+    "NO_PERIOD": "Nincs időszak"
+  },
 
   "ROMAN_CATHOLIC": "Római katolikus",
   "GREEK_CATHOLIC": "Görögkatolikus",
@@ -138,10 +150,10 @@
     "DIFFERENT_TIMEZONE": "Figyelem! A kezdési idő más időzónában ({{eventTimeZone}}) lett megadva, mint az öné ({{localTimeZone}})!",
     "RECURRENCE": "Ismétlődés",
     "EDIT": "Szerkesztés",
-    "EDIT_ONE": "Csak ennek az egy alkalomnak a szerkesztése",
+    "EDIT_ONE": "Ennek az egy alkalomnak a szerkesztése",
     "EDIT_ALL": "Az összes ismétlődés szerkesztése",
     "DELETE": "Törlés",
-    "DELETE_ONE": "Csak ennek az egy alkalomnak a törlése",
+    "DELETE_ONE": "Ennek az egy alkalomnak a törlése",
     "DELETE_ALL": "Az összes ismétlődés törlése",
     "CLOSE": "Bezárás",
     "SUGGEST": "Javaslat küldése"
@@ -219,7 +231,27 @@
 
 
   "MASS_DETAILS_DATETIME": "A liturgia időpontja és ismétlődései",
-  "OTHER_SETTINGS_DETAILS": "A liturgia egyéb tulajdonságai"
+  "OTHER_SETTINGS_DETAILS": "A liturgia egyéb tulajdonságai",
 
+  "COPY_PERIOD": "Másolás új időszakra",
+  "COPY_PERIOD_DIALOG": {
+    "TITLE": "Másolás az időszakra",
+    "CURRENT_PERIOD": "Jelenlegi időszak",
+    "TARGET_PERIOD": "Cél időszak",
+    "SELECTED_TARGET": "Kiválasztott cél időszak"
+  },
 
+  "BOUNDARY": {
+    "region": "régió",
+    "statistical": "statisztika",
+    "political": "politika",
+    "judicial": "törvénykezés",
+    "forest_planning": "erdészet",
+    "tourism_region": "turisztikai régió",
+    "historic": "történelem",
+    "forestry_authority": "erdészeti hatóság",
+    "wine_community": "borközösség",
+    "wine_growing_area": "borvidék",
+    "police": "rendőrség"
+  }
 }
