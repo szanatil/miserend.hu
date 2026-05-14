@@ -3,11 +3,16 @@ import {CommonModule} from '@angular/common';
 import {MatDialogModule, MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatSelectModule} from '@angular/material/select';
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
+import {MatInputModule} from '@angular/material/input';
 import {MatButtonModule} from '@angular/material/button';
-import {FormBuilder, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
+import {MatIconModule} from '@angular/material/icon';
+import {FormBuilder, FormGroup, FormControl, ReactiveFormsModule, Validators} from '@angular/forms';
 import {TranslatePipe, TranslateService} from '@ngx-translate/core';
 import {Period} from '../../model/period';
 import {PeriodService} from '../../services/period.service';
+import {Observable, of} from 'rxjs';
+import {map, startWith} from 'rxjs/operators';
 
 export interface CopyPeriodDialogData {
   sourcePeriodId: number;
@@ -28,7 +33,10 @@ interface PeriodWithColor extends Period {
     MatDialogModule,
     MatFormFieldModule,
     MatSelectModule,
+    MatAutocompleteModule,
+    MatInputModule,
     MatButtonModule,
+    MatIconModule,
     ReactiveFormsModule,
     TranslatePipe
   ],
@@ -38,9 +46,11 @@ interface PeriodWithColor extends Period {
 export class CopyPeriodDialogComponent implements OnInit {
 
   form!: FormGroup;
+  targetPeriodCtr = new FormControl<PeriodWithColor | null>(null, Validators.required);
   selectedPeriodInfo?: PeriodWithColor;
   availablePeriodsWithColors: PeriodWithColor[] = [];
   sourcePeriodColor?: string;
+  filteredPeriods$: Observable<PeriodWithColor[]> = of([]);
 
   constructor(
     private fb: FormBuilder,
@@ -54,6 +64,7 @@ export class CopyPeriodDialogComponent implements OnInit {
   ngOnInit(): void {
     this.initializeForm();
     this.enrichPeriodsWithColors();
+    this.setupAutocomplete();
   }
 
   private enrichPeriodsWithColors(): void {
@@ -80,9 +91,31 @@ export class CopyPeriodDialogComponent implements OnInit {
       targetPeriodId: [null, Validators.required]
     });
 
-    this.form.get('targetPeriodId')?.valueChanges.subscribe((periodId: number) => {
-      this.selectedPeriodInfo = this.availablePeriodsWithColors.find(p => p.id === periodId);
+    this.targetPeriodCtr.valueChanges.subscribe((value: PeriodWithColor | null) => {
+      if (value) {
+        this.selectedPeriodInfo = value;
+      }
     });
+  }
+
+  private setupAutocomplete(): void {
+    this.filteredPeriods$ = this.targetPeriodCtr.valueChanges.pipe(
+      startWith(''),
+      map(value => {
+        const filterValue = typeof value === 'string' ? value.toLowerCase() : value?.name.toLowerCase() ?? '';
+        return this.availablePeriodsWithColors.filter(period => period.name.toLowerCase().includes(filterValue));
+      })
+    );
+  }
+
+  displayPeriod(period: PeriodWithColor | null): string {
+    return period ? period.name : '';
+  }
+
+  resetPeriod(event: any): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.targetPeriodCtr.setValue(null);
   }
 
   getPeriodRangeInfo(period: Period): string {
@@ -112,10 +145,9 @@ export class CopyPeriodDialogComponent implements OnInit {
   }
 
   onOk(): void {
-    if (this.form.valid) {
-      const targetPeriodId = this.form.get('targetPeriodId')?.value;
+    if (this.targetPeriodCtr.valid && this.selectedPeriodInfo) {
       this.dialogRef.close({
-        targetPeriodId: targetPeriodId,
+        targetPeriodId: this.selectedPeriodInfo.id,
         selectedPeriodInfo: this.selectedPeriodInfo
       });
     }

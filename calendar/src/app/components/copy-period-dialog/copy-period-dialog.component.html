@@ -23,14 +23,28 @@
   <form [formGroup]="form">
     <mat-form-field class="full-width">
       <mat-label>{{ 'COPY_PERIOD_DIALOG.TARGET_PERIOD' | translate }}</mat-label>
-      <mat-select formControlName="targetPeriodId">
-        @for (period of availablePeriodsWithColors; track period.id) {
-          <mat-option [value]="period.id">
+      <input type="text"
+             placeholder="{{ 'COPY_PERIOD_DIALOG.TARGET_PERIOD' | translate }}"
+             matInput
+             [formControl]="targetPeriodCtr"
+             [matAutocomplete]="auto">
+      <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayPeriod">
+        @for (period of filteredPeriods$ | async; track period.id) {
+          <mat-option [value]="period">
             <span class="period-color-dot" [style.background-color]="period.color"></span>
             {{ period.name }}
           </mat-option>
         }
-      </mat-select>
+      </mat-autocomplete>
+      <button matSuffix class="input-suffix" mat-icon-button title="" (click)="resetPeriod($event)">
+        <mat-icon>delete</mat-icon>
+      </button>
+
+      @if (targetPeriodCtr.invalid) {
+        @if (targetPeriodCtr.hasError('required')) {
+          <mat-error class="input-error">{{ 'ERRORS.REQUIRED_PERIOD' | translate }}</mat-error>
+        }
+      }
     </mat-form-field>
   </form>
 
@@ -50,7 +64,7 @@
 
 <div mat-dialog-actions align="end">
   <button mat-button (click)="onCancel()">{{ 'CANCEL' | translate }}</button>
-  <button mat-flat-button color="primary" (click)="onOk()" [disabled]="!form.valid">
+  <button mat-flat-button color="primary" (click)="onOk()" [disabled]="!selectedPeriodInfo">
     {{ 'OK' | translate }}
   </button>
 </div>
