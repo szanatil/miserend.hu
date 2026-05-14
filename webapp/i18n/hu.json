@@ -213,7 +213,8 @@
     "END_DATE": "Vége",
     "SAVE": "Mentés",
     "GENERATE": "Generálás",
-    "NO_PERIOD": "Időszak nélkül"
+    "NO_PERIOD": "Időszak nélkül",
+    "OLDER_MASSES_EXPANDABLE": "Vannak még régebbi misék is. Kattints ide a kibontáshoz"
   },
 
   "SIMPLE_EVENT": {
