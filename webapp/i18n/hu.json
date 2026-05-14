@@ -66,8 +66,19 @@
   "CONTINUE": "Folytatás",
   "OK": "Rendben",
   "SEND": "Beküldés",
+  "DELETE": "Törlés",
   "DELETE_WARNING": "Biztosan törölni szeretnéd az alábbi eseményt?",
   "DELETE_CONFIRM": "Törlés",
+  "DELETE_PERIOD": "Időszak eseményeinek törlése",
+  "DELETE_PERIOD_TITLE": "Időszak eseményeinek törlése",
+  "DELETE_PERIOD_WARNING": "Valóban törölni szeretnéd az időszak összesen {{count}} eseményét? A törlés vissza nem vonható, de az átalakított miserend mentéséig nem kerül rögzítésre az adatbázisban.",
+  "COPY_PERIOD": "Időszak másolása",
+  "COPY_PERIOD_INFO": "Az időszak összesen {{count}} eseménye kerül lemásolásra az új időszakra.",
+  "PERIODS": {
+    "START_DATE": "Kezdete",
+    "END_DATE": "Vége",
+    "NO_PERIOD": "Nincs időszak"
+  },
 
   "ROMAN_CATHOLIC": "Római katolikus",
   "GREEK_CATHOLIC": "Görögkatolikus",

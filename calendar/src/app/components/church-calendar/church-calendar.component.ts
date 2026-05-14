@@ -847,13 +847,13 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
         let changed: boolean = false;
         if (ScriptUtil.isNotNull(m.periodId) && m.periodId === periodId) {
-          changed = false;          
+          changed = false;
         } else if (ScriptUtil.isNotNull(m.experiod)) {
-          if (!m.experiod.includes(periodId)) {
+          if (!m.experiod.includes(periodId) && m.periodId !== periodId) {
             m.experiod.push(periodId);
             changed = true;
           }
-        } else {
+        } else if (m.periodId !== periodId) {
           m.experiod = [periodId];
           changed = true;
         }
@@ -925,7 +925,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
         mass.experiod = [];
       }
       higherPeriodIds.forEach(higherPeriodId => {
-        if (!mass.experiod!.includes(higherPeriodId)) {
+        if (!mass.experiod!.includes(higherPeriodId) && mass.periodId !== higherPeriodId) {
           mass.experiod!.push(higherPeriodId);
           globalChanged = true;
 
@@ -1146,6 +1146,45 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     
     const periodName = this.periodService.getPeriodNameById(periodId);
     this.snackBarService.success(`${massesToDelete.length} mise törölve az "${periodName}" időszakból.`);
+
+    // Check if there are any remaining masses with this periodId
+    const remainingMassesWithPeriod = Array.from(this.masses.values()).some(m => m.periodId === periodId) ||
+                                     Array.from(this.changes.values()).some(m => m.periodId === periodId);
+    
+    // If no remaining masses with this periodId, remove it from all other masses' experiod lists
+    if (!remainingMassesWithPeriod) {
+      this.removeExcludedPeriodFromAllMasses(periodId);
+    }
+  }
+
+  /**
+   * Eltávolítja az adott periodId-t az összes mise experiod listájából
+   * Ezt akkor kell meghívni, amikor egy periódusból már nincs mise
+   */
+  private removeExcludedPeriodFromAllMasses(periodId: number): void {
+    let changed = false;
+
+    // Check all masses in the original masses map
+    for (const mass of this.masses.values()) {
+      if (ScriptUtil.isNotNull(mass.experiod) && mass.experiod.includes(periodId)) {
+        mass.experiod = mass.experiod.filter(id => id !== periodId);
+        this.changes.set(mass.id, ScriptUtil.clone(mass));
+        changed = true;
+      }
+    }
+
+    // Check all masses in the changes map
+    for (const mass of this.changes.values()) {
+      if (ScriptUtil.isNotNull(mass.experiod) && mass.experiod.includes(periodId)) {
+        mass.experiod = mass.experiod.filter(id => id !== periodId);
+        changed = true;
+      }
+    }
+
+    // Refresh the calendar if any changes were made
+    if (changed) {
+      this.refreshCalendarAndMassList();
+    }
   }
 
   private copyMassesToNewPeriod(sourcePeriodId: number, targetPeriodId: number): void {
@@ -1191,6 +1230,14 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       newMass.id = MassUtil.generateTmpMassId(); // Generate new temporary ID
       newMass.periodId = targetPeriodId; // Set to new period
       // Keep all other properties: rrule, exdate, types, lang, comment, etc.
+
+      // Remove the new period from the experiod list if it exists (a mise nem zárhatja ki magát)
+      if (ScriptUtil.isNotNull(newMass.experiod)) {
+        newMass.experiod = newMass.experiod.filter(id => id !== targetPeriodId);
+        if (newMass.experiod.length === 0) {
+          newMass.experiod = null;
+        }
+      }
 
       // Add to changes map
       this.changes.set(newMass.id, newMass);
