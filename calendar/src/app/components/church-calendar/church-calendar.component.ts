@@ -53,6 +53,7 @@ import { eventListTemplate, EventListTemplateVars } from './event-list-template'
 import {EditConfirmationService} from '../../services/edit-confirmation.service';
 import {CopyPeriodDialogComponent, CopyPeriodDialogData} from '../copy-period-dialog/copy-period-dialog.component';
 import {DeletePeriodDialogComponent, DeletePeriodDialogData} from '../delete-period-dialog/delete-period-dialog.component';
+import {DeleteWarningDialogComponent} from '../delete-warning-dialog/delete-warning-dialog.component';
 
 export interface SimpleDialogData {
   dateTime: Date;
@@ -1042,6 +1043,56 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     dialogRef.afterClosed().subscribe(result => {
       if (result === true) {
         this.deletePeriodMasses(periodId);
+      }
+    });
+  }
+
+  // Open delete dialog for a mass from the mass list
+  public openDeleteMassDialog(m: any): void {
+    if (!m || !m.id) return;
+
+    // Get the original Mass object
+    let mass: Mass | undefined;
+    if (this.changes.has(m.id)) {
+      mass = this.changes.get(m.id);
+    } else if (this.masses.has(m.id)) {
+      mass = this.masses.get(m.id);
+    }
+
+    if (!mass) {
+      console.error('NINCS ILYEN MISE ID: ' + m.id);
+      return;
+    }
+
+    // Prepare the dialog data for delete all
+    const eventViewerData: EventViewerDialogData = {
+      churchName: this.currentChurch.name,
+      mass: mass,
+      suggestOrEditable: this.editable || this.suggestible,
+      start: new Date(m.startDate)
+    };
+
+    const deleteDialogData: DeleteDialogData = {
+      eventData: eventViewerData,
+      deleteOne: false
+    };
+
+    const messageDialogRef = this.dialog.open(DeleteWarningDialogComponent, {
+      data: deleteDialogData
+    });
+
+    messageDialogRef.afterClosed().subscribe(result => {
+      if (result === DialogResponse.CONTINUE) {
+        // Delete all occurrences of this mass
+        if (m.id >= 0) {
+          this.deletedMasses.push(m.id);
+        }
+        if (this.changes.has(m.id)) {
+          this.changes.delete(m.id);
+        }
+
+        this.calEvents = this.calEvents.filter(event => event.extendedProps.massId !== m.id);
+        this.refreshCalendarAndMassList();
       }
     });
   }
