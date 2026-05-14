@@ -16,6 +16,10 @@
     }
   </div>
 
+  <div class="copy-info">
+    <p>{{ 'COPY_PERIOD_INFO' | translate: {count: data.massCount} }}</p>
+  </div>
+
   <form [formGroup]="form">
     <mat-form-field class="full-width">
       <mat-label>{{ 'COPY_PERIOD_DIALOG.TARGET_PERIOD' | translate }}</mat-label>

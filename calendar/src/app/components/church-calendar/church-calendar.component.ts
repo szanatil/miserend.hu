@@ -52,6 +52,7 @@ import {GeneratedPeriod} from "../../model/generated-period";
 import { eventListTemplate, EventListTemplateVars } from './event-list-template';
 import {EditConfirmationService} from '../../services/edit-confirmation.service';
 import {CopyPeriodDialogComponent, CopyPeriodDialogData} from '../copy-period-dialog/copy-period-dialog.component';
+import {DeletePeriodDialogComponent, DeletePeriodDialogData} from '../delete-period-dialog/delete-period-dialog.component';
 
 export interface SimpleDialogData {
   dateTime: Date;
@@ -982,11 +983,15 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     const allPeriods = this.periodService.periods$.getValue();
     const availablePeriods = allPeriods.filter(p => p.id !== sourcePeriodId && p.selectable);
 
+    // Count masses with this period
+    const massCount = group.masses ? group.masses.length : 0;
+
     const dialogData: CopyPeriodDialogData = {
       sourcePeriodId: sourcePeriodId,
       sourcePeriodName: group.periodName,
       sourcePeriodInfo: sourcePeriodInfo || undefined,
-      availablePeriods: availablePeriods
+      availablePeriods: availablePeriods,
+      massCount: massCount
     };
 
     const dialogRef = this.dialog.open(CopyPeriodDialogComponent, {
@@ -1001,6 +1006,46 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     });
   }
 
+  public openDeletePeriodDialog(group: any): void {
+    if (!group || !group.weight || group.weight <= 0) {
+      return;
+    }
+
+    const periodId = this.getGroupPeriodId(group);
+    if (!periodId) {
+      return;
+    }
+
+    // Get the period info
+    const periodInfo = this.periodService.getPeriodById(periodId);
+    if (!periodInfo) {
+      return;
+    }
+
+    // Get generated periods for the color
+    const generatedPeriods = this.periodService.getGeneratedPeriodsByPeriodId(periodId);
+
+    // Count masses with this period
+    const massCount = group.masses ? group.masses.length : 0;
+
+    const dialogData: DeletePeriodDialogData = {
+      period: periodInfo,
+      generatedPeriods: generatedPeriods || [],
+      massCount: massCount
+    };
+
+    const dialogRef = this.dialog.open(DeletePeriodDialogComponent, {
+      data: dialogData,
+      width: '500px'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === true) {
+        this.deletePeriodMasses(periodId);
+      }
+    });
+  }
+
   private getGroupPeriodId(group: any): number | null {
     // The group's period ID is stored implicitly in the massListGrouped structure
     // We need to find it by looking at the masses' periodId values
@@ -1009,6 +1054,47 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       return firstMass.periodId || null;
     }
     return null;
+  }
+
+  private deletePeriodMasses(periodId: number): void {
+    const massesToDelete: number[] = [];
+    
+    // Find all masses with this period ID
+    for (const mass of this.masses.values()) {
+      if (mass.periodId === periodId) {
+        massesToDelete.push(mass.id);
+      }
+    }
+    
+    // Also check in changes
+    for (const mass of this.changes.values()) {
+      if (mass.periodId === periodId && !massesToDelete.includes(mass.id)) {
+        massesToDelete.push(mass.id);
+      }
+    }
+    
+    // Remove from changes and add to deletedMasses if not a temporary mass
+    for (const massId of massesToDelete) {
+      if (this.changes.has(massId)) {
+        this.changes.delete(massId);
+      }
+      
+      // Only add to deletedMasses if it's not a temporary ID (negative numbers)
+      if (massId >= 0) {
+        if (!this.deletedMasses.includes(massId)) {
+          this.deletedMasses.push(massId);
+        }
+      }
+      
+      // Remove from calendar events
+      this.calEvents = this.calEvents.filter(event => event.extendedProps.massId !== massId);
+    }
+    
+    // Refresh calendar and mass list
+    this.refreshCalendarAndMassList();
+    
+    const periodName = this.periodService.getPeriodNameById(periodId);
+    this.snackBarService.success(`${massesToDelete.length} mise törölve az "${periodName}" időszakból.`);
   }
 
   private copyMassesToNewPeriod(sourcePeriodId: number, targetPeriodId: number): void {

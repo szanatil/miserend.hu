@@ -14,6 +14,7 @@ export interface CopyPeriodDialogData {
   sourcePeriodName: string;
   sourcePeriodInfo?: Period;
   availablePeriods: Period[];
+  massCount: number;
 }
 
 interface PeriodWithColor extends Period {
