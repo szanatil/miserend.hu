@@ -138,7 +138,10 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     endMonthDay?: string | null,
     startPeriodName?: string | null,
     endPeriodName?: string | null,
-    color?: string | null
+    color?: string | null,
+    hasOldMasses?: boolean,
+    oldMasses?: any[],
+    expandOldMasses?: boolean
   }> = [];
 
   constructor(
@@ -726,15 +729,22 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       createdAt: new Date()
     }
 
-    this.eventService.sendToApprove(this.currentChurch!.id, suggestionPackage).subscribe(res => {
-      this.changes.clear();
-      this.deletedMasses = [];
-      this.deletedDates.clear();
-      this.reLoadCalendar();
-      this.dialog.open(AddMessageDialogComponent, {
-        data: {message: "Javaslatod sikeresen beküldve! Amint jóváhagyják, megjelenik a naptárban.", decision: false}
-      });
-    });
+    this.eventService.sendToApprove(this.currentChurch!.id, suggestionPackage).subscribe(
+      res => {
+        this.changes.clear();
+        this.deletedMasses = [];
+        this.deletedDates.clear();
+        this.reLoadCalendar();
+        this.dialog.open(AddMessageDialogComponent, {
+          data: {message: "Javaslatod sikeresen beküldve! Amint jóváhagyják, megjelenik a naptárban.", decision: false}
+        });
+      },
+      error => {
+        console.error('Error sending suggestion to approve:', error);
+        this.spinnerService.hide();
+        // snackBarService.error már meghívódott az event.service-ben
+      }
+    );
   }
 
   public onAcceptSuggestion(selectedSuggestionPackage: SuggestionPackage, origMasses: Map<number, Mass>): Observable<{
@@ -1635,7 +1645,11 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
     // groups now carry additional optional metadata for header rendering
     // key: groupId (period id or 0 for no period)
-    const groups: {[key: number]: {weight: number, periodName: string, masses: any[], startMonthDay?: string | null, endMonthDay?: string | null, startPeriodName?: string | null, endPeriodName?: string | null, color?: string | null}} = {};
+    const groups: {[key: number]: {weight: number, periodName: string, masses: any[], startMonthDay?: string | null, endMonthDay?: string | null, startPeriodName?: string | null, endPeriodName?: string | null, color?: string | null, hasOldMasses?: boolean, oldMasses?: any[], expandOldMasses?: boolean}} = {};
+
+    // Calculate 7 days ago
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     combined.forEach(m => {
       const period = m.periodId ? this.periodService.getPeriodById(m.periodId) : null;
@@ -1662,7 +1676,10 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
           endMonthDay: period ? period.endMonthDay : null,
           startPeriodName: period && period.startPeriodId ? this.periodService.getPeriodNameById(period.startPeriodId) : null,
           endPeriodName: period && period.endPeriodId ? this.periodService.getPeriodNameById(period.endPeriodId) : null,
-          color: color
+          color: color,
+          hasOldMasses: false,
+          oldMasses: [],
+          expandOldMasses: false
         };
       } else {
         // fill missing group metadata from other masses' periods if available
@@ -1690,7 +1707,29 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       const flagMap: Record<string,string> = { hu: '🇭🇺', en: '🇬🇧', de: '🇩🇪', sk: '🇸🇰', ro: '🇷🇴' };
       const flag = flagMap[m.lang] || (m.lang ? String(m.lang).toUpperCase() : '');
 
-      groups[groupId].masses.push({
+      // Separate exDates into recent and old (older than 7 days)
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      
+      const exDatesNew: string[] = [];
+      const exDatesOld: string[] = [];
+      
+      if (m.exdate && m.exdate.length > 0) {
+        m.exdate.forEach((dateStr: string) => {
+          const exDate = new Date(dateStr);
+          if (exDate >= sevenDaysAgo) {
+            exDatesNew.push(dateStr);
+          } else {
+            exDatesOld.push(dateStr);
+          }
+        });
+      }
+      
+      // Sort in descending order (newest first)
+      exDatesNew.sort().reverse();
+      exDatesOld.sort().reverse();
+
+      const massData = {
         id: m.id,
         title: m.title,
         rite: m.rite,
@@ -1705,16 +1744,49 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
         // include experiod ids and resolved period names for display
         experiod: m.experiod ? m.experiod : [],
         experiodNames: m.experiod ? m.experiod.map((pid: number) => this.periodService.getPeriodNameById(pid)).filter((n: any) => n) : [],
-        exDates: m.exdate ? m.exdate : []
-      });
+        exDates: m.exdate ? m.exdate : [],
+        exDatesNew: exDatesNew,
+        exDatesOld: exDatesOld,
+        expandExDatesOld: false
+      };
+
+      // For no-period group (groupId = 0), check if this is an old mass
+      if (groupId === 0 && !m.periodId && m.startDate) {
+        const massStartDate = new Date(m.startDate);
+        if (massStartDate < sevenDaysAgo) {
+          // This is an old mass without a period
+          groups[groupId].hasOldMasses = true;
+          if (!groups[groupId].oldMasses) {
+            groups[groupId].oldMasses = [];
+          }
+          groups[groupId].oldMasses!.push(massData);
+        } else {
+          // Recent mass without a period
+          groups[groupId].masses.push(massData);
+        }
+      } else {
+        // All other masses (with periods or the no-period group for recent masses)
+        groups[groupId].masses.push(massData);
+      }
     });
 
     // Convert to array and sort by weight desc, and sort masses by startDate
     this.massListGrouped = Object.keys(groups).map(k => groups[parseInt(k)]).sort((a, b) => b.weight - a.weight);
-    this.massListGrouped.forEach(g => g.masses.sort((x, y) => (x.startDate || '').localeCompare(y.startDate || '')));
+    this.massListGrouped.forEach(g => {
+      g.masses.sort((x, y) => (x.startDate || '').localeCompare(y.startDate || ''));
+      if (g.oldMasses) {
+        g.oldMasses.sort((x, y) => (x.startDate || '').localeCompare(y.startDate || ''));
+      }
+    });
   }
 
   // Build the HTML shown when no events exist in the current view
+  public toggleOldMasses(group: any): void {
+    if (group) {
+      group.expandOldMasses = !group.expandOldMasses;
+    }
+  }
+
   private renderNoEventsContent(): { html: string } | string {
     // Priority: if still loading show "betöltés folyamatban".
     if (this.loadingEvents && !this.loadedEvents) {

@@ -2,45 +2,69 @@
 
   <div class="suggestion-header">
     @if (selectedSuggestionPackage && selectedSuggestionPackage.id) {
-      <div class="sender-data">
-        <mat-form-field>
-          <mat-label>{{ 'SUGGESTION.SENDER.NAME' | translate }}</mat-label>
-          <input matInput [value]="selectedSuggestionPackage.senderName" readonly />
-        </mat-form-field>
+      
+      <!-- Top row: Alert and dropdown menu -->
+      <div class="header-top-row">
+        
+        <div class="package-selector-container">
+          <mat-form-field class="package-selector">
+            <mat-label>{{ 'SUGGESTION.SELECTED_PACKAGE' | translate }}</mat-label>
+            <mat-select [(value)]="selectedSuggestionPackage" (selectionChange)="onSuggestionPackageChange()">
+              @for (suggestionPackage of suggestionPackages; track suggestionPackage.id) {
+                <mat-option [value]="suggestionPackage" [ngClass]="getStateClass(suggestionPackage.state)">
+                  {{ suggestionPackage.createdAt  | date:'yyyy.MM.dd HH:mm' }} - {{ ('SUGGESTION.STATES.' + suggestionPackage.state) | translate }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
 
-        <mat-form-field>
-          <mat-label>{{ 'SUGGESTION.SENDER.EMAIL' | translate }}</mat-label>
-          <input matInput [value]="selectedSuggestionPackage.senderEmail" readonly />
-        </mat-form-field>
-
-        <mat-form-field>
-          <mat-label>{{ 'SUGGESTION.SENDER.USERID' | translate }}</mat-label>
-          <input matInput [value]="selectedSuggestionPackage.senderUserId" readonly />
-        </mat-form-field>
+        <!-- State warning message -->
+        <div class="state-warning" [ngClass]="getStateClass(selectedSuggestionPackage.state)">
+          @if (selectedSuggestionPackage.state === 'PENDING') {
+            <mat-icon>info</mat-icon>
+            <span>{{ 'SUGGESTION.STATE_PENDING_INFO' | translate }}</span>
+          } @else if (selectedSuggestionPackage.state === 'ACCEPTED') {
+            <mat-icon>check_circle</mat-icon>
+            <span>{{ 'SUGGESTION.STATE_ACCEPTED_INFO' | translate }}</span>
+          } @else if (selectedSuggestionPackage.state === 'REJECTED') {
+            <mat-icon>cancel</mat-icon>
+            <span>{{ 'SUGGESTION.STATE_REJECTED_INFO' | translate }}</span>
+          }
+        </div>
       </div>
-      {{ selectedSuggestionPackage.id }}
-      <div class="package-data">
-        <mat-form-field>
-          <mat-label>{{ 'SUGGESTION.STATE' | translate }}</mat-label>
-          <input matInput [value]="('SUGGESTION.STATES.' + selectedSuggestionPackage.state) | translate" readonly />
-        </mat-form-field>
 
-        <mat-form-field class="package-selector">
-          <mat-label>{{ 'SUGGESTION.SELECTED_PACKAGE' | translate }}</mat-label>
-          <mat-select [(value)]="selectedSuggestionPackage" (selectionChange)="onSuggestionPackageChange()">
-            @for (suggestionPackage of suggestionPackages; track suggestionPackage.id) {
-              <mat-option [value]="suggestionPackage">
-                {{ suggestionPackage.createdAt  | date:'yyyy.MM.dd HH:mm' }}
-              </mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+      <!-- Second row: Sender information in a message box -->
+      <div class="sender-info-box">
+        <div class="sender-data">
+          <div class="sender-field">
+            <label>{{ 'SUGGESTION.SENDER.NAME' | translate }}</label>
+            <span>
+              @if (selectedSuggestionPackage.senderUserId) {
+                <a [routerLink]="['/user', selectedSuggestionPackage.senderUserId, 'edit']">{{ selectedSuggestionPackage.senderName }}</a>
+              } @else {
+                {{ selectedSuggestionPackage.senderName }}
+              }
+              @if (selectedSuggestionPackage.senderEmail && selectedSuggestionPackage.senderEmail.length > 0) {
+                ({{ selectedSuggestionPackage.senderEmail }})
+              }
+            </span>
+          </div>
+          @if (selectedSuggestionPackage.senderMessage) {
+            <div class="sender-field sender-message-field">
+              <label>{{ 'SUGGESTION.SENDER.MESSAGE' | translate }}</label>
+              <span>{{ selectedSuggestionPackage.senderMessage }}</span>
+            </div>
+          }
+        </div>
       </div>
     }
   </div>
 
-  <div class="changes-readable">
+  <h2 class="changes-title">Javasolt változtatások</h2>
 
+  <div class="changes-readable">
+    
     @if (readableFullyDeletedMasses.length > 0) {
       <fieldset>
         <legend>Teljesen törölt misék</legend>
@@ -99,15 +123,9 @@
       </fieldset>
     }
 
-    @if (selectedSuggestionPackage && selectedSuggestionPackage.id && selectedSuggestionPackage.senderMessage ) {
-      <fieldset>
-        <legend>Javaslattevő üzenete</legend>
-        <div class="event-row message-event-row">
-          {{ selectedSuggestionPackage.senderMessage }}
-        </div>
-      </fieldset>
-    }
   </div>
+
+  <h2 class="calendar-preview-title">Naptár előnézete</h2>
 
   <div class="calendar-header">
     <div class="left-controls">
@@ -177,8 +195,8 @@
 
   @if (suggestionPackages.length > 0) {
     <div class="bottom-buttons">
-      <button mat-flat-button class="reject" (click)="onReject()">{{ 'SUGGESTION.REJECT' | translate }}</button>
-      <button mat-flat-button class="approve" (click)="onApprove()">{{ 'SUGGESTION.APPROVE' | translate }}</button>
+      <button mat-flat-button class="reject" (click)="onReject()" [disabled]="!isSuggestionPending()">{{ 'SUGGESTION.REJECT' | translate }}</button>
+      <button mat-flat-button class="approve" (click)="onApprove()" [disabled]="!isSuggestionPending()">{{ 'SUGGESTION.APPROVE' | translate }}</button>
     </div>
   }
 

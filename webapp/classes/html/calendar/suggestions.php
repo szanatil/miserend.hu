@@ -59,35 +59,22 @@ class Suggestions extends \Html\Calendar\CalendarApi
                     $this->sendJsonError('Hiányzó jogosultság! Ez a templom külső naptárra van csatlakoztatva.', 403);
                 }
 
-                $state = isset($path[2]) ? strtolower($path[2]) : null;
-
                 $churchId = $this->tid;
 
                 $query = CalSuggestionPackage::where('church_id', $churchId);
-
-                if (!empty($state)) {
-                    $query->whereRaw('LOWER(state) = ?', [strtolower($state)]);
-                }
 
                 $filtered = $query->with('suggestions')->get()
                     ->map(fn($mass) => $mass->toArray())
                     ->values();
 
                 $this->content = json_encode($filtered);
+                break;
                 
             case 'POST':
 
                 if ($this->modify) {
-                    //$path[0]: accept/reject
+                    //$path[0]: accept/reject, $path[1]: suggestion package ID
                     $input = json_decode(file_get_contents('php://input'), true);
-                    
-                    // Check if church has external calendar
-                    $modifyChurch = \Eloquent\Church::find($path[1]);
-                    $modifyChurch->append(['hasExternalCalendar']);
-                    if ($modifyChurch && $modifyChurch->hasExternalCalendar) {
-                        $this->sendJsonError('Ez a templom külső naptárra van csatlakoztatva, módosítás nem lehetséges.', 403);
-                   }
-                    
                     $this->handleModifiedPost($path[0], $path[1], $input);
                 } else {
                     // Check if church has external calendar
@@ -98,6 +85,7 @@ class Suggestions extends \Html\Calendar\CalendarApi
                     
                     $this->handleNewSuggestionPackage();
                 }
+                break;
                 
             default:
                 $this->sendJsonError('Method not allowed', 405);
@@ -107,17 +95,35 @@ class Suggestions extends \Html\Calendar\CalendarApi
     private function handleModifiedPost($operation, $id, $input): void {
 
         $package = CalSuggestionPackage::with('suggestions')->findOrFail($id);
+        $churchId = $package->church_id;
+        
+        
+        // Check if church has external calendar - $path[1] is package ID, get church ID from package
+        $modifyChurch = \Eloquent\Church::find($churchId);
+        if(!$modifyChurch) {
+            $this->sendJsonError('Nincs ilyen templom: '.$churchId, 404);
+        }
+
+        $modifyChurch->append(['hasExternalCalendar']);
+        if ($modifyChurch && $modifyChurch->hasExternalCalendar) {
+            $this->sendJsonError('Ez a templom külső naptárra van csatlakoztatva, módosítás nem lehetséges.', 403);
+        }
+        
         $package->state = $input['state'];
         $package->save();
 
 
         //Azonos paraméterű javaslatok kezelése
-        CalSuggestionPackage::whereIn('id', $this->findIdenticalSuggestions($package))
+        $identicalIds = $this->findIdenticalSuggestions($package);
+        
+        CalSuggestionPackage::whereIn('id', $identicalIds)
             ->update(['state' => $input['state']]);
 
         if ($input['state'] === 'ACCEPTED') {
             //Ugyanarra a misére vonatkozó javaslatok kezelése
-            CalSuggestionPackage::whereIn('id', $this->findSuggestionsForMass($package))
+            $massIds = $this->findSuggestionsForMass($package);
+            
+            CalSuggestionPackage::whereIn('id', $massIds)
                 ->update(['state' => 'ACCEPTED']);
 
             Capsule::connection()->beginTransaction();
@@ -137,24 +143,23 @@ class Suggestions extends \Html\Calendar\CalendarApi
                     }
                 }
 
-
+                // Update church frissites field when suggestion is accepted
+                $modifyChurch->update(['frissites' => date('Y-m-d')]);
 
                 Capsule::connection()->commit();
             } catch (\Throwable $e) {
-                Capsule::connection()->rollBack();
-                echo json_encode(['error' => 'Hiba!', 'details' => $e->getMessage()], 500);
+                Capsule::connection()->rollBack();                
+                $this->sendJsonError('Hiba történt a javaslatok alkalmazása során: ' . $e->getMessage(), 500);
             }
         }
 
-        $query = CalSuggestionPackage::where('church_id', $package->church_id);
-
-        $query->whereRaw('LOWER(state) = ?', [strtolower('PENDING')]);
+        $query = CalSuggestionPackage::where('church_id', $churchId);
 
         $filtered = $query->with('suggestions')->get()
             ->map(fn($mass) => $mass->toArray())
             ->values();
 
-        $calendarMasses = CalMass::where('church_id', $package->church_id)->get();
+        $calendarMasses = CalMass::where('church_id', $churchId)->get();
 
         $this->content = json_encode([
             'suggestionPackages' => $filtered,
@@ -171,7 +176,7 @@ class Suggestions extends \Html\Calendar\CalendarApi
             return collect();
         }
 
-        $matchedSuggestions = collect();
+        // For each suggestion, find candidate packages with matching suggestions
         $allowedPackageIds = null;
 
         foreach ($suggestions as $index => $suggestion) {
@@ -191,7 +196,8 @@ class Suggestions extends \Html\Calendar\CalendarApi
                 if ($allowedPackageIds && $allowedPackageIds->isNotEmpty()) {
                     $query->whereIn('package_id', $allowedPackageIds);
                 } else {
-                    break;
+                    // No packages matched the previous suggestion, so no candidates remain
+                    return collect();
                 }
             }
             $candidates = $query->get();
@@ -200,12 +206,12 @@ class Suggestions extends \Html\Calendar\CalendarApi
                 return $this->normalizeChanges($cand->changes) === $baseNormalizedChanges;
             });
 
-            $matchedSuggestions = $matchedSuggestions->merge($found);
-
+            // Only keep packages that matched this suggestion
             $allowedPackageIds = $found->pluck('package_id')->unique();
         }
 
-        return $matchedSuggestions->pluck('package_id')->unique();
+        // Return only package IDs that matched ALL suggestions
+        return $allowedPackageIds ?? collect();
     }
 
     private function normalizeChanges($changes): string

@@ -9,6 +9,7 @@ import {DateTime} from 'luxon';
 import {ScriptUtil} from '../util/script-util';
 import {DateTimeUtil} from '../util/date-time-util';
 import {environment} from '../../environments/environment';
+import {MatSnackBarService} from './mat-snack-bar.service';
 
 
 @Injectable({
@@ -16,7 +17,7 @@ import {environment} from '../../environments/environment';
 })
 export class PeriodService {
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, private snackBarService: MatSnackBarService) {
     this.initPeriods();
   }
 
@@ -26,12 +27,19 @@ export class PeriodService {
 
   private initPeriods() {
 
-    this.http.get<PeriodsWrapper>(`${environment.apiUrl}periods`).subscribe(
-      periodsWrapper => {
+    this.http.get<PeriodsWrapper>(`${environment.apiUrl}periods`).subscribe({
+      next: (periodsWrapper) => {
+        console.log('[PeriodService] Periódusok sikeresen betöltve');
         this.periods$.next(periodsWrapper.periods);
         this.generatedPeriods$.next(DateTimeUtil.adjustEndDates(periodsWrapper.generatedPeriods));
+      },
+      error: (error) => {
+        console.error('[PeriodService] Hiba a periódusok betöltésekor:', error);
+        this.snackBarService.error('Nem sikerült a periódusokat betölteni. Kérjük, frissítse az oldalt.');
+        this.periods$.next([]);
+        this.generatedPeriods$.next([]);
       }
-    );
+    });
   }
 
   public getPeriodsYear(): Observable<PeriodYear[]> {

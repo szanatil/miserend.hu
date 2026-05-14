@@ -1,5 +1,5 @@
 import {Component, OnInit, ViewChild} from '@angular/core';
-import {ActivatedRoute} from '@angular/router';
+import {ActivatedRoute, RouterLink} from '@angular/router';
 import {EventService} from '../../event.service';
 import {Mass} from '../../model/mass';
 import {Church} from '../../model/church';
@@ -15,8 +15,7 @@ import {SuggestionPackage, SuggestionState} from '../../model/suggestion-package
 import {ChurchCalendarComponent} from '../church-calendar/church-calendar.component';
 import {MatButton} from '@angular/material/button';
 import {FormsModule} from '@angular/forms';
-import {MatInput} from '@angular/material/input';
-import {DatePipe} from '@angular/common';
+import {DatePipe, NgClass} from '@angular/common';
 import {MatSnackBarService} from '../../services/mat-snack-bar.service';
 import {PeriodService} from '../../services/period.service';
 import {ScriptUtil} from '../../util/script-util';
@@ -45,10 +44,11 @@ import {SpecialType} from "../../model/period";
     MatFormField,
     MatLabel,
     FormsModule,
-    MatInput,
     DatePipe,
+    NgClass,
     MassRowComponent,
     MassesDiffComponent,
+    RouterLink,
   ],
   templateUrl: './suggestions.component.html',
   styleUrl: './suggestions.component.css'
@@ -110,7 +110,7 @@ export class SuggestionsComponent implements OnInit {
 
   private initSuggestions() {
     const churchId: number = +this.activatedRoute.snapshot.params['id'];
-    this.eventService.getSuggestions(churchId, SuggestionState.PENDING).subscribe(suggestionPackages => {
+    this.eventService.getSuggestions(churchId).subscribe(suggestionPackages => {
       this.suggestionPackages = suggestionPackages.map(pkg => ({
         ...pkg,
         createdAt: new Date(pkg.createdAt)
@@ -225,66 +225,100 @@ export class SuggestionsComponent implements OnInit {
   }
 
 
+  isSuggestionPending(): boolean {
+    return this.selectedSuggestionPackage?.state === SuggestionState.PENDING;
+  }
+
+  getStateClass(state: SuggestionState | string): string {
+    return 'state-' + (state || '').toLowerCase();
+  }
+
   onApprove() {
     this.spinnerService.show();
-    this.calendarNew.onAcceptSuggestion(this.selectedSuggestionPackage!, this.origMasses).subscribe(res => {
+    this.calendarNew.onAcceptSuggestion(this.selectedSuggestionPackage!, this.origMasses).subscribe(
+      res => {
+        this.snackBarService.success('Sikeres jóváhagyás!');
 
-      this.snackBarService.success('Sikeres jóváhagyás!');
+        //TODO: EZT MAJD HÁTTÉRBEN
+        const currentYear = new Date().getFullYear();
+        const years: number[] = [currentYear - 1, currentYear, currentYear + 1];
+        this.searchService.generateMasses(years, this.currentChurch!.id).subscribe();
 
-      //TODO: EZT MAJD HÁTTÉRBEN
-      const currentYear = new Date().getFullYear();
-      const years: number[] = [currentYear - 1, currentYear, currentYear + 1];
-      this.searchService.generateMasses(years, this.currentChurch!.id).subscribe();
+        this.suggestionPackages = res.suggestionPackages.map(pkg => ({
+          ...pkg,
+          createdAt: new Date(pkg.createdAt)
+        }));
 
-      this.suggestionPackages = res.suggestionPackages.map(pkg => ({
-        ...pkg,
-        createdAt: new Date(pkg.createdAt)
-      }));
+        if (this.suggestionPackages.length > 0) {
+          this.suggestionPackages.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+          // Keep the current package selected if it still exists, otherwise select the first one
+          const currentId = this.selectedSuggestionPackage?.id;
+          const currentStillExists = this.suggestionPackages.some(pkg => pkg.id === currentId);
+          if (currentStillExists) {
+            this.selectedSuggestionPackage = this.suggestionPackages.find(pkg => pkg.id === currentId)!;
+          } else {
+            this.selectedSuggestionPackage = this.suggestionPackages[0];
+          }
+        } else {
+          this.hasSuggestion = false;
+          this.selectedSuggestionPackage = undefined;
+          this.newMasses.clear?.();
+          this.clearReadableMasses();
+        }
 
-      if (this.suggestionPackages.length > 0) {
-        this.suggestionPackages.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-        this.selectedSuggestionPackage = this.suggestionPackages[0];
-      } else {
-        this.hasSuggestion = false;
-        this.selectedSuggestionPackage = undefined;
-        this.newMasses.clear?.();
-        this.clearReadableMasses();
+        let masses : Map<number, Mass> = new Map();
+        res.calendarMasses.forEach(mass => masses.set(
+          mass.id,
+          mass
+        ));
+        this.origMasses = masses;
+        this.initSuggestionPackage();
+        this.spinnerService.hide();
+      },
+      error => {
+        console.error('Error accepting suggestion:', error);
+        this.spinnerService.hide();
+        // snackBarService.error már meghívódott az event.service-ben
       }
-
-      let masses : Map<number, Mass> = new Map();
-      res.calendarMasses.forEach(mass => masses.set(
-        mass.id,
-        mass
-      ));
-      this.origMasses = masses;
-      this.initSuggestionPackage();
-      this.spinnerService.hide();
-    });
+    );
   }
 
   onReject() {
     this.spinnerService.show();
-    this.calendarNew.onRejectSuggestion(this.selectedSuggestionPackage!).subscribe(res => {
+    this.calendarNew.onRejectSuggestion(this.selectedSuggestionPackage!).subscribe(
+      res => {
+        this.snackBarService.success('Sikeres elutasítás!');
 
-      this.snackBarService.success('Sikeres elutasítás!');
+        this.suggestionPackages = res.suggestionPackages.map(pkg => ({
+          ...pkg,
+          createdAt: new Date(pkg.createdAt)
+        }));
 
-      this.suggestionPackages = res.suggestionPackages.map(pkg => ({
-        ...pkg,
-        createdAt: new Date(pkg.createdAt)
-      }));
-
-      if (this.suggestionPackages.length > 0) {
-        this.suggestionPackages.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-        this.selectedSuggestionPackage = this.suggestionPackages[0];
-        this.initSuggestionPackage();
-      } else {
-        this.hasSuggestion = false;
-        this.selectedSuggestionPackage = undefined;
-        this.newMasses.clear?.();
-        this.clearReadableMasses();
+        if (this.suggestionPackages.length > 0) {
+          this.suggestionPackages.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+          // Keep the current package selected if it still exists, otherwise select the first one
+          const currentId = this.selectedSuggestionPackage?.id;
+          const currentStillExists = this.suggestionPackages.some(pkg => pkg.id === currentId);
+          if (currentStillExists) {
+            this.selectedSuggestionPackage = this.suggestionPackages.find(pkg => pkg.id === currentId)!;
+          } else {
+            this.selectedSuggestionPackage = this.suggestionPackages[0];
+          }
+          this.initSuggestionPackage();
+        } else {
+          this.hasSuggestion = false;
+          this.selectedSuggestionPackage = undefined;
+          this.newMasses.clear?.();
+          this.clearReadableMasses();
+        }
+        this.spinnerService.hide();
+      },
+      error => {
+        console.error('Error rejecting suggestion:', error);
+        this.spinnerService.hide();
+        // snackBarService.error már meghívódott az event.service-ben
       }
-      this.spinnerService.hide();
-    });
+    );
   }
 
   private getPeriod(mass: Mass): string {

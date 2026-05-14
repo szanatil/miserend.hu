@@ -6,16 +6,25 @@ import {ChangeRequest} from './model/http/change-request';
 import {SuggestionPackage, SuggestionState} from './model/suggestion-package';
 import {Church} from './model/church';
 import {environment} from '../environments/environment';
+import {catchError} from 'rxjs/operators';
+import {throwError} from 'rxjs';
+import {MatSnackBarService} from './services/mat-snack-bar.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EventService {
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private snackBarService: MatSnackBarService) {}
 
   getChurch(churchId: number): Observable<Church> {
-    return this.http.get<Church>(environment.apiUrl+'church/'+churchId);
+    return this.http.get<Church>(environment.apiUrl+'church/'+churchId).pipe(
+      catchError(error => {
+        console.error('[EventService] Hiba a templom adatainak betöltésekor:', error);
+        this.snackBarService.error('Nem sikerült a templom adatait betölteni.');
+        return throwError(() => error);
+      })
+    );
   }
 
   saveChanges(churchId: number, masses: Mass[], deletedMasses: number[]): Observable<Mass[]> {
@@ -23,11 +32,23 @@ export class EventService {
       masses: masses,
       deletedMasses: deletedMasses
     }
-    return this.http.post<any[]>(environment.apiUrl+'masses/'+churchId, changeRequest);
+    return this.http.post<any[]>(environment.apiUrl+'masses/'+churchId, changeRequest).pipe(
+      catchError(error => {
+        console.error('[EventService] Hiba a változások mentésekor:', error);
+        this.snackBarService.error('Nem sikerült a változásokat menteni.');
+        return throwError(() => error);
+      })
+    );
   }
 
   sendToApprove(churchId: number, suggestionPackage: SuggestionPackage) {
-    return this.http.post<any[]>(environment.apiUrl+'suggestions/church/'+churchId, suggestionPackage);
+    return this.http.post<any[]>(environment.apiUrl+'suggestions/church/'+churchId, suggestionPackage).pipe(
+      catchError(error => {
+        console.error('[EventService] Hiba a javaslatok küldésekor:', error);
+        this.snackBarService.error('Nem sikerült a javaslatokat elküldeni.');
+        return throwError(() => error);
+      })
+    );
   }
 
   getSuggestions(churchId: number, state?: SuggestionState): Observable<SuggestionPackage[]> {
@@ -35,7 +56,13 @@ export class EventService {
     if (state) {
       url += '/' + state;
     }
-    return this.http.get<any[]>(url);
+    return this.http.get<any[]>(url).pipe(
+      catchError(error => {
+        console.error('[EventService] Hiba a javaslatok betöltésekor:', error);
+        this.snackBarService.error('Nem sikerült a javaslatokat betölteni.');
+        return throwError(() => error);
+      })
+    );
   }
 
   simpleAcceptSuggestionPackage(suggestionPackage: SuggestionPackage): Observable<{
@@ -47,6 +74,12 @@ export class EventService {
     return this.http.post<{ suggestionPackages: SuggestionPackage[]; calendarMasses: Mass[] }>(
       environment.apiUrl + suffix,
       body
+    ).pipe(
+      catchError(error => {
+        console.error('[EventService] Hiba a javaslat elfogadásakor:', error);
+        this.snackBarService.error('Nem sikerült a javaslatot elfogadni.');
+        return throwError(() => error);
+      })
     );
   }
 
@@ -59,6 +92,12 @@ export class EventService {
     return this.http.post<{ suggestionPackages: SuggestionPackage[]; calendarMasses: Mass[] }>(
       environment.apiUrl + suffix,
       body
+    ).pipe(
+      catchError(error => {
+        console.error('[EventService] Hiba a javaslat elutasításakor:', error);
+        this.snackBarService.error('Nem sikerült a javaslatot elutasítani.');
+        return throwError(() => error);
+      })
     );
   }
 
