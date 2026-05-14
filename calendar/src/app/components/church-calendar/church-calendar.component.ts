@@ -179,7 +179,6 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
   ngOnChanges(changes: SimpleChanges): void {
       if (changes['sensorEvents']) {
-        // console.log('[ChurchCalendarComponent] sensorEvents changed:', this.sensorEvents);
       }
       this.reLoadCalendar();
   }
@@ -201,13 +200,10 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
             this.deletedMasses,
             this.deletedDates
           );
-          // console.log('[ChurchCalendarComponent] Mass calendar events count:', events.length);
           
           // Add sensor events to the calendar
           const sensorCalendarEvents = this.convertSensorEventsToCalendarEvents();
-          //console.log('[ChurchCalendarComponent] Sensor calendar events count:', sensorCalendarEvents.length);
           events.push(...sensorCalendarEvents);
-          // console.log('[ChurchCalendarComponent] Total events to display:', events.length);
           
           resolve(events);
         });
@@ -236,8 +232,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     
     // Get current periods - use getValue() to get the latest emitted value
     const periods = this.periodService.generatedPeriods$.getValue();
-    if (!periods || periods.length === 0) {
-      console.warn('[ChurchCalendarComponent] No periods available for event generation');
+    if (!periods || periods.length === 0) {      
       return [];
     }
 
@@ -798,12 +793,10 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
     // Update the calendar with the fresh events
     if (this.calendarComponent && this.calendarComponent.getApi) {
-      console.log('R[ChurchCalendarComponent] Refreshing calendar with events count:', freshEvents.length);
       try {
         this.calendarComponent.getApi().removeAllEvents();
         this.calendarComponent.getApi().removeAllEventSources();
         this.calendarComponent.getApi().addEventSource(freshEvents);
-        console.log('R[ChurchCalendarComponent] Calendar refreshed successfully');
       } catch (e) {
         // calendar not initialized yet or api error - ignore
       }

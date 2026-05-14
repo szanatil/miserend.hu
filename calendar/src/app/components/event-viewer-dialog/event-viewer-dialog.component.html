@@ -78,16 +78,12 @@
           <button mat-flat-button (click)="onEditMassAll()">{{ 'EVENT_VIEWER.EDIT' | translate }}</button>
           <button mat-flat-button (click)="onDeleteMassAll()">{{ 'EVENT_VIEWER.DELETE' | translate }}</button>
         } @else {
-          <button mat-flat-button [matMenuTriggerFor]="editMenu">{{ 'EVENT_VIEWER.EDIT' | translate }}</button>
-          <mat-menu #editMenu="matMenu">
-            <button mat-menu-item (click)="onEditMassOne()">{{ 'EVENT_VIEWER.EDIT_ONE' | translate }}</button>
-            <button mat-menu-item (click)="onEditMassAll()">{{ 'EVENT_VIEWER.EDIT_ALL' | translate }}</button>
-          </mat-menu>
-          <button mat-flat-button [matMenuTriggerFor]="delMenu">{{ 'EVENT_VIEWER.DELETE' | translate }}</button>
-          <mat-menu #delMenu="matMenu">
-            <button mat-menu-item (click)="onDeleteMassOne()">{{ 'EVENT_VIEWER.DELETE_ONE' | translate }}</button>
-            <button mat-menu-item (click)="onDeleteMassAll()">{{ 'EVENT_VIEWER.DELETE_ALL' | translate }}</button>
-          </mat-menu>
+          
+          <button mat-flat-button (click)="onEditMassOne()">{{ 'EVENT_VIEWER.EDIT_ONE' | translate }}</button>
+          <button mat-flat-button (click)="onEditMassAll()">{{ 'EVENT_VIEWER.EDIT_ALL' | translate }}</button>
+          <button mat-flat-button (click)="onDeleteMassOne()">{{ 'EVENT_VIEWER.DELETE_ONE' | translate }}</button>
+          <button mat-flat-button (click)="onDeleteMassAll()">{{ 'EVENT_VIEWER.DELETE_ALL' | translate }}</button>
+
         }
       }
     } @else {
