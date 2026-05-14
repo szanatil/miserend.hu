@@ -221,6 +221,14 @@
   "MASS_DETAILS_DATETIME": "A liturgia időpontja és ismétlődései",
   "OTHER_SETTINGS_DETAILS": "A liturgia egyéb tulajdonságai",
 
+  "COPY_PERIOD": "Másolás új időszakra",
+  "COPY_PERIOD_DIALOG": {
+    "TITLE": "Másolás az időszakra",
+    "CURRENT_PERIOD": "Jelenlegi időszak",
+    "TARGET_PERIOD": "Cél időszak",
+    "SELECTED_TARGET": "Kiválasztott cél időszak"
+  },
+
   "BOUNDARY": {
     "region": "régió",
     "statistical": "statisztika",
@@ -234,6 +242,4 @@
     "wine_growing_area": "borvidék",
     "police": "rendőrség"
   }
-
-
 }

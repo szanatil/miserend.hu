@@ -51,6 +51,7 @@ import {SearchService} from '../../services/search.service';
 import {GeneratedPeriod} from "../../model/generated-period";
 import { eventListTemplate, EventListTemplateVars } from './event-list-template';
 import {EditConfirmationService} from '../../services/edit-confirmation.service';
+import {CopyPeriodDialogComponent, CopyPeriodDialogData} from '../copy-period-dialog/copy-period-dialog.component';
 
 export interface SimpleDialogData {
   dateTime: Date;
@@ -962,6 +963,122 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       }
     }
     return false;
+  }
+
+  public openCopyPeriodDialog(group: any): void {
+    if (!group || !group.weight || group.weight <= 0) {
+      return;
+    }
+
+    const sourcePeriodId = group.weight ? this.getGroupPeriodId(group) : null;
+    if (!sourcePeriodId) {
+      return;
+    }
+
+    // Get the source period info
+    const sourcePeriodInfo = this.periodService.getPeriodById(sourcePeriodId);
+
+    // Get all available periods for selection (exclude the source period)
+    const allPeriods = this.periodService.periods$.getValue();
+    const availablePeriods = allPeriods.filter(p => p.id !== sourcePeriodId && p.selectable);
+
+    const dialogData: CopyPeriodDialogData = {
+      sourcePeriodId: sourcePeriodId,
+      sourcePeriodName: group.periodName,
+      sourcePeriodInfo: sourcePeriodInfo || undefined,
+      availablePeriods: availablePeriods
+    };
+
+    const dialogRef = this.dialog.open(CopyPeriodDialogComponent, {
+      data: dialogData,
+      width: '500px'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.targetPeriodId) {
+        this.copyMassesToNewPeriod(sourcePeriodId, result.targetPeriodId);
+      }
+    });
+  }
+
+  private getGroupPeriodId(group: any): number | null {
+    // The group's period ID is stored implicitly in the massListGrouped structure
+    // We need to find it by looking at the masses' periodId values
+    if (group.masses && group.masses.length > 0) {
+      const firstMass = group.masses[0];
+      return firstMass.periodId || null;
+    }
+    return null;
+  }
+
+  private copyMassesToNewPeriod(sourcePeriodId: number, targetPeriodId: number): void {
+    // Get all masses with the source period ID
+    const massesToCopy: Mass[] = [];
+
+    // From original masses
+    for (const mass of this.masses.values()) {
+      if (mass.periodId === sourcePeriodId) {
+        massesToCopy.push(ScriptUtil.clone(mass));
+      }
+    }
+
+    // From changes (pending edits)
+    for (const mass of this.changes.values()) {
+      if (mass.periodId === sourcePeriodId) {
+        // Check if this mass is not already copied from originals
+        const alreadyIncluded = massesToCopy.some(m => m.id === mass.id);
+        if (!alreadyIncluded) {
+          massesToCopy.push(ScriptUtil.clone(mass));
+        } else {
+          // Replace with the changed version
+          const index = massesToCopy.findIndex(m => m.id === mass.id);
+          if (index !== -1) {
+            massesToCopy[index] = ScriptUtil.clone(mass);
+          }
+        }
+      }
+    }
+
+    if (massesToCopy.length === 0) {
+      this.snackBarService.warning('Nincs mise a kiválasztott időszakban.');
+      return;
+    }
+
+    // Clone masses for the new period
+    const targetPeriodWeight = this.periodService.getPeriodById(targetPeriodId)?.weight;
+    let globalChanged = false;
+
+    massesToCopy.forEach(massToClone => {
+      // Create a new mass with the target period ID but without an ID (so API treats it as new)
+      const newMass: Mass = ScriptUtil.clone(massToClone);
+      newMass.id = MassUtil.generateTmpMassId(); // Generate new temporary ID
+      newMass.periodId = targetPeriodId; // Set to new period
+      // Keep all other properties: rrule, exdate, types, lang, comment, etc.
+
+      // Add to changes map
+      this.changes.set(newMass.id, newMass);
+      globalChanged = true;
+    });
+
+    if (globalChanged) {
+      // Recalculate excluded periods for the newly copied masses
+      // This ensures proper experiod values based on period weights
+      massesToCopy.forEach(sourceMass => {
+        const newMasses = Array.from(this.changes.values()).filter(m =>
+          m.periodId === targetPeriodId && m.id! < 0 // Temporary IDs are negative
+        );
+        
+        newMasses.forEach(newMass => {
+          const recentlyExclusionSourcePeriodIds = this.excludeNewMassFromLowerPeriodMasses(targetPeriodId, targetPeriodWeight);
+          const recentlyExcludedPeriodIds = this.excludeHigherPeriodMassesFromNewMass(newMass, targetPeriodId, targetPeriodWeight);
+          this.showExclusionDialogIfNeed(targetPeriodId, recentlyExclusionSourcePeriodIds, recentlyExcludedPeriodIds);
+        });
+      });
+
+      // Refresh calendar and mass list
+      this.reLoadCalendar();
+      this.snackBarService.success(`${massesToCopy.length} mise sikeresen másolt az új időszakra.`);
+    }
   }
 
   private showExclusionDialogIfNeed(periodId: number, recentlyExclusionSourcePeriodIds: number[], recentlyExcludedPeriodIds: number[]) {

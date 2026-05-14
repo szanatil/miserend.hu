@@ -161,7 +161,14 @@
                     {{ 'PERIODS.END_DATE' | translate }}: {{ group.endPeriodName ? group.endPeriodName : group.endMonthDay }}
                   </span>
                 </ng-container>
-              </th> 
+              </th>
+              <th style="text-align: right; padding-right: 10px;">
+                <ng-container *ngIf="group.weight > 0 && editable">
+                  <button mat-icon-button (click)="openCopyPeriodDialog(group)" [matTooltip]="'COPY_PERIOD' | translate" aria-label="copy to new period">
+                    <mat-icon>content_copy</mat-icon>
+                  </button>
+                </ng-container>
+              </th>
                   
             </tr>
 
