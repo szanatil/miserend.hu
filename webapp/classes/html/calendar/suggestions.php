@@ -143,7 +143,8 @@ class Suggestions extends \Html\Calendar\CalendarApi
                     }
                 }
 
-
+                // Update church frissites field when suggestion is accepted
+                $modifyChurch->update(['frissites' => date('Y-m-d')]);
 
                 Capsule::connection()->commit();
             } catch (\Throwable $e) {
