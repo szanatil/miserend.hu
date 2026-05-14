@@ -2,14 +2,23 @@ import {Injectable} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 import {environment} from '../../environments/environment';
 import {HttpParams} from '@angular/common/http';
+import {catchError} from 'rxjs/operators';
+import {throwError} from 'rxjs';
+import {MatSnackBarService} from './mat-snack-bar.service';
 
 @Injectable({ providedIn: 'root' })
 export class SearchService {
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private snackBarService: MatSnackBarService) {}
 
   getData() {
-    return this.http.get<SearchData>(`${environment.apiUrl}search`);
+    return this.http.get<SearchData>(`${environment.apiUrl}search`).pipe(
+      catchError(error => {
+        console.error('[SearchService] Hiba az adatok betöltésekor:', error);
+        this.snackBarService.error('Nem sikerült az adatokat betölteni.');
+        return throwError(() => error);
+      })
+    );
   }
 
   public generateMasses(years: number[], tid: number) {
@@ -19,15 +28,25 @@ export class SearchService {
       params = params.append('years[]', year.toString());
     });
 
-    return this.http.put(`${environment.apiUrl}generate`, null, { params });
+    return this.http.put(`${environment.apiUrl}generate`, null, { params }).pipe(
+      catchError(error => {
+        console.error('[SearchService] Hiba az adatok generálása során:', error);
+        this.snackBarService.error('Nem sikerült az adatokat generálni.');
+        return throwError(() => error);
+      })
+    );
   }
 
   public search(q: string, templom: any) {
-    this.http.post(`${environment.apiUrl}search`, {
+    return this.http.post(`${environment.apiUrl}search`, {
       params: { q: q, templom: templom }
-    }).subscribe(res => {
-      console.log(res);
-    });
+    }).pipe(
+      catchError(error => {
+        console.error('[SearchService] Hiba a keresésnél:', error);
+        this.snackBarService.error('Hiba a keresés során. Próbálja újra.');
+        return throwError(() => error);
+      })
+    );
   }
 }
 

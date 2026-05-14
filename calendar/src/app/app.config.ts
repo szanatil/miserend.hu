@@ -2,7 +2,9 @@ import {ApplicationConfig, importProvidersFrom, provideZoneChangeDetection} from
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
-import {HttpClient, provideHttpClient} from '@angular/common/http';
+import {HttpClient, provideHttpClient, withInterceptors, HTTP_INTERCEPTORS} from '@angular/common/http';
+import {HttpTimeoutInterceptor} from './http.interceptor';
+import {HttpErrorInterceptor} from './http-error.interceptor';
 import {OverlayContainer} from '@angular/cdk/overlay';
 import {InlineOverlayContainer} from './inline-overlay-container';
 import { LOCALE_ID } from '@angular/core';
@@ -24,6 +26,16 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     provideHttpClient(),
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: HttpTimeoutInterceptor,
+      multi: true
+    },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: HttpErrorInterceptor,
+      multi: true
+    },
     {
       provide: OverlayContainer,
       useClass: InlineOverlayContainer
