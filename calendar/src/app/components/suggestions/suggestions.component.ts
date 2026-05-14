@@ -1,5 +1,5 @@
 import {Component, OnInit, ViewChild} from '@angular/core';
-import {ActivatedRoute} from '@angular/router';
+import {ActivatedRoute, RouterLink} from '@angular/router';
 import {EventService} from '../../event.service';
 import {Mass} from '../../model/mass';
 import {Church} from '../../model/church';
@@ -15,8 +15,7 @@ import {SuggestionPackage, SuggestionState} from '../../model/suggestion-package
 import {ChurchCalendarComponent} from '../church-calendar/church-calendar.component';
 import {MatButton} from '@angular/material/button';
 import {FormsModule} from '@angular/forms';
-import {MatInput} from '@angular/material/input';
-import {DatePipe} from '@angular/common';
+import {DatePipe, NgClass} from '@angular/common';
 import {MatSnackBarService} from '../../services/mat-snack-bar.service';
 import {PeriodService} from '../../services/period.service';
 import {ScriptUtil} from '../../util/script-util';
@@ -45,10 +44,11 @@ import {SpecialType} from "../../model/period";
     MatFormField,
     MatLabel,
     FormsModule,
-    MatInput,
     DatePipe,
+    NgClass,
     MassRowComponent,
     MassesDiffComponent,
+    RouterLink,
   ],
   templateUrl: './suggestions.component.html',
   styleUrl: './suggestions.component.css'
@@ -110,7 +110,7 @@ export class SuggestionsComponent implements OnInit {
 
   private initSuggestions() {
     const churchId: number = +this.activatedRoute.snapshot.params['id'];
-    this.eventService.getSuggestions(churchId, SuggestionState.PENDING).subscribe(suggestionPackages => {
+    this.eventService.getSuggestions(churchId).subscribe(suggestionPackages => {
       this.suggestionPackages = suggestionPackages.map(pkg => ({
         ...pkg,
         createdAt: new Date(pkg.createdAt)
@@ -225,6 +225,14 @@ export class SuggestionsComponent implements OnInit {
   }
 
 
+  isSuggestionPending(): boolean {
+    return this.selectedSuggestionPackage?.state === SuggestionState.PENDING;
+  }
+
+  getStateClass(state: SuggestionState | string): string {
+    return 'state-' + (state || '').toLowerCase();
+  }
+
   onApprove() {
     this.spinnerService.show();
     this.calendarNew.onAcceptSuggestion(this.selectedSuggestionPackage!, this.origMasses).subscribe(
@@ -243,7 +251,14 @@ export class SuggestionsComponent implements OnInit {
 
         if (this.suggestionPackages.length > 0) {
           this.suggestionPackages.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-          this.selectedSuggestionPackage = this.suggestionPackages[0];
+          // Keep the current package selected if it still exists, otherwise select the first one
+          const currentId = this.selectedSuggestionPackage?.id;
+          const currentStillExists = this.suggestionPackages.some(pkg => pkg.id === currentId);
+          if (currentStillExists) {
+            this.selectedSuggestionPackage = this.suggestionPackages.find(pkg => pkg.id === currentId)!;
+          } else {
+            this.selectedSuggestionPackage = this.suggestionPackages[0];
+          }
         } else {
           this.hasSuggestion = false;
           this.selectedSuggestionPackage = undefined;
@@ -281,7 +296,14 @@ export class SuggestionsComponent implements OnInit {
 
         if (this.suggestionPackages.length > 0) {
           this.suggestionPackages.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-          this.selectedSuggestionPackage = this.suggestionPackages[0];
+          // Keep the current package selected if it still exists, otherwise select the first one
+          const currentId = this.selectedSuggestionPackage?.id;
+          const currentStillExists = this.suggestionPackages.some(pkg => pkg.id === currentId);
+          if (currentStillExists) {
+            this.selectedSuggestionPackage = this.suggestionPackages.find(pkg => pkg.id === currentId)!;
+          } else {
+            this.selectedSuggestionPackage = this.suggestionPackages[0];
+          }
           this.initSuggestionPackage();
         } else {
           this.hasSuggestion = false;

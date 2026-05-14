@@ -183,6 +183,9 @@
       "REJECTED": "Elutasított",
       "PENDING": "Függőben"
     },
+    "STATE_PENDING_INFO": "Ez a javaslat függőben van - elfogadhatod vagy elutasíthatod.",
+    "STATE_ACCEPTED_INFO": "Ez a javaslat már elfogadásra került.",
+    "STATE_REJECTED_INFO": "Ez a javaslat már elutasításra került.",
     "SENDER": {
       "NAME": "Javaslattevő neve",
       "EMAIL": "Javaslattevő email címe",
@@ -200,8 +203,8 @@
       "WEEK": "Hét",
       "MONTH": "Hónap"
     },
-    "ORIGINAL_CALENDAR": "Eredeti miserend",
-    "NEW_CALENDAR": "Módosított miserend",
+    "ORIGINAL_CALENDAR": "Aktuális miserend",
+    "NEW_CALENDAR": "Módosítás utáni miserend",
     "APPROVE": "Jóváhagy",
     "REJECT": "Elutasít"
   },
