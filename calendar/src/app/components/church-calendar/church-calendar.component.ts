@@ -1700,6 +1700,28 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       const flagMap: Record<string,string> = { hu: '🇭🇺', en: '🇬🇧', de: '🇩🇪', sk: '🇸🇰', ro: '🇷🇴' };
       const flag = flagMap[m.lang] || (m.lang ? String(m.lang).toUpperCase() : '');
 
+      // Separate exDates into recent and old (older than 7 days)
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      
+      const exDatesNew: string[] = [];
+      const exDatesOld: string[] = [];
+      
+      if (m.exdate && m.exdate.length > 0) {
+        m.exdate.forEach((dateStr: string) => {
+          const exDate = new Date(dateStr);
+          if (exDate >= sevenDaysAgo) {
+            exDatesNew.push(dateStr);
+          } else {
+            exDatesOld.push(dateStr);
+          }
+        });
+      }
+      
+      // Sort in descending order (newest first)
+      exDatesNew.sort().reverse();
+      exDatesOld.sort().reverse();
+
       const massData = {
         id: m.id,
         title: m.title,
@@ -1715,7 +1737,10 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
         // include experiod ids and resolved period names for display
         experiod: m.experiod ? m.experiod : [],
         experiodNames: m.experiod ? m.experiod.map((pid: number) => this.periodService.getPeriodNameById(pid)).filter((n: any) => n) : [],
-        exDates: m.exdate ? m.exdate : []
+        exDates: m.exdate ? m.exdate : [],
+        exDatesNew: exDatesNew,
+        exDatesOld: exDatesOld,
+        expandExDatesOld: false
       };
 
       // For no-period group (groupId = 0), check if this is an old mass

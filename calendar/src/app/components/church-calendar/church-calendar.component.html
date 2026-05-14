@@ -225,11 +225,26 @@
                       </ng-container>
                     </ng-container>
 
-                    <ng-container *ngIf="m.exDates && m.exDates.length ">
+                    <ng-container *ngIf="m.exDatesNew && m.exDatesNew.length">
                       <ng-container *ngIf="m.experiodNames && m.experiodNames.length">, </ng-container>
+                      <ng-container *ngFor="let d of m.exDatesNew; let lastd = last">
+                        {{ d | date:'yyyy.MM.dd.' }}<span *ngIf="!lastd">, </span>
+                      </ng-container>
+                    </ng-container>
 
-                      <ng-container *ngIf="m.exDates && m.exDates.length">
-                        <ng-container *ngFor="let d of m.exDates; let lastd = last">
+                    <!-- Old exception dates expandable section -->
+                    <ng-container *ngIf="m.exDatesOld && m.exDatesOld.length">
+                      <ng-container *ngIf="m.experiodNames && m.experiodNames.length || m.exDatesNew && m.exDatesNew.length">, </ng-container>
+                      <span style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; color: #666; font-size: 0.85rem;"
+                            [matTooltip]="(m.expandExDatesOld ? 'PERIODS.OLDER_EXCEPTION_DATES_HIDE' : 'PERIODS.OLDER_EXCEPTION_DATES_SHOW') | translate"
+                            (click)="m.expandExDatesOld = !m.expandExDatesOld">
+                        <mat-icon [ngStyle]="{'font-size': '16px', 'height': '16px', 'width': '16px', 'color': '#999', 'transform': m.expandExDatesOld ? 'rotate(180deg)' : 'rotate(0deg)', 'transition': 'transform 0.2s'}">
+                          expand_more
+                        </mat-icon>
+                      </span>
+                      <ng-container *ngIf="m.expandExDatesOld">
+                        <br/>
+                        <ng-container *ngFor="let d of m.exDatesOld; let lastd = last">
                           {{ d | date:'yyyy.MM.dd.' }}<span *ngIf="!lastd">, </span>
                         </ng-container>
                       </ng-container>
@@ -277,11 +292,26 @@
                     </ng-container>
                   </ng-container>
 
-                  <ng-container *ngIf="m.exDates && m.exDates.length ">
+                  <ng-container *ngIf="m.exDatesNew && m.exDatesNew.length">
                     <ng-container *ngIf="m.experiodNames && m.experiodNames.length">, </ng-container>
+                    <ng-container *ngFor="let d of m.exDatesNew; let lastd = last">
+                      {{ d | date:'yyyy.MM.dd.' }}<span *ngIf="!lastd">, </span>
+                    </ng-container>
+                  </ng-container>
 
-                    <ng-container *ngIf="m.exDates && m.exDates.length">
-                      <ng-container *ngFor="let d of m.exDates; let lastd = last">
+                  <!-- Old exception dates expandable section -->
+                  <ng-container *ngIf="m.exDatesOld && m.exDatesOld.length">
+                    <ng-container *ngIf="m.experiodNames && m.experiodNames.length || m.exDatesNew && m.exDatesNew.length">, </ng-container>
+                    <span style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; color: #666; font-size: 0.85rem;"
+                          [matTooltip]="(m.expandExDatesOld ? 'PERIODS.OLDER_EXCEPTION_DATES_HIDE' : 'PERIODS.OLDER_EXCEPTION_DATES_SHOW') | translate"
+                          (click)="m.expandExDatesOld = !m.expandExDatesOld">
+                      <mat-icon [ngStyle]="{'font-size': '16px', 'height': '16px', 'width': '16px', 'color': '#999', 'transform': m.expandExDatesOld ? 'rotate(180deg)' : 'rotate(0deg)', 'transition': 'transform 0.2s'}">
+                        expand_more
+                      </mat-icon>
+                    </span>
+                    <ng-container *ngIf="m.expandExDatesOld">
+                      <br/>
+                      <ng-container *ngFor="let d of m.exDatesOld; let lastd = last">
                         {{ d | date:'yyyy.MM.dd.' }}<span *ngIf="!lastd">, </span>
                       </ng-container>
                     </ng-container>
