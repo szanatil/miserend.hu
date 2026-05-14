@@ -54,6 +54,7 @@ import {EditConfirmationService} from '../../services/edit-confirmation.service'
 import {CopyPeriodDialogComponent, CopyPeriodDialogData} from '../copy-period-dialog/copy-period-dialog.component';
 import {DeletePeriodDialogComponent, DeletePeriodDialogData} from '../delete-period-dialog/delete-period-dialog.component';
 import {DeleteWarningDialogComponent} from '../delete-warning-dialog/delete-warning-dialog.component';
+import { co } from '@fullcalendar/core/internal-common';
 
 export interface SimpleDialogData {
   dateTime: Date;
@@ -178,7 +179,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
   ngOnChanges(changes: SimpleChanges): void {
       if (changes['sensorEvents']) {
-        console.log('[ChurchCalendarComponent] sensorEvents changed:', this.sensorEvents);
+        // console.log('[ChurchCalendarComponent] sensorEvents changed:', this.sensorEvents);
       }
       this.reLoadCalendar();
   }
@@ -200,17 +201,60 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
             this.deletedMasses,
             this.deletedDates
           );
-          console.log('[ChurchCalendarComponent] Mass calendar events count:', events.length);
+          // console.log('[ChurchCalendarComponent] Mass calendar events count:', events.length);
           
           // Add sensor events to the calendar
           const sensorCalendarEvents = this.convertSensorEventsToCalendarEvents();
-          console.log('[ChurchCalendarComponent] Sensor calendar events count:', sensorCalendarEvents.length);
+          //console.log('[ChurchCalendarComponent] Sensor calendar events count:', sensorCalendarEvents.length);
           events.push(...sensorCalendarEvents);
-          console.log('[ChurchCalendarComponent] Total events to display:', events.length);
+          // console.log('[ChurchCalendarComponent] Total events to display:', events.length);
           
           resolve(events);
         });
     });
+  }
+
+  // IMPROVED: Synchronous version that combines all mass sources and regenerates events
+  private generateFreshCalendarEvents(): CalendarEvent[] {
+    // Combine masses from both original and changes maps (changes override original)
+    const combinedMasses = new Map<number, Mass>();
+    
+    // Add all original masses
+    for (const mass of this.masses.values()) {
+      combinedMasses.set(mass.id!, mass);
+    }
+    
+    // Override with any pending changes
+    for (const [id, changedMass] of this.changes.entries()) {
+      combinedMasses.set(id, changedMass);
+    }
+    
+    // Remove deleted masses
+    for (const deletedId of this.deletedMasses) {
+      combinedMasses.delete(deletedId);
+    }
+    
+    // Get current periods - use getValue() to get the latest emitted value
+    const periods = this.periodService.generatedPeriods$.getValue();
+    if (!periods || periods.length === 0) {
+      console.warn('[ChurchCalendarComponent] No periods available for event generation');
+      return [];
+    }
+
+    // Generate calendar events from the combined mass set
+    const events = MassUtil.createCalendarEvents(
+      Array.from(combinedMasses.values()),
+      periods,
+      [], // changedMasses is empty since we're generating from combined set
+      [], // deletedMasses is empty since we've already removed them
+      this.deletedDates
+    );
+
+    // Add sensor events to the calendar
+    const sensorCalendarEvents = this.convertSensorEventsToCalendarEvents();
+    events.push(...sensorCalendarEvents);
+
+    return events;
   }
 
   /**
@@ -411,11 +455,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
               mass.exdate = [currentStartStr];
             }
 
-            this.calEvents = this.calEvents.filter(event => event.extendedProps.massId !== this.selectedMassId);
-            this.calEvents.push(
-              ...MassUtil.createCalendarEvent(mass, this.periodService.generatedPeriods$.getValue())
-            );
-            
+            // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
             this.refreshCalendarAndMassList();
           }
         }
@@ -428,7 +468,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
         this.changes.delete(this.selectedMassId);
       }
 
-      this.calEvents = this.calEvents.filter(event => event.extendedProps.massId !== this.selectedMassId);
+      // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
       this.refreshCalendarAndMassList();
 
     } else if(result === DialogResponse.EVENT_VIEWER_EDIT_ALL || result === DialogResponse.EVENT_VIEWER_EDIT_ONE) {
@@ -524,13 +564,11 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     }
 
     const newMassId = MassUtil.generateTmpMassId();
-    const simpleCalendarEvent: CalendarEvent =
-      MassUtil.createSimpleCalendarEventByDate(this.selectedDate, this.currentChurch!.rite, newMassId, this.translateService);
     const simpleMass: Mass = MassUtil.createSimpleMassByDate(this.selectedDate, this.currentChurch!, newMassId, this.translateService);
 
     this.changes.set(simpleMass.id!, simpleMass);
 
-    this.calEvents.push(simpleCalendarEvent);
+    // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
     this.refreshCalendarAndMassList();
   }
 
@@ -554,8 +592,12 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
           //EBBEN AZ ESETBEN LÉTREHOZUNK EGY TELJESEN ÚJ MISÉT, AMI NEM TARTOZIK A SZÜLŐHÖZ
           const parentMassId: number | undefined = this.selectedMassId;
           const newMassId: number = MassUtil.generateTmpMassId();
-          const newSingleCalendarEvent: CalendarEvent = MassUtil.createEventByType(this.dialogEvent, newMassId);
-          const newSingleMass: Mass = MassUtil.createMass(newSingleCalendarEvent, this.dialogEvent, this.currentChurch!, newMassId);
+          const newSingleMass: Mass = MassUtil.createMass(
+            MassUtil.createEventByType(this.dialogEvent, newMassId),
+            this.dialogEvent,
+            this.currentChurch!,
+            newMassId
+          );
 
           if (parentMassId) {
             let parentMass: Mass | undefined;
@@ -573,18 +615,13 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
                 parentMass.exdate = [startStr];
               }
 
-              this.calEvents = this.calEvents.filter(event => event.extendedProps.massId !== parentMassId);
-              this.calEvents.push(
-                ...MassUtil.createCalendarEvent(parentMass, this.periodService.generatedPeriods$.getValue())
-              );
-
               this.changes.set(parentMassId, parentMass);
             }
           }
 
           this.changes.set(newSingleMass.id!, ScriptUtil.clone(newSingleMass));
-          this.calEvents.push(newSingleCalendarEvent);
 
+          // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
           this.refreshCalendarAndMassList();
 
         } else {
@@ -595,17 +632,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
           const calendarEvent: CalendarEvent = MassUtil.createEventByType(this.dialogEvent, newMassId, specialPeriodType);
           const mass: Mass = MassUtil.createMass(calendarEvent, this.dialogEvent, this.currentChurch!, newMassId);
 
-          this.calEvents = this.calEvents.filter(event => event.extendedProps.massId !== newMassId);
-
           const recentlyExclusionSourcePeriodIds: number[] = this.excludeNewMassFromLowerPeriodMasses(periodId, periodWeight);
-
-          if (periodId) {
-            const generatedPeriods = this.periodService.getGeneratedPeriodsByPeriodId(periodId);
-            const calendarEvents: CalendarEvent[] = MassUtil.createEventByPeriods(calendarEvent, generatedPeriods);
-            this.calEvents.push(...calendarEvents);
-          } else {
-            this.calEvents.push(calendarEvent);
-          }
 
           const recentlyExcludedPeriodIds = this.excludeHigherPeriodMassesFromNewMass(mass, periodId, periodWeight);
 
@@ -613,6 +640,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
           this.changes.set(mass.id!, ScriptUtil.clone(mass));
 
+          // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
           this.refreshCalendarAndMassList();
         }
       }
@@ -762,16 +790,26 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
   }
 
   // Ensure FullCalendar shows current calEvents and rebuild editable list when visible
+  // IMPROVED: Now regenerates events from current masses/changes/deletedMasses to guarantee consistency
   private refreshCalendarAndMassList(): void {
+    // Regenerate all calendar events from the current data model (combines masses/changes/deletedMasses)
+    const freshEvents = this.generateFreshCalendarEvents();
+    this.calEvents = freshEvents; // Update with freshly generated events
+
+    // Update the calendar with the fresh events
     if (this.calendarComponent && this.calendarComponent.getApi) {
+      console.log('R[ChurchCalendarComponent] Refreshing calendar with events count:', freshEvents.length);
       try {
         this.calendarComponent.getApi().removeAllEvents();
         this.calendarComponent.getApi().removeAllEventSources();
-        this.calendarComponent.getApi().addEventSource(this.calEvents);
+        this.calendarComponent.getApi().addEventSource(freshEvents);
+        console.log('R[ChurchCalendarComponent] Calendar refreshed successfully');
       } catch (e) {
         // calendar not initialized yet or api error - ignore
       }
     }
+
+    // Rebuild the editable mass list
     if (this.showMassListInEdit) {
       this.buildMassList();
     }
@@ -870,20 +908,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       }
 
       if (globalChanged) {
-        this.calEvents = this.calEvents
-          .filter(event => !event.extendedProps.massId || !lowerPeriodWeightMassIds.includes(event.extendedProps.massId));
-        lowerPeriodWeightMassIds.forEach(lowerPeriodWeightMassId => {
-          const lowerPeriodWeightMass = this.changes.get(lowerPeriodWeightMassId);
-          if (ScriptUtil.isNotNull(lowerPeriodWeightMass)) {
-            this.calEvents.push(
-              ...MassUtil.createCalendarEvent(
-                lowerPeriodWeightMass,
-                this.periodService.generatedPeriods$.getValue(),
-              )
-            );
-          }
-        });
-        // ensure calendar UI and the editable mass list reflect the changes
+        // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
         this.refreshCalendarAndMassList();
       }
     }
@@ -939,14 +964,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       if (globalChanged) {
         this.changes.set(mass.id, mass);
 
-        this.calEvents = this.calEvents.filter(event => event.extendedProps.massId !== mass.id);
-        this.calEvents.push(
-          ...MassUtil.createCalendarEvent(
-            mass,
-            this.periodService.generatedPeriods$.getValue(),
-          )
-        );
-        // ensure calendar UI and the editable mass list reflect the changes
+        // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
         this.refreshCalendarAndMassList();
       }
     }
@@ -1091,7 +1109,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
           this.changes.delete(m.id);
         }
 
-        this.calEvents = this.calEvents.filter(event => event.extendedProps.massId !== m.id);
+        // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
         this.refreshCalendarAndMassList();
       }
     });
@@ -1136,12 +1154,9 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
           this.deletedMasses.push(massId);
         }
       }
-      
-      // Remove from calendar events
-      this.calEvents = this.calEvents.filter(event => event.extendedProps.massId !== massId);
     }
     
-    // Refresh calendar and mass list
+    // IMPROVED: No manual calEvents manipulation - refreshCalendarAndMassList() handles regeneration
     this.refreshCalendarAndMassList();
     
     const periodName = this.periodService.getPeriodNameById(periodId);
@@ -1259,8 +1274,8 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
         });
       });
 
-      // Refresh calendar and mass list
-      this.reLoadCalendar();
+      // IMPROVED: Use refreshCalendarAndMassList() instead of reLoadCalendar() for immediate sync refresh
+      this.refreshCalendarAndMassList();
       this.snackBarService.success(`${massesToCopy.length} mise sikeresen másolt az új időszakra.`);
     }
   }
