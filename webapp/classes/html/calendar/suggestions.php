@@ -74,6 +74,7 @@ class Suggestions extends \Html\Calendar\CalendarApi
                     ->values();
 
                 $this->content = json_encode($filtered);
+                break;
                 
             case 'POST':
 
@@ -98,6 +99,7 @@ class Suggestions extends \Html\Calendar\CalendarApi
                     
                     $this->handleNewSuggestionPackage();
                 }
+                break;
                 
             default:
                 $this->sendJsonError('Method not allowed', 405);

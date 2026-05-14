@@ -11,7 +11,7 @@ class CalendarApi extends \Html\Html {
         $this->content = json_encode($_REQUEST);
     }
 
-    private function sendJsonError($message, $code): void {
+    public function sendJsonError($message, $code): void {
         http_response_code($code);
         header('Content-Type: application/json');
         echo json_encode([

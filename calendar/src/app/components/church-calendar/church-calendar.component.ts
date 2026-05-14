@@ -729,15 +729,22 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       createdAt: new Date()
     }
 
-    this.eventService.sendToApprove(this.currentChurch!.id, suggestionPackage).subscribe(res => {
-      this.changes.clear();
-      this.deletedMasses = [];
-      this.deletedDates.clear();
-      this.reLoadCalendar();
-      this.dialog.open(AddMessageDialogComponent, {
-        data: {message: "Javaslatod sikeresen beküldve! Amint jóváhagyják, megjelenik a naptárban.", decision: false}
-      });
-    });
+    this.eventService.sendToApprove(this.currentChurch!.id, suggestionPackage).subscribe(
+      res => {
+        this.changes.clear();
+        this.deletedMasses = [];
+        this.deletedDates.clear();
+        this.reLoadCalendar();
+        this.dialog.open(AddMessageDialogComponent, {
+          data: {message: "Javaslatod sikeresen beküldve! Amint jóváhagyják, megjelenik a naptárban.", decision: false}
+        });
+      },
+      error => {
+        console.error('Error sending suggestion to approve:', error);
+        this.spinnerService.hide();
+        // snackBarService.error már meghívódott az event.service-ben
+      }
+    );
   }
 
   public onAcceptSuggestion(selectedSuggestionPackage: SuggestionPackage, origMasses: Map<number, Mass>): Observable<{
