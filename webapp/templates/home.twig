@@ -31,6 +31,22 @@
             content: "";
             display: block;
         }
+        
+        /* Make buttons fit their content width */
+        #mass_start_date_btn,
+        #mass_end_date_btn,
+        #mass_start_time_btn,
+        #mass_end_time_btn {
+            width: auto;
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
+        
+        /* Keep date-time pairs visually connected */
+        #mass_start_time_btn,
+        #mass_end_time_btn {
+            margin-left: -1px;
+        }
     </style>
     <link rel="stylesheet" href="/node_modules/clockpicker/dist/jquery-clockpicker.css">
     <script src="/node_modules/clockpicker/dist/jquery-clockpicker.js"></script>
@@ -113,7 +129,7 @@
                 <div class="form-group row">
                     <label class="col-sm-4 control-label">Mise</label>
                     <div class="col-sm-8">
-                        <div class="btn-group" role="group" aria-label="Mass date/time filters" id="mass_datetime_group" style="display: flex; flex-wrap: wrap; gap: 4px;">
+                        <div class="btn-group" role="group" aria-label="Mass date/time filters" id="mass_datetime_group" style="display: flex; flex-wrap: nowrap;">
                             <button type="button" class="btn btn-success mass-date-btn" id="mass_start_date_btn" data-type="start_date">
                                 <span id="mass_start_date_display">YYYY.mm.dd</span>
                             </button>
@@ -392,7 +408,7 @@
                 <div class="form-group row">
                     <label class="col-sm-4 control-label" >nyelv</label>
                     <div class="col-sm-8">
-                        <div class="btn-group" role="group" aria-label="Language filters" id="language_group" style="display: flex; flex-wrap: wrap; gap: 4px;">
+                        <div class="btn-group" role="group" aria-label="Language filters" id="language_group" style="display: flex; flex-wrap: wrap;">
                             {% for lang in langs %}
                                 <button type="button" class="btn btn-light lang-toggle" data-lang="{{ lang }}" data-state="0" style="padding:4px">
                                     <img src="/cal_images/flags/{{ lang|lower }}.svg" alt="{{ ('LANGUAGES.' ~ lang)|trans }}" title="{{ ('LANGUAGES.' ~ lang)|trans }}" style="height:1.3em; margin-right:0px; vertical-align:middle;">
