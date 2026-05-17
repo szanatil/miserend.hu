@@ -31,8 +31,10 @@ class SearchResultsMasses extends Html {
             'ehm' => \Request::Integer('ehm'),
             'types' => \Request::ArrayArray('types'),  // Be aware: this is a nested array with rite keys, e.g. types[rite1][should], types[rite1][must_not], types[rite2][should], etc.
             'rites' => \Request::StringArray('rites'), // Be aware: this is an array with 'should' and 'must_not' keys, e.g. rites[should], rites[must_not]
-            'mikordatum' => \Request::Text('mikordatum'),
-            'mikortol' => \Request::Text('mikortol'),
+            'start_date' => \Request::Text('start_date'),
+            'start_time' => \Request::Text('start_time'),
+            'end_date' => \Request::Text('end_date'),
+            'end_time' => \Request::Text('end_time'),
             'lang' => \Request::StringArray('lang'), // Be aware: this is an array with 'should' and 'must_not' keys, e.g. lang[should], lang[must_not]
             'timezone' => \Request::Text('timezone')
         ];
@@ -74,16 +76,14 @@ class SearchResultsMasses extends Html {
         }
     
         // Time range search
-        if(isset($params['mikordatum']) AND $params['mikordatum'] != '') {
-            $mikordatum = $params['mikordatum'];
-            $hourFrom = ( isset($params['mikortol']) and $params['mikortol'] != '') ? $params['mikortol'] : '00:00';
-            $hourTo = "23:59";
-            $from = $mikordatum."T".$hourFrom.":00";
-            $until = $mikordatum."T".$hourTo.":00";
-        } else {
-            $from = date('Y-m-d')."T00:00:00";
-            $until = date('Y-m-d',strtotime("+ 6 days"))."T23:59:00";
-        }
+        $start_date = (isset($params['start_date']) AND $params['start_date'] != '') ? $params['start_date'] : date('Y-m-d');
+        $start_time = (isset($params['start_time']) AND $params['start_time'] != '') ? $params['start_time'] : '00:00';
+        $end_date = (isset($params['end_date']) AND $params['end_date'] != '') ? $params['end_date'] : date('Y-m-d', strtotime('+1 week'));
+        $end_time = (isset($params['end_time']) AND $params['end_time'] != '') ? $params['end_time'] : '23:59';
+        
+        $from = $start_date."T".$start_time.":00";
+        $until = $end_date."T".$end_time.":00";
+
         $search->timeRange($from, $until);
         $api = new \ExternalApi\NapilelkibatyuApi();
         $this->liturgicalDays = $api->getLiturgicalDaysInRange($from, $until);
@@ -209,9 +209,7 @@ class SearchResultsMasses extends Html {
         $this->pagination->set($search->total, $url );
 
         $this->filters = $search->getFilters();
-
-        $this->alert = (new \ExternalApi\NapilelkibatyuApi())->LiturgicalAlert(isset($mikordatum) ? $mikordatum : false);
-                
+                        
         $this->template = 'search/resultsmasses.twig';
         
         $this->results = $results;                
