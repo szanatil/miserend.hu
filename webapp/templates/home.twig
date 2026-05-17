@@ -48,8 +48,8 @@
             margin-left: -1px;
         }
     </style>
-    <link rel="stylesheet" href="/node_modules/clockpicker/dist/jquery-clockpicker.css">
-    <script src="/node_modules/clockpicker/dist/jquery-clockpicker.js"></script>
+    <link rel="stylesheet" href="/snode_modules/clockpicker/dist/jquery-clockpicker.css">
+    <script src="/snode_modules/clockpicker/dist/jquery-clockpicker.js"></script>
     <script src="/js/boundary-autocomplete.js"></script>
     
 {% endblock %}
@@ -365,7 +365,7 @@
                                 $('#temp_datepicker').focus();
                             });
 
-                            // Time picker button handler with clockpicker
+                            // Time picker button handler with clockpicker and manual fallback
                             $(document).on('click', '.mass-time-btn', function(e){
                                 e.preventDefault();
                                 var $btn = $(this);
@@ -380,15 +380,50 @@
                                     $input.val(currentVal);
                                 }
                                 
-                                var $wrapper = $('<div style="padding: 20px; text-align: center;"></div>').append($input);
+                                var $helpText = $('<div style="font-size: 12px; color: #666; margin-top: 10px; text-align: center;">Formátum: HH:mm (pl. 14:30)</div>');
+                                var $wrapper = $('<div style="padding: 20px; text-align: center;"></div>').append($input).append($helpText);
                                 
                                 var originalVal = currentVal;
+                                var clockpickerInitialized = false;
+                                
+                                // Function to validate time format
+                                function validateTimeFormat(timeStr) {
+                                    if (!timeStr) return false;
+                                    var timePattern = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+                                    return timePattern.test(timeStr);
+                                }
+                                
+                                // Function to save the time
+                                function saveTime() {
+                                    var newVal = $input.val();
+                                    if (newVal && newVal !== originalVal && validateTimeFormat(newVal)) {
+                                        $('#' + type).val(newVal);
+                                        validateAndAdjustTimes();
+                                        // Close the dialog after a short delay
+                                        setTimeout(function() {
+                                            $wrapper.dialog('close');
+                                        }, 300);
+                                    }
+                                }
                                 
                                 $wrapper.dialog({
                                     title: type === 'start_time' ? 'Kezdő idő' : 'Vég idő',
                                     modal: true,
                                     width: 380,
-                                    buttons: [],  // No buttons - clockpicker closes automatically
+                                    buttons: [
+                                        {
+                                            text: 'OK',
+                                            click: function() {
+                                                saveTime();
+                                            }
+                                        },
+                                        {
+                                            text: 'Mégse',
+                                            click: function() {
+                                                $(this).dialog('close');
+                                            }
+                                        }
+                                    ],
                                     open: function() {
                                         var $input = $('#' + uniqueId);
                                         
@@ -399,40 +434,65 @@
                                             }
                                         } catch(e) {}
                                         
-                                        // Initialize clockpicker with autoclose enabled
-                                        $input.clockpicker({
-                                            placement: 'bottom',
-                                            align: 'left',
-                                            autoclose: true,
-                                            twelvehour: false
-                                        });
-                                        
-                                        // Listen for change event to save and close dialog
-                                        $input.off('change').on('change', function() {
-                                            var newVal = $(this).val();
-                                            if (newVal && newVal !== originalVal) {
-                                                $('#' + type).val(newVal);
-                                                validateAndAdjustTimes();
-                                                // Close the dialog after a short delay
+                                        // Try to initialize clockpicker
+                                        try {
+                                            if (typeof $input.clockpicker === 'function') {
+                                                $input.clockpicker({
+                                                    placement: 'bottom',
+                                                    align: 'left',
+                                                    autoclose: true,
+                                                    twelvehour: false
+                                                });
+                                                clockpickerInitialized = true;
+                                                
+                                                // Listen for change event to save and close dialog
+                                                $input.off('change').on('change', function() {
+                                                    saveTime();
+                                                });
+                                                
+                                                // Show the picker
                                                 setTimeout(function() {
-                                                    $wrapper.dialog('close');
-                                                }, 300);
+                                                    try {
+                                                        $input.click();
+                                                    } catch(e) {
+                                                        console.log('Error clicking input:', e);
+                                                    }
+                                                }, 100);
+                                            } else {
+                                                throw new Error('Clockpicker not available');
+                                            }
+                                        } catch(e) {
+                                            console.log('Clockpicker initialization failed, using manual input:', e);
+                                            clockpickerInitialized = false;
+                                            $helpText.html('Az óraszerkesztő nem elérhető. Kérem, adja meg az időt HH:mm formátumban (pl. 14:30)').css('color', '#d9534f').css('margin-top', '15px');
+                                            $input.focus();
+                                        }
+                                        
+                                        // Add input validation for manual entry
+                                        $input.off('blur').on('blur', function() {
+                                            var val = $(this).val();
+                                            if (val && !validateTimeFormat(val)) {
+                                                $(this).css('border-color', '#d9534f').css('background-color', '#fdf7f7');
+                                                $helpText.css('color', '#d9534f').text('Érvénytelen formátum! Kérem, HH:mm formátumban adja meg (pl. 14:30)');
+                                            } else {
+                                                $(this).css('border-color', '').css('background-color', '');
+                                                $helpText.css('color', '#666').text('Formátum: HH:mm (pl. 14:30)');
                                             }
                                         });
                                         
-                                        // Show the picker
-                                        setTimeout(function() {
-                                            try {
-                                                $input.click();
-                                            } catch(e) {
-                                                console.log('Error clicking input:', e);
+                                        // Allow Enter key to submit
+                                        $input.off('keypress').on('keypress', function(e) {
+                                            if (e.which === 13) {
+                                                e.preventDefault();
+                                                saveTime();
+                                                return false;
                                             }
-                                        }, 100);
+                                        });
                                     },
                                     close: function() {
                                         var $input = $('#' + uniqueId);
                                         try {
-                                            if ($input.data('clockpicker')) {
+                                            if (clockpickerInitialized && $input.data('clockpicker')) {
                                                 $input.clockpicker('remove');
                                             }
                                         } catch(e) {
