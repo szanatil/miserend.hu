@@ -73,16 +73,6 @@
         <form method=get action="index.php" name="kereses" id="kereses" class="form-group">
 
 	    <div class="d-flex justify-content-center">
-		<!--<h1>
-            <div class="btn-group" role="group" aria-label="Search Options">
-                <input type="radio" class="btn-check" name="q" id="searchtemplom" value="SearchResultsChurches" checked>
-                <label class="btn btn-outline-primary" for="searchtemplom">Templom</label>
-
-                <input type="radio" class="btn-check" name="q" id="searchmise" value="SearchResultsMasses">
-                <label class="btn btn-outline-primary" for="searchmise">Mise</label>
-            </div>
-			keresés
-			<h1>-->
         </div>
 
             <div id="form_church"  style="margin-top:12px;">
@@ -192,8 +182,8 @@
                             if (urlEndDate) {
                                 endDate = urlEndDate;
                             } else {
-                                // Default: today + 7 days
-                                var endDateObj = addMinutes(now, 7 * 24 * 60);
+                                // Default: today + 3 days
+                                var endDateObj = addMinutes(now, 3 * 24 * 60);
                                 endDate = formatDate(endDateObj);
                             }
 
@@ -255,7 +245,7 @@
                             }
                             
                             // Check if it's within 3 days from today (and not today or tomorrow)
-                            if (dayDiff > 1 && dayDiff < 3) {
+                            if (dayDiff > 1 && dayDiff < 4) {
                                 var dayName = dayNames[selectedDate.getDay()];
                                 return dayName;
                             }
@@ -360,7 +350,14 @@
                                     defaultDate: currentVal || new Date(),
                                     onSelect: function(dateText) {
                                         $('#' + type).val(dateText);
+                                        // Auto-set time when date is selected
+                                        if (type === 'start_date') {
+                                            $('#start_time').val('00:00');
+                                        } else if (type === 'end_date') {
+                                            $('#end_time').val('23:59');
+                                        }
                                         validateAndAdjustTimes();
+                                        updateDisplays();
                                         $dialog.dialog('close');
                                     }
                                 }).datepicker('setDate', currentVal || new Date());
