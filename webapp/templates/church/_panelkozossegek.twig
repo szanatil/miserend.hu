@@ -6,7 +6,7 @@
 
 
 {% block body %}
-    {% if kozossegek|length > 1 %}
+    {% if kozossegek|length > 0 %}
         
 		{% for kozosseg in kozossegek %}
 			<h5><strong><a href="{{ kozosseg.link }}" target="_blank">{{ kozosseg.name }}</a></strong></h5>
