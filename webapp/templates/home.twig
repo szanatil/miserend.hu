@@ -173,10 +173,40 @@
                         function formatDateDisplay(dateStr) {
                             if (!dateStr) return 'YYYY.mm.dd';
                             var parts = dateStr.split('-');
-                            if (parts.length === 3) {
-                                return parts[0] + '.' + parts[1] + '.' + parts[2];
+                            if (parts.length !== 3) return dateStr;
+                            
+                            // Parse the selected date
+                            var selectedDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                            
+                            // Get today's date (normalized to midnight)
+                            var today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            
+                            // Calculate difference in days
+                            var timeDiff = selectedDate.getTime() - today.getTime();
+                            var dayDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+                            
+                            // Day names in Hungarian
+                            var dayNames = ['vasárnap', 'hétfő', 'kedd', 'szerda', 'csütörtök', 'péntek', 'szombat'];
+                            
+                            // Check if it's today
+                            if (dayDiff === 0) {
+                                return 'ma';
                             }
-                            return dateStr;
+                            
+                            // Check if it's tomorrow
+                            if (dayDiff === 1) {
+                                return 'holnap';
+                            }
+                            
+                            // Check if it's within 3 days from today (and not today or tomorrow)
+                            if (dayDiff > 1 && dayDiff < 3) {
+                                var dayName = dayNames[selectedDate.getDay()];
+                                return dayName;
+                            }
+                            
+                            // Otherwise show the date in YYYY.mm.dd format
+                            return parts[0] + '.' + parts[1] + '.' + parts[2];
                         }
 
                         function formatTimeDisplay(timeStr) {
