@@ -19,11 +19,6 @@ class Home extends Html {
         $attributes = unserialize(ATTRIBUTES);
         $languages = unserialize(LANGUAGES);
 
-        $ma = date('Y-m-d');
-        $holnap = date('Y-m-d', (time() + 86400));
-        $mikor = '8:00-19:00';
-
-        
         $espkers = DB::table('espereskerulet')
                     ->select('id','ehm','nev')
                     ->get();
@@ -80,16 +75,6 @@ class Home extends Html {
                         $searchform['ehm']['options'][$egyhmegye->id] = $egyhmegye->nev;
                     }                               
         
-        //Mikor
-        $mainap = date('w');
-        if ($mainap == 0)
-            $vasarnap = $ma;
-        else {
-            $kulonbseg = 7 - $mainap;
-            $vasarnap = date('Y-m-d', (time() + (86400 * $kulonbseg)));
-        }
-       
-                
         // Összegyűjtés: hányféle calmass.lang van az eloquent-ben, csökkenő sorrend szerint
         $langStats = \Eloquent\CalMass::select('lang')
             ->selectRaw('COUNT(*) as count')

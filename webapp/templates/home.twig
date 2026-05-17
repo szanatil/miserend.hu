@@ -31,7 +31,25 @@
             content: "";
             display: block;
         }
+        
+        /* Make buttons fit their content width */
+        #start_date_btn,
+        #end_date_btn,
+        #start_time_btn,
+        #end_time_btn {
+            width: auto;
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
+        
+        /* Keep date-time pairs visually connected */
+        #start_time_btn,
+        #end_time_btn {
+            margin-left: -1px;
+        }
     </style>
+    <link rel="stylesheet" href="/node_modules/clockpicker/dist/jquery-clockpicker.css">
+    <script src="/node_modules/clockpicker/dist/jquery-clockpicker.js"></script>
     <script src="/js/boundary-autocomplete.js"></script>
     
 {% endblock %}
@@ -55,16 +73,6 @@
         <form method=get action="index.php" name="kereses" id="kereses" class="form-group">
 
 	    <div class="d-flex justify-content-center">
-		<!--<h1>
-            <div class="btn-group" role="group" aria-label="Search Options">
-                <input type="radio" class="btn-check" name="q" id="searchtemplom" value="SearchResultsChurches" checked>
-                <label class="btn btn-outline-primary" for="searchtemplom">Templom</label>
-
-                <input type="radio" class="btn-check" name="q" id="searchmise" value="SearchResultsMasses">
-                <label class="btn btn-outline-primary" for="searchmise">Mise</label>
-            </div>
-			keresés
-			<h1>-->
         </div>
 
             <div id="form_church"  style="margin-top:12px;">
@@ -105,64 +113,344 @@
                 </div>                
             </div>
 
-            <div id="form_mass" style="margin-top:12px;">
-                <div class="form-group row">
-                    <label class="col-sm-4 control-label">Mise</label>
-                    <div class="col-sm-6">
-                        <div class="btn-group btn-group-toggle" role="group" id="mass_quick_group">
-                            <button type="button" class="btn btn-light mass-quick" data-value="today">Ma</button>
-                            <button type="button" class="btn btn-light mass-quick" data-value="tomorrow">Holnap</button>
-                            <button type="button" class="btn btn-light mass-quick" data-value="sunday">Vasárnap</button>
-                            <button type="button" class="btn btn-light mass-quick" data-value="date" >Adott napon</button>
-                        
-                            <!-- Time toggle button (separate control, neutral by default) -->
-                            <input type="hidden" name="timezone" id="timezone" value="Europe/Budapest">
-                            <script>
-                            (function($){
-                                $(function(){
-                                    var tz = 'Europe/Budapest';
-                                    try {
-                                        if (typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
-                                            var resolved = Intl.DateTimeFormat().resolvedOptions();
-                                            if (resolved && resolved.timeZone) tz = resolved.timeZone;
-                                        }
-                                    } catch(e){}
-                                    $('#timezone').val(tz);
-                                });
-                            })(jQuery);
-                            </script>
-                            <button type="button" class="btn btn-light time-toggle" id="time_toggle" style="margin-left:30px">Óra</button>
-                            <div id="time_controls" style="display:none; margin-top:6px;">
-                                <select id="mikorido_hour" class="form-control" style="display:inline-block; width:5rem;">
-                                    {% for h in 0..23 %}
-                                        <option value="{{ '%02d'|format(h) }}" {% if h == 10 %}selected{% endif %}>{{ '%02d'|format(h) }}</option>
-                                    {% endfor %}
-                                </select>
-                                <select id="mikorido_min" class="form-control" style="display:inline-block; width:5rem; margin-left:1px;">
-                                    <option value="00" selected>00</option>
-                                    <option value="15">15</option>
-                                    <option value="30">30</option>
-                                    <option value="45">45</option>
-                                </select>
-                                <span style="margin-left:8px; vertical-align:middle">-től</span>
-                            </div>
-                        </div>
-                        <!-- Offscreen datepicker input used to pick the date -->
-                        <!-- Hidden inputs submitted with the form -->
-                        <input type="hidden" name="mikor" id="mikor" value="">
-                        <input type="hidden" name="mikordatum" id="mikordatum" value="">
-                        <input type="hidden" name="mikortol" id="mikortol" value="">
-                        <!-- Offscreen datepicker input used to pick the date -->
-                        <input type="text" id="mass_datepicker" class="datepicker form-control" style="display:none; margin-top:6px; width:auto;" />
-                    </div>                    
-                </div>
-            </div>
 
             <div id="form_mass_details" style="">
+                {# Mise date/time picker section #}
+                <div class="form-group row">
+                    <label class="col-sm-4 control-label">Mise</label>
+                    <div class="col-sm-8">
+                        <div class="btn-group" role="group" aria-label="Mass date/time filters" id="mass_datetime_group" style="display: flex; flex-wrap: nowrap;">
+                            <button type="button" class="btn btn-success mass-date-btn" id="start_date_btn" data-type="start_date">
+                                <span id="start_date_display">YYYY.mm.dd</span>
+                            </button>
+                            <button type="button" class="btn btn-success mass-time-btn" id="start_time_btn" data-type="start_time">
+                                <span id="start_time_display">hh:ii</span>
+                            </button>
+                            <button type="button" class="btn btn-light" disabled style="cursor: default;">-</button>
+                            <button type="button" class="btn btn-success mass-date-btn" id="end_date_btn" data-type="end_date">
+                                <span id="end_date_display">YYYY.mm.dd</span>
+                            </button>
+                            <button type="button" class="btn btn-success mass-time-btn" id="end_time_btn" data-type="end_time">
+                                <span id="end_time_display">hh:ii</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                        <input type="hidden" name="start_date" id="start_date" value="">
+                        <input type="hidden" name="start_time" id="start_time" value="">
+                        <input type="hidden" name="end_date" id="end_date" value="">
+                        <input type="hidden" name="end_time" id="end_time" value="">
+                        
+                        {# Hidden clockpicker inputs #}
+                        <input type="text" id="clockpicker_start_time" class="clockpicker" style="display:none;">
+                        <input type="text" id="clockpicker_end_time" class="clockpicker" style="display:none;">
+
+                <script>
+                    (function($){
+                        // Get URL parameters
+                        function getUrlParameter(name) {
+                            var url = window.location.href;
+                            var regex = new RegExp('[?&]' + name + '=([^&#]*)');
+                            var results = regex.exec(url);
+                            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+                        }
+
+                        // Initialize date/time values from URL parameters or defaults
+                        function initializeMassDateTime() {
+                            var now = new Date();
+                            var startDate, startTime, endDate, endTime;
+
+                            // Try to get values from URL parameters
+                            var urlStartDate = getUrlParameter('start_date');
+                            var urlStartTime = getUrlParameter('start_time');
+                            var urlEndDate = getUrlParameter('end_date');
+                            var urlEndTime = getUrlParameter('end_time');
+
+                            if (urlStartDate) {
+                                startDate = urlStartDate;
+                            } else {
+                                startDate = formatDate(now);
+                            }
+
+                            if (urlStartTime) {
+                                startTime = urlStartTime;
+                            } else {
+                                // Default: now - 1 hour
+                                startTime = formatTime(addMinutes(now, -60));
+                            }
+
+                            if (urlEndDate) {
+                                endDate = urlEndDate;
+                            } else {
+                                // Default: today + 3 days
+                                var endDateObj = addMinutes(now, 3 * 24 * 60);
+                                endDate = formatDate(endDateObj);
+                            }
+
+                            if (urlEndTime) {
+                                endTime = urlEndTime;
+                            } else {
+                                // Default: current time
+                                endTime = formatTime(now);
+                            }
+
+                            $('#start_date').val(startDate);
+                            $('#start_time').val(startTime);
+                            $('#end_date').val(endDate);
+                            $('#end_time').val(endTime);
+
+                            updateDisplays();
+                        }
+
+                        function formatDate(date) {
+                            var year = date.getFullYear();
+                            var month = String(date.getMonth() + 1).padStart(2, '0');
+                            var day = String(date.getDate()).padStart(2, '0');
+                            return year + '-' + month + '-' + day;
+                        }
+
+                        function formatTime(date) {
+                            var hours = String(date.getHours()).padStart(2, '0');
+                            var minutes = String(date.getMinutes()).padStart(2, '0');
+                            return hours + ':' + minutes;
+                        }
+
+                        function formatDateDisplay(dateStr) {
+                            if (!dateStr) return 'YYYY.mm.dd';
+                            var parts = dateStr.split('-');
+                            if (parts.length !== 3) return dateStr;
+                            
+                            // Parse the selected date
+                            var selectedDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                            
+                            // Get today's date (normalized to midnight)
+                            var today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            
+                            // Calculate difference in days
+                            var timeDiff = selectedDate.getTime() - today.getTime();
+                            var dayDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+                            
+                            // Day names in Hungarian
+                            var dayNames = ['vasárnap', 'hétfő', 'kedd', 'szerda', 'csütörtök', 'péntek', 'szombat'];
+                            
+                            // Check if it's today
+                            if (dayDiff === 0) {
+                                return 'ma';
+                            }
+                            
+                            // Check if it's tomorrow
+                            if (dayDiff === 1) {
+                                return 'holnap';
+                            }
+                            
+                            // Check if it's within 3 days from today (and not today or tomorrow)
+                            if (dayDiff > 1 && dayDiff < 4) {
+                                var dayName = dayNames[selectedDate.getDay()];
+                                return dayName;
+                            }
+                            
+                            // Otherwise show the date - include year only if it differs from current year
+                            var currentYear = today.getFullYear();
+                            var selectedYear = parseInt(parts[0]);
+                            if (selectedYear !== currentYear) {
+                                return parts[0] + '.' + parts[1] + '.' + parts[2] + '.';
+                            } else {
+                                return parts[1] + '.' + parts[2] + '.';
+                            }
+                        }
+
+                        function formatTimeDisplay(timeStr) {
+                            return timeStr || 'hh:ii';
+                        }
+
+                        function addMinutes(date, minutes) {
+                            return new Date(date.getTime() + minutes * 60000);
+                        }
+
+                        function parseDateTime(dateStr, timeStr) {
+                            if (!dateStr || !timeStr) return null;
+                            var parts = dateStr.split('-');
+                            var timeParts = timeStr.split(':');
+                            if (parts.length === 3 && timeParts.length === 2) {
+                                return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), parseInt(timeParts[0]), parseInt(timeParts[1]));
+                            }
+                            return null;
+                        }
+
+                        function updateDisplays() {
+                            var startDate = $('#start_date').val();
+                            var startTime = $('#start_time').val();
+                            var endDate = $('#end_date').val();
+                            var endTime = $('#end_time').val();
+
+                            $('#start_date_display').text(formatDateDisplay(startDate));
+                            $('#start_time_display').text(formatTimeDisplay(startTime));
+                            $('#end_date_display').text(formatDateDisplay(endDate));
+                            $('#end_time_display').text(formatTimeDisplay(endTime));
+                        }
+
+                        function validateAndAdjustTimes() {
+                             var startDate = $('#start_date').val();
+                             var startTime = $('#start_time').val();
+                             var endDate = $('#end_date').val();
+                             var endTime = $('#end_time').val();
+
+                             var startDt = parseDateTime(startDate, startTime);
+                             var endDt = parseDateTime(endDate, endTime);
+
+                             if (!startDt || !endDt) return;
+
+                             // If start date is later than end date, adjust end date to match start date
+                             if (startDate > endDate) {
+                                 $('#end_date').val(startDate);
+                                 endDate = startDate;
+                                 endDt = parseDateTime(endDate, endTime);
+                             }
+
+                             // If start date-time is later than end date-time, adjust end time
+                             if (startDt > endDt) {
+                                 var newEndTime = addMinutes(startDt, 10);
+                                 if (newEndTime.getDate() !== startDt.getDate() || newEndTime.getHours() >= 23) {
+                                     // If it goes beyond today or too late, set to 23:59
+                                     $('#end_time').val('23:59');
+                                 } else {
+                                     $('#end_time').val(formatTime(newEndTime));
+                                 }
+                             }
+
+                             updateDisplays();
+                         }
+
+                        $(function(){
+                            // Initialize with current date/time
+                            initializeMassDateTime();
+
+                            // Date picker button handler
+                            $(document).on('click', '.mass-date-btn', function(e){
+                                e.preventDefault();
+                                var $btn = $(this);
+                                var type = $btn.data('type'); // 'start_date' or 'end_date'
+                                var currentVal = $('#mass_' + type).val();
+
+                                // Create a simple date picker dialog using jQuery UI datepicker
+                                var $dialog = $('<div><input type="text" id="temp_datepicker" class="datepicker-temp"></div>');
+                                $dialog.dialog({
+                                    title: type === 'start_date' ? 'Kezdő dátum' : 'Vég dátum',
+                                    modal: true,
+                                    buttons: [],
+                                    close: function() {
+                                        $(this).dialog('destroy');
+                                    }
+                                });
+
+                                $('#temp_datepicker').datepicker({
+                                    regional: 'hu',
+                                    dateFormat: "yy-mm-dd",
+                                    defaultDate: currentVal || new Date(),
+                                    onSelect: function(dateText) {
+                                        $('#' + type).val(dateText);
+                                        // Auto-set time when date is selected
+                                        if (type === 'start_date') {
+                                            $('#start_time').val('00:00');
+                                        } else if (type === 'end_date') {
+                                            $('#end_time').val('23:59');
+                                        }
+                                        validateAndAdjustTimes();
+                                        updateDisplays();
+                                        $dialog.dialog('close');
+                                    }
+                                }).datepicker('setDate', currentVal || new Date());
+
+                                $('#temp_datepicker').focus();
+                            });
+
+                            // Time picker button handler with clockpicker
+                            $(document).on('click', '.mass-time-btn', function(e){
+                                e.preventDefault();
+                                var $btn = $(this);
+                                var type = $btn.data('type'); // 'start_time' or 'end_time'
+                                var currentVal = $('#' + type).val();
+                                
+                                // Create a completely new input element for this dialog
+                                var uniqueId = 'temp_clock_' + type + '_' + new Date().getTime();
+                                
+                                var $input = $('<input type="text" id="' + uniqueId + '" class="form-control" placeholder="HH:mm" style="font-size: 20px; padding: 12px; text-align: center; width: 120px; margin: 20px auto; display: block;">');
+                                if (currentVal) {
+                                    $input.val(currentVal);
+                                }
+                                
+                                var $wrapper = $('<div style="padding: 20px; text-align: center;"></div>').append($input);
+                                
+                                var originalVal = currentVal;
+                                
+                                $wrapper.dialog({
+                                    title: type === 'start_time' ? 'Kezdő idő' : 'Vég idő',
+                                    modal: true,
+                                    width: 380,
+                                    buttons: [],  // No buttons - clockpicker closes automatically
+                                    open: function() {
+                                        var $input = $('#' + uniqueId);
+                                        
+                                        // Make sure any previous clockpicker instance is removed
+                                        try {
+                                            if ($input.data('clockpicker')) {
+                                                $input.clockpicker('remove');
+                                            }
+                                        } catch(e) {}
+                                        
+                                        // Initialize clockpicker with autoclose enabled
+                                        $input.clockpicker({
+                                            placement: 'bottom',
+                                            align: 'left',
+                                            autoclose: true,
+                                            twelvehour: false
+                                        });
+                                        
+                                        // Listen for change event to save and close dialog
+                                        $input.off('change').on('change', function() {
+                                            var newVal = $(this).val();
+                                            if (newVal && newVal !== originalVal) {
+                                                $('#' + type).val(newVal);
+                                                validateAndAdjustTimes();
+                                                // Close the dialog after a short delay
+                                                setTimeout(function() {
+                                                    $wrapper.dialog('close');
+                                                }, 300);
+                                            }
+                                        });
+                                        
+                                        // Show the picker
+                                        setTimeout(function() {
+                                            try {
+                                                $input.click();
+                                            } catch(e) {
+                                                console.log('Error clicking input:', e);
+                                            }
+                                        }, 100);
+                                    },
+                                    close: function() {
+                                        var $input = $('#' + uniqueId);
+                                        try {
+                                            if ($input.data('clockpicker')) {
+                                                $input.clockpicker('remove');
+                                            }
+                                        } catch(e) {
+                                            console.log('Error removing clockpicker:', e);
+                                        }
+                                        $wrapper.dialog('destroy');
+                                        $wrapper.remove();
+                                    }
+                                });
+                            });
+                        });
+                    })(jQuery);
+                </script>
+
                 <div class="form-group row">
                     <label class="col-sm-4 control-label" >nyelv</label>
                     <div class="col-sm-8">
-                        <div class="btn-group" role="group" aria-label="Language filters" id="language_group" style="display: flex; flex-wrap: wrap; gap: 4px;">
+                        <div class="btn-group" role="group" aria-label="Language filters" id="language_group" style="display: flex; flex-wrap: wrap;">
                             {% for lang in langs %}
                                 <button type="button" class="btn btn-light lang-toggle" data-lang="{{ lang }}" data-state="0" style="padding:4px">
                                     <img src="/cal_images/flags/{{ lang|lower }}.svg" alt="{{ ('LANGUAGES.' ~ lang)|trans }}" title="{{ ('LANGUAGES.' ~ lang)|trans }}" style="height:1.3em; margin-right:0px; vertical-align:middle;">
@@ -423,226 +711,7 @@
                     })(jQuery);
                 </script>
 
-                <script>
-                    (function($){
-                        // Single-select behavior for mass quick buttons
-                        function pad(n){ return n<10? '0'+n : ''+n; }
-                        function formatYMD(d){ return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
 
-                        function computeDateForValue(value){
-                            var d = new Date();
-                            if(value === 'today'){
-                                // keep today
-                            } else if (value === 'tomorrow'){
-                                d.setDate(d.getDate() + 1);
-                            } else if (value === 'sunday'){
-                                var day = d.getDay(); // 0 = Sunday
-                                var diff = (7 - day) % 7; // 0 if today is Sunday
-                                d.setDate(d.getDate() + diff);
-                            }
-                            return formatYMD(d);
-                        }
-
-                        function clearMassSelection() {
-                            var $group = $('#mass_quick_group');
-                            $group.find('.mass-quick').removeClass('btn-success').addClass('btn-light');
-                            $group.find('.mass-quick[data-value="date"]').text('Adott napon');
-                            $('#mikor').val('');
-                            $('#mikordatum').val('');
-                            $("#mikortol").val('');
-                            $("#time_controls").hide();
-                            $('#time_toggle').removeClass('btn-success').addClass('btn-light');
-                        }
-
-                        function setMassSelection(value, date) {
-                            var $group = $('#mass_quick_group');
-                            $group.find('.mass-quick').removeClass('btn-success').addClass('btn-light');
-
-                            var $btn = $group.find('.mass-quick[data-value="' + value + '"]');
-                            if ($btn.length) {
-                                $btn.removeClass('btn-light').addClass('btn-success');
-                            }
-
-                            // Ensure mikor is always a YYYY-MM-DD date
-                            var dateStr = date || null;
-                            if (!dateStr) {
-                                // compute for keywords
-                                if (value === 'date') {
-                                    // no date yet
-                                    dateStr = '';
-                                } else {
-                                    dateStr = computeDateForValue(value);
-                                }
-                            }
-
-                            // set title (hover) on the active button to show the resolved date
-                            if ($btn.length) {
-                                if (dateStr) {
-                                    $btn.attr('title', dateStr);
-                                } else {
-                                    $btn.removeAttr('title');
-                                }
-                            }
-
-                            if (dateStr) {
-                                $('#mikor').val(dateStr);
-                                $('#mikordatum').val(dateStr);
-                            } else {
-                                $('#mikor').val('');
-                                $('#mikordatum').val('');
-                            }
-
-                            if (value === 'date' && dateStr) {
-                                $group.find('.mass-quick[data-value="date"]').text('Adott napon: ' + dateStr);
-                            } else if (value === 'date') {
-                                $group.find('.mass-quick[data-value="date"]').text('Adott napon');
-                            } else {
-                                $group.find('.mass-quick[data-value="date"]').text('Adott napon');
-                            }
-                        }
-
-                        $(function(){
-                            // Initialize the hidden datepicker (ensure regional & format)
-                            $('#mass_datepicker').datepicker({
-                                regional: 'hu',
-                                dateFormat: 'yy-mm-dd',
-                                onSelect: function(dateText) {
-                                    setMassSelection('date', dateText);
-                                    $('#mass_datepicker').hide();
-                                }
-                            });
-
-                            // Adjust quick button labels/visibility based on today's weekday
-                            (function(){
-                                var today = new Date();
-                                var day = today.getDay(); // 0 = Sunday, 6 = Saturday
-                                var $group = $('#mass_quick_group');
-                                if (day === 0) {
-                                    // Today is Sunday -> show "Ma, vasárnap" and hide explicit Sunday button
-                                    $group.find('.mass-quick[data-value="today"]').text('Ma, vasárnap');
-                                    $group.find('.mass-quick[data-value="sunday"]').hide();
-                                } else if (day === 6) {
-                                    // Today is Saturday -> "Holnap, vasárnap" on Tomorrow button and hide Sunday button
-                                    $group.find('.mass-quick[data-value="tomorrow"]').text('Holnap, vasárnap');
-                                    $group.find('.mass-quick[data-value="sunday"]').hide();
-                                } else {
-                                    // Normal weekdays: ensure defaults
-                                    $group.find('.mass-quick[data-value="today"]').text('Ma');
-                                    $group.find('.mass-quick[data-value="tomorrow"]').text('Holnap');
-                                    $group.find('.mass-quick[data-value="sunday"]').show();
-                                }
-
-                                // Set hover titles for the quick buttons so users see the resolved date on hover
-                                $group.find('.mass-quick[data-value="today"]').attr('title', computeDateForValue('today'));
-                                $group.find('.mass-quick[data-value="tomorrow"]').attr('title', computeDateForValue('tomorrow'));
-                                $group.find('.mass-quick[data-value="sunday"]').attr('title', computeDateForValue('sunday'));
-                            })();
-
-                            // If the server prefilled values, reflect them
-                            var initMikor = ($('#mikor').val() || '').toString();
-                            var initMikordatum = ($('#mikordatum').val() || '').toString();
-
-                            if (initMikordatum) {
-                                // explicit date present
-                                setMassSelection('date', initMikordatum);
-                            } else if (initMikor) {
-                                // maybe keyword or date
-                                var kw = initMikor.trim();
-                                if (kw === 'today' || kw === 'tomorrow' || kw === 'sunday') {
-                                    var computed = computeDateForValue(kw);
-                                    setMassSelection('date', computed);
-                                } else if (/^\d{4}-\d{2}-\d{2}$/.test(kw)) {
-                                    setMassSelection('date', kw);
-                                } else {
-                                    // unknown value: leave unselected
-                                }
-                            }
-
-                            // Click handler: make clicked button the only selected one
-                            $(document).on('click', '#mass_quick_group .mass-quick', function(e){
-                                e.preventDefault();
-                                var val = $(this).data('value');
-                                var $this = $(this);
-                                var already = $this.hasClass('btn-success');
-
-                                if (already) {
-                                    if (val === 'date') {
-                                        // if 'Adott napon' is already selected, reopen the datepicker to modify the date
-                                        $('#mass_datepicker').show();
-                                        $('#mass_datepicker').datepicker('show');
-                                        var existing = $('#mikordatum').val();
-                                        setMassSelection('date', existing || null);
-                                        return;
-                                    }
-                                    // toggle off for other buttons
-                                    clearMassSelection();
-                                    return;
-                                }
-
-                                if (val === 'date') {
-                                    // open the datepicker popup for first-time selection
-                                    $('#mass_datepicker').show();
-                                    $('#mass_datepicker').datepicker('show');
-                                    var existing = $('#mikordatum').val();
-                                    if (existing) setMassSelection('date', existing);
-                                    else setMassSelection('date', null);
-                                } else {
-                                    setMassSelection(val, null);
-                                }
-                            });
-                        });
-                    })(jQuery);
-                </script>
-
-                <script>
-                    (function($){
-                        // Time toggle behavior and mikorido handling
-                        function updateMikoridoFromControls() {
-                            var hh = $('#mikorido_hour').val();
-                            var mm = $('#mikorido_min').val();
-                            if (hh && mm) {
-                                $('#mikortol').val(hh + ':' + mm);
-                            } else {
-                                $('#mikortol').val('');
-                            }
-                        }
-
-                        $(function(){
-                            // toggle the time button: show/hide controls and set mikorido
-                            $(document).on('click', '#time_toggle', function(e){
-                                e.preventDefault();
-                                var $btn = $(this);
-                                var active = $btn.hasClass('btn-success');
-
-                                // If activating but no date selected yet, auto-select 'Ma'
-                                if (!active && ($('#mikordatum').val() || '') === '') {
-                                    // trigger the 'Ma' button click so mikordatum is set consistently
-                                    $('#mass_quick_group .mass-quick[data-value="today"]').trigger('click');
-                                }
-
-                                if (active) {
-                                    // deactivate
-                                    $btn.removeClass('btn-success').addClass('btn-light');
-                                    $('#time_controls').hide();
-                                    $('#mikortol').val('');
-                                } else {
-                                    // activate
-                                    $btn.removeClass('btn-light').addClass('btn-success');
-                                    $('#time_controls').show();
-                                    // ensure defaults
-                                    if (!$('#mikorido_hour').val()) $('#mikorido_hour').val('10');
-                                    if (!$('#mikorido_min').val()) $('#mikorido_min').val('00');
-                                    updateMikoridoFromControls();
-                                }
-                            });
-
-                            // update hidden mikorido when selects change
-                            $(document).on('change', '#mikorido_hour, #mikorido_min', function(){
-                                updateMikoridoFromControls();
-                            });
-                        });
-                    })(jQuery);
-                </script>
             </div>
 
             <div align=center class="form-group" style="margin-top:12px">
