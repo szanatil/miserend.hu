@@ -32,6 +32,8 @@
             display: block;
         }
     </style>
+    <link rel="stylesheet" href="/node_modules/clockpicker/dist/jquery-clockpicker.css">
+    <script src="/node_modules/clockpicker/dist/jquery-clockpicker.js"></script>
     <script src="/js/boundary-autocomplete.js"></script>
     
 {% endblock %}
@@ -107,6 +109,256 @@
 
 
             <div id="form_mass_details" style="">
+                {# Mise date/time picker section #}
+                <div class="form-group row">
+                    <label class="col-sm-4 control-label">Mise</label>
+                    <div class="col-sm-8">
+                        <div class="btn-group" role="group" aria-label="Mass date/time filters" id="mass_datetime_group" style="display: flex; flex-wrap: wrap; gap: 4px;">
+                            <button type="button" class="btn btn-success mass-date-btn" id="mass_start_date_btn" data-type="start_date">
+                                <span id="mass_start_date_display">YYYY.mm.dd</span>
+                            </button>
+                            <button type="button" class="btn btn-success mass-time-btn" id="mass_start_time_btn" data-type="start_time">
+                                <span id="mass_start_time_display">hh:ii</span>
+                            </button>
+                            <button type="button" class="btn btn-light" disabled style="cursor: default;">-</button>
+                            <button type="button" class="btn btn-success mass-date-btn" id="mass_end_date_btn" data-type="end_date">
+                                <span id="mass_end_date_display">YYYY.mm.dd</span>
+                            </button>
+                            <button type="button" class="btn btn-success mass-time-btn" id="mass_end_time_btn" data-type="end_time">
+                                <span id="mass_end_time_display">hh:ii</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                        <input type="hidden" name="mass_start_date" id="mass_start_date" value="">
+                        <input type="hidden" name="mass_start_time" id="mass_start_time" value="">
+                        <input type="hidden" name="mass_end_date" id="mass_end_date" value="">
+                        <input type="hidden" name="mass_end_time" id="mass_end_time" value="">
+                        
+                        {# Hidden clockpicker inputs #}
+                        <input type="text" id="clockpicker_start_time" class="clockpicker" style="display:none;">
+                        <input type="text" id="clockpicker_end_time" class="clockpicker" style="display:none;">
+
+                <script>
+                    (function($){
+                        // Initialize date/time values with current date/time
+                        function initializeMassDateTime() {
+                            var now = new Date();
+                            var startDate = formatDate(now);
+                            var startTime = formatTime(now);
+                            var endDate = formatDate(now);
+                            var endTime = formatTime(addMinutes(now, 10));
+
+                            $('#mass_start_date').val(startDate);
+                            $('#mass_start_time').val(startTime);
+                            $('#mass_end_date').val(endDate);
+                            $('#mass_end_time').val(endTime);
+
+                            updateDisplays();
+                        }
+
+                        function formatDate(date) {
+                            var year = date.getFullYear();
+                            var month = String(date.getMonth() + 1).padStart(2, '0');
+                            var day = String(date.getDate()).padStart(2, '0');
+                            return year + '-' + month + '-' + day;
+                        }
+
+                        function formatTime(date) {
+                            var hours = String(date.getHours()).padStart(2, '0');
+                            var minutes = String(date.getMinutes()).padStart(2, '0');
+                            return hours + ':' + minutes;
+                        }
+
+                        function formatDateDisplay(dateStr) {
+                            if (!dateStr) return 'YYYY.mm.dd';
+                            var parts = dateStr.split('-');
+                            if (parts.length === 3) {
+                                return parts[0] + '.' + parts[1] + '.' + parts[2];
+                            }
+                            return dateStr;
+                        }
+
+                        function formatTimeDisplay(timeStr) {
+                            return timeStr || 'hh:ii';
+                        }
+
+                        function addMinutes(date, minutes) {
+                            return new Date(date.getTime() + minutes * 60000);
+                        }
+
+                        function parseDateTime(dateStr, timeStr) {
+                            if (!dateStr || !timeStr) return null;
+                            var parts = dateStr.split('-');
+                            var timeParts = timeStr.split(':');
+                            if (parts.length === 3 && timeParts.length === 2) {
+                                return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), parseInt(timeParts[0]), parseInt(timeParts[1]));
+                            }
+                            return null;
+                        }
+
+                        function updateDisplays() {
+                            var startDate = $('#mass_start_date').val();
+                            var startTime = $('#mass_start_time').val();
+                            var endDate = $('#mass_end_date').val();
+                            var endTime = $('#mass_end_time').val();
+
+                            $('#mass_start_date_display').text(formatDateDisplay(startDate));
+                            $('#mass_start_time_display').text(formatTimeDisplay(startTime));
+                            $('#mass_end_date_display').text(formatDateDisplay(endDate));
+                            $('#mass_end_time_display').text(formatTimeDisplay(endTime));
+                        }
+
+                        function validateAndAdjustTimes() {
+                            var startDate = $('#mass_start_date').val();
+                            var startTime = $('#mass_start_time').val();
+                            var endDate = $('#mass_end_date').val();
+                            var endTime = $('#mass_end_time').val();
+
+                            var startDt = parseDateTime(startDate, startTime);
+                            var endDt = parseDateTime(endDate, endTime);
+
+                            if (!startDt || !endDt) return;
+
+                            // If start date is later than end date, adjust end date to match start date
+                            if (startDate > endDate) {
+                                $('#mass_end_date').val(startDate);
+                                endDate = startDate;
+                                endDt = parseDateTime(endDate, endTime);
+                            }
+
+                            // If start date-time is later than end date-time, adjust end time
+                            if (startDt > endDt) {
+                                var newEndTime = addMinutes(startDt, 10);
+                                if (newEndTime.getDate() !== startDt.getDate() || newEndTime.getHours() >= 23) {
+                                    // If it goes beyond today or too late, set to 23:59
+                                    $('#mass_end_time').val('23:59');
+                                } else {
+                                    $('#mass_end_time').val(formatTime(newEndTime));
+                                }
+                            }
+
+                            updateDisplays();
+                        }
+
+                        $(function(){
+                            // Initialize with current date/time
+                            initializeMassDateTime();
+
+                            // Date picker button handler
+                            $(document).on('click', '.mass-date-btn', function(e){
+                                e.preventDefault();
+                                var $btn = $(this);
+                                var type = $btn.data('type'); // 'start_date' or 'end_date'
+                                var currentVal = $('#mass_' + type).val();
+
+                                // Create a simple date picker dialog using jQuery UI datepicker
+                                var $dialog = $('<div><input type="text" id="temp_datepicker" class="datepicker-temp"></div>');
+                                $dialog.dialog({
+                                    title: type === 'start_date' ? 'Kezdő dátum' : 'Vég dátum',
+                                    modal: true,
+                                    buttons: [],
+                                    close: function() {
+                                        $(this).dialog('destroy');
+                                    }
+                                });
+
+                                $('#temp_datepicker').datepicker({
+                                    regional: 'hu',
+                                    dateFormat: "yy-mm-dd",
+                                    defaultDate: currentVal || new Date(),
+                                    onSelect: function(dateText) {
+                                        $('#mass_' + type).val(dateText);
+                                        validateAndAdjustTimes();
+                                        $dialog.dialog('close');
+                                    }
+                                }).datepicker('setDate', currentVal || new Date());
+
+                                $('#temp_datepicker').focus();
+                            });
+
+                            // Time picker button handler with clockpicker
+                            $(document).on('click', '.mass-time-btn', function(e){
+                                e.preventDefault();
+                                var $btn = $(this);
+                                var type = $btn.data('type'); // 'start_time' or 'end_time'
+                                var currentVal = $('#mass_' + type).val();
+                                
+                                // Create a completely new input element for this dialog
+                                var uniqueId = 'temp_clock_' + type + '_' + new Date().getTime();
+                                
+                                var $input = $('<input type="text" id="' + uniqueId + '" class="form-control" placeholder="HH:mm" style="font-size: 20px; padding: 12px; text-align: center; width: 120px; margin: 20px auto; display: block;">');
+                                if (currentVal) {
+                                    $input.val(currentVal);
+                                }
+                                
+                                var $wrapper = $('<div style="padding: 20px; text-align: center;"></div>').append($input);
+                                
+                                var originalVal = currentVal;
+                                
+                                $wrapper.dialog({
+                                    title: type === 'start_time' ? 'Kezdő idő' : 'Vég idő',
+                                    modal: true,
+                                    width: 380,
+                                    buttons: [],  // No buttons - clockpicker closes automatically
+                                    open: function() {
+                                        var $input = $('#' + uniqueId);
+                                        
+                                        // Make sure any previous clockpicker instance is removed
+                                        try {
+                                            if ($input.data('clockpicker')) {
+                                                $input.clockpicker('remove');
+                                            }
+                                        } catch(e) {}
+                                        
+                                        // Initialize clockpicker with autoclose enabled
+                                        $input.clockpicker({
+                                            placement: 'bottom',
+                                            align: 'left',
+                                            autoclose: true,
+                                            twelvehour: false
+                                        });
+                                        
+                                        // Listen for change event to save and close dialog
+                                        $input.off('change').on('change', function() {
+                                            var newVal = $(this).val();
+                                            if (newVal && newVal !== originalVal) {
+                                                $('#mass_' + type).val(newVal);
+                                                validateAndAdjustTimes();
+                                                // Close the dialog after a short delay
+                                                setTimeout(function() {
+                                                    $wrapper.dialog('close');
+                                                }, 300);
+                                            }
+                                        });
+                                        
+                                        // Show the picker
+                                        setTimeout(function() {
+                                            try {
+                                                $input.click();
+                                            } catch(e) {
+                                                console.log('Error clicking input:', e);
+                                            }
+                                        }, 100);
+                                    },
+                                    close: function() {
+                                        var $input = $('#' + uniqueId);
+                                        try {
+                                            if ($input.data('clockpicker')) {
+                                                $input.clockpicker('remove');
+                                            }
+                                        } catch(e) {
+                                            console.log('Error removing clockpicker:', e);
+                                        }
+                                        $wrapper.dialog('destroy');
+                                        $wrapper.remove();
+                                    }
+                                });
+                            });
+                        });
+                    })(jQuery);
+                </script>
+
                 <div class="form-group row">
                     <label class="col-sm-4 control-label" >nyelv</label>
                     <div class="col-sm-8">
