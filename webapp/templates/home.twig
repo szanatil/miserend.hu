@@ -33,18 +33,18 @@
         }
         
         /* Make buttons fit their content width */
-        #mass_start_date_btn,
-        #mass_end_date_btn,
-        #mass_start_time_btn,
-        #mass_end_time_btn {
+        #start_date_btn,
+        #end_date_btn,
+        #start_time_btn,
+        #end_time_btn {
             width: auto;
             flex: 0 0 auto;
             white-space: nowrap;
         }
         
         /* Keep date-time pairs visually connected */
-        #mass_start_time_btn,
-        #mass_end_time_btn {
+        #start_time_btn,
+        #end_time_btn {
             margin-left: -1px;
         }
     </style>
@@ -130,26 +130,26 @@
                     <label class="col-sm-4 control-label">Mise</label>
                     <div class="col-sm-8">
                         <div class="btn-group" role="group" aria-label="Mass date/time filters" id="mass_datetime_group" style="display: flex; flex-wrap: nowrap;">
-                            <button type="button" class="btn btn-success mass-date-btn" id="mass_start_date_btn" data-type="start_date">
-                                <span id="mass_start_date_display">YYYY.mm.dd</span>
+                            <button type="button" class="btn btn-success mass-date-btn" id="start_date_btn" data-type="start_date">
+                                <span id="start_date_display">YYYY.mm.dd</span>
                             </button>
-                            <button type="button" class="btn btn-success mass-time-btn" id="mass_start_time_btn" data-type="start_time">
-                                <span id="mass_start_time_display">hh:ii</span>
+                            <button type="button" class="btn btn-success mass-time-btn" id="start_time_btn" data-type="start_time">
+                                <span id="start_time_display">hh:ii</span>
                             </button>
                             <button type="button" class="btn btn-light" disabled style="cursor: default;">-</button>
-                            <button type="button" class="btn btn-success mass-date-btn" id="mass_end_date_btn" data-type="end_date">
-                                <span id="mass_end_date_display">YYYY.mm.dd</span>
+                            <button type="button" class="btn btn-success mass-date-btn" id="end_date_btn" data-type="end_date">
+                                <span id="end_date_display">YYYY.mm.dd</span>
                             </button>
-                            <button type="button" class="btn btn-success mass-time-btn" id="mass_end_time_btn" data-type="end_time">
-                                <span id="mass_end_time_display">hh:ii</span>
+                            <button type="button" class="btn btn-success mass-time-btn" id="end_time_btn" data-type="end_time">
+                                <span id="end_time_display">hh:ii</span>
                             </button>
                         </div>
                     </div>
                 </div>
-                        <input type="hidden" name="mass_start_date" id="mass_start_date" value="">
-                        <input type="hidden" name="mass_start_time" id="mass_start_time" value="">
-                        <input type="hidden" name="mass_end_date" id="mass_end_date" value="">
-                        <input type="hidden" name="mass_end_time" id="mass_end_time" value="">
+                        <input type="hidden" name="start_date" id="start_date" value="">
+                        <input type="hidden" name="start_time" id="start_time" value="">
+                        <input type="hidden" name="end_date" id="end_date" value="">
+                        <input type="hidden" name="end_time" id="end_time" value="">
                         
                         {# Hidden clockpicker inputs #}
                         <input type="text" id="clockpicker_start_time" class="clockpicker" style="display:none;">
@@ -157,18 +157,57 @@
 
                 <script>
                     (function($){
-                        // Initialize date/time values with current date/time
+                        // Get URL parameters
+                        function getUrlParameter(name) {
+                            var url = window.location.href;
+                            var regex = new RegExp('[?&]' + name + '=([^&#]*)');
+                            var results = regex.exec(url);
+                            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+                        }
+
+                        // Initialize date/time values from URL parameters or defaults
                         function initializeMassDateTime() {
                             var now = new Date();
-                            var startDate = formatDate(now);
-                            var startTime = formatTime(now);
-                            var endDate = formatDate(now);
-                            var endTime = formatTime(addMinutes(now, 10));
+                            var startDate, startTime, endDate, endTime;
 
-                            $('#mass_start_date').val(startDate);
-                            $('#mass_start_time').val(startTime);
-                            $('#mass_end_date').val(endDate);
-                            $('#mass_end_time').val(endTime);
+                            // Try to get values from URL parameters
+                            var urlStartDate = getUrlParameter('start_date');
+                            var urlStartTime = getUrlParameter('start_time');
+                            var urlEndDate = getUrlParameter('end_date');
+                            var urlEndTime = getUrlParameter('end_time');
+
+                            if (urlStartDate) {
+                                startDate = urlStartDate;
+                            } else {
+                                startDate = formatDate(now);
+                            }
+
+                            if (urlStartTime) {
+                                startTime = urlStartTime;
+                            } else {
+                                // Default: now - 1 hour
+                                startTime = formatTime(addMinutes(now, -60));
+                            }
+
+                            if (urlEndDate) {
+                                endDate = urlEndDate;
+                            } else {
+                                // Default: today + 7 days
+                                var endDateObj = addMinutes(now, 7 * 24 * 60);
+                                endDate = formatDate(endDateObj);
+                            }
+
+                            if (urlEndTime) {
+                                endTime = urlEndTime;
+                            } else {
+                                // Default: current time
+                                endTime = formatTime(now);
+                            }
+
+                            $('#start_date').val(startDate);
+                            $('#start_time').val(startTime);
+                            $('#end_date').val(endDate);
+                            $('#end_time').val(endTime);
 
                             updateDisplays();
                         }
@@ -225,9 +264,9 @@
                             var currentYear = today.getFullYear();
                             var selectedYear = parseInt(parts[0]);
                             if (selectedYear !== currentYear) {
-                                return parts[0] + '.' + parts[1] + '.' + parts[2];
+                                return parts[0] + '.' + parts[1] + '.' + parts[2] + '.';
                             } else {
-                                return parts[1] + '.' + parts[2];
+                                return parts[1] + '.' + parts[2] + '.';
                             }
                         }
 
@@ -250,48 +289,48 @@
                         }
 
                         function updateDisplays() {
-                            var startDate = $('#mass_start_date').val();
-                            var startTime = $('#mass_start_time').val();
-                            var endDate = $('#mass_end_date').val();
-                            var endTime = $('#mass_end_time').val();
+                            var startDate = $('#start_date').val();
+                            var startTime = $('#start_time').val();
+                            var endDate = $('#end_date').val();
+                            var endTime = $('#end_time').val();
 
-                            $('#mass_start_date_display').text(formatDateDisplay(startDate));
-                            $('#mass_start_time_display').text(formatTimeDisplay(startTime));
-                            $('#mass_end_date_display').text(formatDateDisplay(endDate));
-                            $('#mass_end_time_display').text(formatTimeDisplay(endTime));
+                            $('#start_date_display').text(formatDateDisplay(startDate));
+                            $('#start_time_display').text(formatTimeDisplay(startTime));
+                            $('#end_date_display').text(formatDateDisplay(endDate));
+                            $('#end_time_display').text(formatTimeDisplay(endTime));
                         }
 
                         function validateAndAdjustTimes() {
-                            var startDate = $('#mass_start_date').val();
-                            var startTime = $('#mass_start_time').val();
-                            var endDate = $('#mass_end_date').val();
-                            var endTime = $('#mass_end_time').val();
+                             var startDate = $('#start_date').val();
+                             var startTime = $('#start_time').val();
+                             var endDate = $('#end_date').val();
+                             var endTime = $('#end_time').val();
 
-                            var startDt = parseDateTime(startDate, startTime);
-                            var endDt = parseDateTime(endDate, endTime);
+                             var startDt = parseDateTime(startDate, startTime);
+                             var endDt = parseDateTime(endDate, endTime);
 
-                            if (!startDt || !endDt) return;
+                             if (!startDt || !endDt) return;
 
-                            // If start date is later than end date, adjust end date to match start date
-                            if (startDate > endDate) {
-                                $('#mass_end_date').val(startDate);
-                                endDate = startDate;
-                                endDt = parseDateTime(endDate, endTime);
-                            }
+                             // If start date is later than end date, adjust end date to match start date
+                             if (startDate > endDate) {
+                                 $('#end_date').val(startDate);
+                                 endDate = startDate;
+                                 endDt = parseDateTime(endDate, endTime);
+                             }
 
-                            // If start date-time is later than end date-time, adjust end time
-                            if (startDt > endDt) {
-                                var newEndTime = addMinutes(startDt, 10);
-                                if (newEndTime.getDate() !== startDt.getDate() || newEndTime.getHours() >= 23) {
-                                    // If it goes beyond today or too late, set to 23:59
-                                    $('#mass_end_time').val('23:59');
-                                } else {
-                                    $('#mass_end_time').val(formatTime(newEndTime));
-                                }
-                            }
+                             // If start date-time is later than end date-time, adjust end time
+                             if (startDt > endDt) {
+                                 var newEndTime = addMinutes(startDt, 10);
+                                 if (newEndTime.getDate() !== startDt.getDate() || newEndTime.getHours() >= 23) {
+                                     // If it goes beyond today or too late, set to 23:59
+                                     $('#end_time').val('23:59');
+                                 } else {
+                                     $('#end_time').val(formatTime(newEndTime));
+                                 }
+                             }
 
-                            updateDisplays();
-                        }
+                             updateDisplays();
+                         }
 
                         $(function(){
                             // Initialize with current date/time
@@ -320,7 +359,7 @@
                                     dateFormat: "yy-mm-dd",
                                     defaultDate: currentVal || new Date(),
                                     onSelect: function(dateText) {
-                                        $('#mass_' + type).val(dateText);
+                                        $('#' + type).val(dateText);
                                         validateAndAdjustTimes();
                                         $dialog.dialog('close');
                                     }
@@ -334,7 +373,7 @@
                                 e.preventDefault();
                                 var $btn = $(this);
                                 var type = $btn.data('type'); // 'start_time' or 'end_time'
-                                var currentVal = $('#mass_' + type).val();
+                                var currentVal = $('#' + type).val();
                                 
                                 // Create a completely new input element for this dialog
                                 var uniqueId = 'temp_clock_' + type + '_' + new Date().getTime();
@@ -375,7 +414,7 @@
                                         $input.off('change').on('change', function() {
                                             var newVal = $(this).val();
                                             if (newVal && newVal !== originalVal) {
-                                                $('#mass_' + type).val(newVal);
+                                                $('#' + type).val(newVal);
                                                 validateAndAdjustTimes();
                                                 // Close the dialog after a short delay
                                                 setTimeout(function() {
