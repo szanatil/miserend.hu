@@ -221,8 +221,14 @@
                                 return dayName;
                             }
                             
-                            // Otherwise show the date in YYYY.mm.dd format
-                            return parts[0] + '.' + parts[1] + '.' + parts[2];
+                            // Otherwise show the date - include year only if it differs from current year
+                            var currentYear = today.getFullYear();
+                            var selectedYear = parseInt(parts[0]);
+                            if (selectedYear !== currentYear) {
+                                return parts[0] + '.' + parts[1] + '.' + parts[2];
+                            } else {
+                                return parts[1] + '.' + parts[2];
+                            }
                         }
 
                         function formatTimeDisplay(timeStr) {
