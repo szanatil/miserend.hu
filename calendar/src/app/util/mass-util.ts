@@ -13,6 +13,8 @@ import {ChristmasDay} from "../enum/christmas-day";
 import {EasterDay} from "../enum/easter-day";
 import {Day} from "../enum/day";
 import {SpecialType} from "../model/period";
+import {MassTitleCategory} from '../enum/mass-title-category';
+import {MassTitleCategoryConfig} from './mass-title-category-config';
 
 export class MassUtil {
 
@@ -63,7 +65,7 @@ export class MassUtil {
     };
   }
 
-  public static createCalendarEvent(mass: Mass, periods: GeneratedPeriod[], recentExDates?:string[]): CalendarEvent[] {
+  public static createCalendarEvent(mass: Mass, periods: GeneratedPeriod[], recentExDates?:string[], translate?: TranslateService): CalendarEvent[] {
     const calEvents: CalendarEvent[] = [];
     //ha rendes ismétlődő esemény
     if (mass.rrule && mass.periodId) {
@@ -79,7 +81,8 @@ export class MassUtil {
           ...(mass.experiod && {exrule: MassUtil.generateExRule(mass.rrule!, mass.experiod, periods)}),
           extendedProps: {
             massId: mass.id,
-            recentExDates: recentExDates?.map(date=>date.slice(0, 10))
+            recentExDates: recentExDates?.map(date=>date.slice(0, 10)),
+            massTitleCategory: MassUtil.getCategoryByTitle(mass.title, translate)
           },
           color:period.color
         };
@@ -90,9 +93,9 @@ export class MassUtil {
           calEvents.push(calEvent);
       });
     
-    // Ha van ismétlődés, de nincs hozzárendelve periódus. 
+    // Ha van ismétlődés, de nincs hozzárendelve periódus.
     // Ez akkor fordulhat elő, ha importálunk külső naptárból. Mert a felületenilyet nem lehet beállítani
-    } else if (mass.rrule ) {      
+    } else if (mass.rrule ) {
       
       const calEvent: CalendarEvent = {
         //id: mass.id!.toString(),
@@ -103,7 +106,8 @@ export class MassUtil {
         ...(mass.experiod && {exrule: MassUtil.generateExRule(mass.rrule!, mass.experiod, periods)}),
         extendedProps: {
           massId: mass.id,
-          recentExDates: recentExDates?.map(date=>date.slice(0, 10))
+          recentExDates: recentExDates?.map(date=>date.slice(0, 10)),
+          massTitleCategory: MassUtil.getCategoryByTitle(mass.title, translate)
         }
         
       };
@@ -113,28 +117,29 @@ export class MassUtil {
       
     } else {
       const calEvent: CalendarEvent = {
-        title: mass.title,
-        rrule: {
-          dtstart: mass.startDate,
-          freq: 'daily',
-          count: 1,
-        },
-        exdate: [],
-        exrule: [],
-        extendedProps: {
-          massId: mass.id,
-          recentExDates: recentExDates?.map(date=>date.slice(0, 10))
-        },
-      };
+         title: mass.title,
+         rrule: {
+           dtstart: mass.startDate,
+           freq: 'daily',
+           count: 1,
+         },
+         exdate: [],
+         exrule: [],
+         extendedProps: {
+           massId: mass.id,
+           recentExDates: recentExDates?.map(date=>date.slice(0, 10)),
+           massTitleCategory: MassUtil.getCategoryByTitle(mass.title, translate)
+         },
+       };
       calEvents.push(calEvent);
     }
     return calEvents;
   }
 
-  public static createCalendarEvents(masses: Mass[], periods: GeneratedPeriod[], changes: number[], deletedMasses: number[], deletedDates:Map<number, string[]>): CalendarEvent[] {
+  public static createCalendarEvents(masses: Mass[], periods: GeneratedPeriod[], changes: number[], deletedMasses: number[], deletedDates:Map<number, string[]>, translate?: TranslateService): CalendarEvent[] {
     const calEvents: CalendarEvent[] = [];
     masses.forEach(mass   => {
-      const calendarEvents = this.createCalendarEvent(mass, periods, deletedDates.get(mass.id) );
+      const calendarEvents = this.createCalendarEvent(mass, periods, deletedDates.get(mass.id), translate );
       if(mass.id < 0){
         calendarEvents.forEach(event =>{
           event.color = "#32CD32FF"
@@ -168,7 +173,7 @@ export class MassUtil {
     return events;
   }
 
-  public static createEventByType(event: DialogEvent, massId: number, specialPeriodType?: SpecialType | null): CalendarEvent {
+  public static createEventByType(event: DialogEvent, massId: number, specialPeriodType?: SpecialType | null, translate?: TranslateService): CalendarEvent {
     const dtstart: string = DateTimeUtil.getIsoString(event.start, event.period?.startDate);
     const periodEnd = event.period?.endDate;
 
@@ -262,7 +267,8 @@ export class MassUtil {
       rrule: rrule,
       ...(ScriptUtil.isNotNull(event.exdate) && {exdate: event.exdate}),
       extendedProps: {
-        massId: massId
+        massId: massId,
+        massTitleCategory: MassUtil.getCategoryByTitle(event.title, translate)
       },
       color:event.period?.color
     };
@@ -365,13 +371,18 @@ export class MassUtil {
         "MASS_TITLE.DIVINE_LITURGY",
         "MASS_TITLE.LITURGY_OF_THE_PRESANCTIFIED_GIFTS",
         "MASS_TITLE.MATINS",
-        "MASS_TITLE.VESPRES"
+        "MASS_TITLE.VESPRES",
+        "MASS_TITLE.CONFESSION"
       ];
     } else {
       titles = [
         "MASS_TITLE.HOLY_MASS",
         "MASS_TITLE.LITURGY_OF_THE_WORD",
         "MASS_TITLE.ADORATION",
+        "MASS_TITLE.CONFESSION",
+        "MASS_TITLE.BREVIARY",
+        "MASS_TITLE.ROSARY",
+        "MASS_TITLE.LITANY",
         "MASS_TITLE.MASS_OF_THE_LORD_S_SUPPER",
         "MASS_TITLE.GOOD_FRIDAY_LITURGY",
         "MASS_TITLE.EASTER_VIGIL"
@@ -379,6 +390,34 @@ export class MassUtil {
     }
 
     return titles;
+  }
+
+  /**
+   * Kategória alapján szűrt title-k listája
+   */
+  public static getTitlesByCategory(category: MassTitleCategory): string[] {
+    return MassTitleCategoryConfig.CATEGORY_TITLES[category];
+  }
+
+  /**
+   * Az összes lehetséges kategória
+   */
+  public static getAllCategories(): MassTitleCategory[] {
+    return MassTitleCategoryConfig.getAllCategories();
+  }
+
+  /**
+   * Kategória lekérése title alapján
+   */
+  public static getCategoryByTitle(title: string, translate?: TranslateService): MassTitleCategory {
+    return MassTitleCategoryConfig.getCategoryByTitle(title, translate);
+  }
+
+  /**
+   * Szín lekérése kategória alapján
+   */
+  public static getColorByCategory(category: MassTitleCategory): string {
+    return MassTitleCategoryConfig.getColorByCategory(category);
   }
 
   private static getDuration(event: DialogEvent) {

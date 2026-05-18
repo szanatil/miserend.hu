@@ -25,6 +25,7 @@ import {Mass} from '../../model/mass';
 import {CalendarEvent} from '../../model/calendar/calendar-event';
 import {Church} from '../../model/church';
 import {SensorEvent} from '../../model/sensor-event';
+import {LiturgicalDay} from '../../model/liturgical-day';
 import {TranslatePipe, TranslateService} from '@ngx-translate/core';
 import {MatButton} from '@angular/material/button';
 import {DialogEvent} from '../../model/dialog-event';
@@ -55,6 +56,8 @@ import {CopyPeriodDialogComponent, CopyPeriodDialogData} from '../copy-period-di
 import {DeletePeriodDialogComponent, DeletePeriodDialogData} from '../delete-period-dialog/delete-period-dialog.component';
 import {DeleteWarningDialogComponent} from '../delete-warning-dialog/delete-warning-dialog.component';
 import { co } from '@fullcalendar/core/internal-common';
+import {MassTitleCategory} from '../../enum/mass-title-category';
+import {MassTitleCategoryConfig} from '../../util/mass-title-category-config';
 
 export interface SimpleDialogData {
   dateTime: Date;
@@ -97,6 +100,9 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
   @Input() changedMasses: number[] = [];
   @Input() sensorEvents: SensorEvent[] = [];
 
+  // Szűrő komponens megjelenítése - kikapcsolt javaslatok oldalon
+  showFilterComponent: boolean = true;
+
 
   datesSet = output<string>();
   private edit = false;
@@ -128,6 +134,10 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
   public calendarsTitle: string = '';
 
+  // Kategóriák az új badge szűrőhöz
+  categories: MassTitleCategory[] = [];
+  categoryColors: Record<MassTitleCategory, string> = {} as any;
+
   // Show a simple mass list under the calendar in edit/admin contexts (editschedule)
   public showMassListInEdit: boolean = false;
   public massListGrouped: Array<{
@@ -144,6 +154,12 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     expandOldMasses?: boolean
   }> = [];
 
+  // Szűrés a kategóriák alapján
+  activeFilterCategories: Set<MassTitleCategory> = new Set();
+
+  // Liturgical days data
+  private liturgicalDays: {[date: string]: LiturgicalDay} = {};
+
   constructor(
     private readonly eventService: EventService,
     private readonly searchService: SearchService,
@@ -157,9 +173,25 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
   ngOnInit() {
     this.initializeCalendar();
+    
+    // Alapértelmezésben mindegyik kategória aktív
+    this.activeFilterCategories = new Set(MassUtil.getAllCategories());
+    
+    // Kategóriák és szín inicializálása a badge szűrőhöz
+    this.categories = MassUtil.getAllCategories();
+    this.categories.forEach((category: MassTitleCategory) => {
+      this.categoryColors[category] = MassTitleCategoryConfig.getColorByCategory(category);
+    });
+    
     // determine whether we should render the mass list under the calendar
     const pathname: string = (typeof window !== 'undefined' && window.location && window.location.pathname) ? String(window.location.pathname) : '';
     this.showMassListInEdit = !!this.editable || pathname.indexOf('editschedule') !== -1;
+
+    // Detektáljuk, hogy a javaslatok oldalon vagyunk-e
+    // Ha 'javaslatok' vagy 'suggestionpackages' van az URL-ben, akkor elrejtjük az old filter-t
+    const isSuggestionsPage = pathname.indexOf('javaslatok') !== -1 || pathname.indexOf('suggestionpackages') !== -1;
+    this.showFilterComponent = !isSuggestionsPage;
+    console.log('[DEBUG] Pathname:', pathname, 'isSuggestionsPage:', isSuggestionsPage, 'showFilterComponent:', this.showFilterComponent);
 
     // default edit mode: enable immediately for the dedicated editschedule route,
     // otherwise keep false so users see the confirmation dialog on first edit attempt
@@ -201,7 +233,8 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
             periods,
             this.changedMasses,
             this.deletedMasses,
-            this.deletedDates
+            this.deletedDates,
+            this.translateService
           );
           
           // Add sensor events to the calendar
@@ -245,14 +278,16 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       periods,
       [], // changedMasses is empty since we're generating from combined set
       [], // deletedMasses is empty since we've already removed them
-      this.deletedDates
+      this.deletedDates,
+      this.translateService
     );
 
     // Add sensor events to the calendar
     const sensorCalendarEvents = this.convertSensorEventsToCalendarEvents();
     events.push(...sensorCalendarEvents);
 
-    return events;
+    // Szűrés a kategóriák alapján
+    return this.filterCalendarEventsByCategory(events);
   }
 
   /**
@@ -313,15 +348,119 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       eventContent: (info: any) => this.renderEventContent(info),
       noEventsContent: () => this.renderNoEventsContent(),
       ...((this.editable || this.suggestible) && {dateClick: (arg: any) => this.handleDateClick(arg)} ),
-      eventDidMount:  function (info) {
+      eventDidMount: (info: any) => {
         const eventDate = info.event.startStr.slice(0, 10);
         const recentExDates:string[] = info.event.extendedProps['recentExDates'];
+        const massTitleCategory = info.event.extendedProps['massTitleCategory'];
+        
         if (recentExDates?.includes(eventDate)) {
             info.el.style.backgroundColor = '#ff4d4d';
             info.el.style.borderColor = '#ff4d4d';
+        } else if (massTitleCategory) {
+          // Kategória szín alkalmazása csak a title szövegre
+          const color = MassUtil.getColorByCategory(massTitleCategory);
+          
+          const titleElement = info.el.querySelector('.fc-event-title');
+          if (titleElement) {
+            (titleElement as HTMLElement).style.color = color;
+          }
         }
+      },
+      dayHeaderContent: (arg: any) => {
+        const viewType = this.calendarComponent?.getApi?.().view?.type || 'dayGridMonth';
+        
+        if (viewType.startsWith('list')) {
+          // LIST VIEW: show day name, liturgical day, and formatted date
+          return this.renderDayHeaderListView(arg);
+        } else if (viewType === 'timeGridWeek') {
+          // WEEK VIEW: show liturgical day and formatted date (without day name)
+          return this.renderDayHeaderWeekView(arg);
+        } else if (viewType === 'dayGridMonth') {
+          // MONTH VIEW: show only day abbreviation (hétfő, kedd, szerda, etc.)
+          return this.renderDayHeaderMonthView(arg);
+        }
+        
+        // Fallback to month view rendering for unknown views
+        return this.renderDayHeaderMonthView(arg);
       }
     };
+  }
+
+  /**
+   * LIST VIEW: render day name, liturgical day, and full formatted date
+   * Example: "hétfő  Hétfői napok  2026. május 18."
+   */
+  private renderDayHeaderListView(arg: any): { html: string } {
+    const date = arg.date;
+
+    // Get day name (vasárnap, hétfő, etc.)
+    const dayOfWeekFormatter = new Intl.DateTimeFormat('hu-HU', { weekday: 'long' });
+    const dayName = dayOfWeekFormatter.format(date);
+    
+    // Format date as "YYYY. hónap DD."
+    const dateFormatter = new Intl.DateTimeFormat('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' });
+    const formattedDate = dateFormatter.format(date);
+    
+    // Get liturgical day for this date
+    const dateStr = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    const liturgicalDay = this.liturgicalDays[dateStr];
+    const liturgicalDayText = liturgicalDay?.name || '';
+    const shouldShowLiturgicalDay = liturgicalDay?.level !== undefined && liturgicalDay.level < 10;
+    const html = `
+      <a class="fc-list-day-text" aria-label="${formattedDate}">${dayName}</a>
+      ${shouldShowLiturgicalDay ? `<a class="fc-list-day-center-text" >${liturgicalDayText}</a>` : ''}
+      <a aria-hidden="true" class="fc-list-day-side-text" aria-label="${formattedDate}">${formattedDate}</a>
+    `;
+    
+    return { html };
+  }
+
+  /**
+   * WEEK VIEW: render liturgical day and formatted date (no day name)
+   * Example: "Hétfői napok  2026. május 18."
+   */
+  private renderDayHeaderWeekView(arg: any): { html: string } {
+    const date = arg.date;
+    
+    // Get day name (vasárnap, hétfő, etc.)
+    const dayOfWeekFormatter = new Intl.DateTimeFormat('hu-HU', { weekday: 'long' });
+    const dayName = dayOfWeekFormatter.format(date);
+
+    // Format date as "YYYY. hónap DD."
+    const dateFormatter = new Intl.DateTimeFormat('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' });
+    const formattedDate = dateFormatter.format(date);
+    
+    // Get liturgical day for this date
+    const dateStr = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    const liturgicalDay = this.liturgicalDays[dateStr];
+    const shouldShowLiturgicalDay = liturgicalDay?.level !== undefined && liturgicalDay.level < 7;
+    const liturgicalDayText = shouldShowLiturgicalDay ? (liturgicalDay?.name || '') : '';
+    
+    const html = `
+      <a aria-hidden="true" class="fc-list-day-center-text" aria-label="${formattedDate}">${dayName}</a><br/>
+      ${shouldShowLiturgicalDay ? `<a class="fc-list-day-center-text" >${liturgicalDayText}</a>` : ''}
+      
+    `;
+    
+    return { html };
+  }
+
+  /**
+   * MONTH VIEW: render only day abbreviation (hétfő, kedd, szerda, etc.)
+   * Example: "H" for hétfő, "K" for kedd, "Sze" for szerda
+   */
+  private renderDayHeaderMonthView(arg: any): { html: string } {
+    const date = arg.date;
+
+    // Get day name (vasárnap, hétfő, etc.)
+    const dayOfWeekFormatter = new Intl.DateTimeFormat('hu-HU', { weekday: 'long' });
+    const dayName = dayOfWeekFormatter.format(date);
+    
+    const html = `
+      <a class="fc-col-header-cell">${dayName}</a>
+    `;
+    
+    return { html };
   }
 
   private handleEventClick(arg: any) {
@@ -591,7 +730,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
           const parentMassId: number | undefined = this.selectedMassId;
           const newMassId: number = MassUtil.generateTmpMassId();
           const newSingleMass: Mass = MassUtil.createMass(
-            MassUtil.createEventByType(this.dialogEvent, newMassId),
+            MassUtil.createEventByType(this.dialogEvent, newMassId, undefined, this.translateService),
             this.dialogEvent,
             this.currentChurch!,
             newMassId
@@ -627,7 +766,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
           const periodId = this.dialogEvent.period?.periodId;
           const periodWeight = this.dialogEvent.period?.weight;
           const specialPeriodType = this.periodService.getSpecialPeriodType(periodId);
-          const calendarEvent: CalendarEvent = MassUtil.createEventByType(this.dialogEvent, newMassId, specialPeriodType);
+          const calendarEvent: CalendarEvent = MassUtil.createEventByType(this.dialogEvent, newMassId, specialPeriodType, this.translateService);
           const mass: Mass = MassUtil.createMass(calendarEvent, this.dialogEvent, this.currentChurch!, newMassId);
 
           const recentlyExclusionSourcePeriodIds: number[] = this.excludeNewMassFromLowerPeriodMasses(periodId, periodWeight);
@@ -842,6 +981,42 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     const title: string = arg.view.title;
     this.datesSet.emit(title);
     this.setCalendarsTitle(title);
+    
+    // Fetch liturgical days for the current view date range
+    const start = arg.view.currentStart;
+    const end = arg.view.currentEnd;
+    this.fetchLiturgicalDays(start, end);
+  }
+
+  private fetchLiturgicalDays(start: Date, end: Date): void {
+    // Convert dates to ISO 8601 format (without milliseconds)
+    const formatDate = (date: Date): string => {
+      const iso = date.toISOString();
+      return iso.replace(/\.\d{3}Z$/, ''); // Remove .000Z suffix
+    };
+    
+    const fromDate = formatDate(start);
+    const untilDate = formatDate(end);
+    
+    this.eventService.getLiturgicalDays(fromDate, untilDate).subscribe(
+      (days) => {
+        this.liturgicalDays = days || {};
+        
+        // Force re-render of the calendar view to show day headers with liturgical day data
+        // This is needed because dayHeaderContent callback is called before API response arrives
+        if (this.calendarComponent && this.calendarComponent.getApi) {
+          try {
+            this.calendarComponent.getApi().render();
+          } catch (e) {
+            console.log('[Liturgical Days] Could not trigger calendar render:', e);
+          }
+        }
+      },
+      (error) => {
+        console.error('[Liturgical Days] Error fetching liturgical days:', error);
+        this.liturgicalDays = {};
+      }
+    );
   }
 
   /**
@@ -1808,5 +1983,55 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     }
 
     return { html: `<div class="fc-no-events">Nincs megjeleníthető esemény ebben az időszakban.</div>` };
+  }
+
+  /**
+   * Szűrési logika: meghatározza, hogy egy esemény megjelenjen-e az aktív kategóriák alapján
+   */
+  private isEventVisible(calEvent: CalendarEvent): boolean {
+    // Ha nincs kategória info, akkor megjelenítjük (legacy events)
+    if (!calEvent.extendedProps?.massTitleCategory) {
+      return true;
+    }
+    
+    // Csak akkor jelenítsük meg, ha a kategória aktív
+    return this.activeFilterCategories.has(calEvent.extendedProps.massTitleCategory);
+  }
+
+  /**
+   * Szűri az eseményeket a kategória szűrés alapján
+   */
+  private filterCalendarEventsByCategory(events: CalendarEvent[]): CalendarEvent[] {
+    return events.filter(event => this.isEventVisible(event));
+  }
+
+  /**
+   * Szűrési kategória módosítás kezelése
+   */
+  public onCategoriesChanged(newActiveCategories: Set<MassTitleCategory>): void {
+    this.activeFilterCategories = newActiveCategories;
+    // Naptár frissítése az új szűrés alapján
+    this.refreshCalendarAndMassList();
+  }
+
+  /**
+   * Badge szűrő metódusok
+   */
+  toggleCategory(category: MassTitleCategory): void {
+    if (this.activeFilterCategories.has(category)) {
+      this.activeFilterCategories.delete(category);
+    } else {
+      this.activeFilterCategories.add(category);
+    }
+    // Naptár frissítése az új szűrés alapján
+    this.refreshCalendarAndMassList();
+  }
+
+  isChecked(category: MassTitleCategory): boolean {
+    return this.activeFilterCategories.has(category);
+  }
+
+  getCategoryLabel(category: MassTitleCategory): string {
+    return `MASS_TITLE_CATEGORY.${category}`;
   }
 }

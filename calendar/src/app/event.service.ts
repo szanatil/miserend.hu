@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
-import {HttpClient} from '@angular/common/http';
+import {HttpClient, HttpParams} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {Mass} from './model/mass';
 import {ChangeRequest} from './model/http/change-request';
 import {SuggestionPackage, SuggestionState} from './model/suggestion-package';
 import {Church} from './model/church';
+import {LiturgicalDay} from './model/liturgical-day';
 import {environment} from '../environments/environment';
 import {catchError} from 'rxjs/operators';
 import {throwError} from 'rxjs';
@@ -96,6 +97,25 @@ export class EventService {
       catchError(error => {
         console.error('[EventService] Hiba a javaslat elutasításakor:', error);
         this.snackBarService.error('Nem sikerült a javaslatot elutasítani.');
+        return throwError(() => error);
+      })
+    );
+  }
+
+  getLiturgicalDays(from: string, until: string): Observable<{[date: string]: LiturgicalDay}> {
+    const params = new HttpParams()
+      .set('from', from)
+      .set('until', until);
+    
+    const ajaxUrl = `${environment.apiUrl}liturgicaldays`;
+    
+    return this.http.get<{[date: string]: LiturgicalDay}>(
+      ajaxUrl,
+      { params }
+    ).pipe(
+      catchError(error => {
+        console.error('[EventService] Hiba a liturgikus napok betöltésekor:', error);
+        // Don't show error to user for liturgical days - it's a nice-to-have feature
         return throwError(() => error);
       })
     );
