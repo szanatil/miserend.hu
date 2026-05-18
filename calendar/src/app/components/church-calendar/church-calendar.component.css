@@ -37,3 +37,22 @@
 ::ng-deep .fc-dayGridMonth-view .fc-list-event-dot {
   margin-right: 0.2em;
 }
+
+/* Szűrő komponens elhelyezése - jobbra lent */
+.mass-filter-wrapper {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  max-width: 100%;
+}
+
+/* Mobil nézet optimalizálása */
+@media (max-width: 768px) {
+  .mass-filter-wrapper {
+    bottom: 10px;
+    right: 10px;
+    position: absolute;
+  }
+}
+

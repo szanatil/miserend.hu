@@ -106,6 +106,19 @@
     "TRADITIONAL_EASTER_VIGIL": "Húsvét vigíliája (régi rítusú)"
   },
 
+  "MASS_TITLE_CATEGORY": {
+    "MASS": "Mise(félék)",
+    "ADORATION": "Szentségimádás",
+    "CONFESSION": "Gyóntatás",
+    "OTHER": "Egyéb"
+  },
+
+  "MASS_FILTER": {
+    "TITLE": "Kategória szűrés",
+    "SELECT_ALL": "Összes kijelölése",
+    "DESELECT_ALL": "Kijelölések törlése"
+  },
+
   "MASS_TYPES": "Jellemzők",
   "FAMILY": "Családos/mocorgós",
   "STUDENT": "Diák",

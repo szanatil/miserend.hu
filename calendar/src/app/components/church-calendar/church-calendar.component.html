@@ -28,6 +28,14 @@
   [events]="eventsPromise | async"
 ></full-calendar>
 
+<!-- Kategória szűrés komponens -->
+<div class="mass-filter-wrapper">
+  <app-mass-title-filter
+    [activeCategories]="activeFilterCategories"
+    (categoriesChanged)="onCategoriesChanged($event)"
+  ></app-mass-title-filter>
+</div>
+
 <!-- Template used to render FullCalendar list items via Angular bindings.
      Context variables provided from component: timeText, title, lang, types, comment -->
 <ng-template #eventListTemplate let-timeText="timeText" let-title="title" let-lang="lang" let-types="types" let-comment="comment">

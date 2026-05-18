@@ -13,6 +13,8 @@ import {ChristmasDay} from "../enum/christmas-day";
 import {EasterDay} from "../enum/easter-day";
 import {Day} from "../enum/day";
 import {SpecialType} from "../model/period";
+import {MassTitleCategory} from '../enum/mass-title-category';
+import {MassTitleCategoryConfig} from './mass-title-category-config';
 
 export class MassUtil {
 
@@ -79,7 +81,8 @@ export class MassUtil {
           ...(mass.experiod && {exrule: MassUtil.generateExRule(mass.rrule!, mass.experiod, periods)}),
           extendedProps: {
             massId: mass.id,
-            recentExDates: recentExDates?.map(date=>date.slice(0, 10))
+            recentExDates: recentExDates?.map(date=>date.slice(0, 10)),
+            massTitleCategory: MassUtil.getCategoryByTitle(mass.title)
           },
           color:period.color
         };
@@ -103,7 +106,8 @@ export class MassUtil {
         ...(mass.experiod && {exrule: MassUtil.generateExRule(mass.rrule!, mass.experiod, periods)}),
         extendedProps: {
           massId: mass.id,
-          recentExDates: recentExDates?.map(date=>date.slice(0, 10))
+          recentExDates: recentExDates?.map(date=>date.slice(0, 10)),
+          massTitleCategory: MassUtil.getCategoryByTitle(mass.title)
         }
         
       };
@@ -113,19 +117,20 @@ export class MassUtil {
       
     } else {
       const calEvent: CalendarEvent = {
-        title: mass.title,
-        rrule: {
-          dtstart: mass.startDate,
-          freq: 'daily',
-          count: 1,
-        },
-        exdate: [],
-        exrule: [],
-        extendedProps: {
-          massId: mass.id,
-          recentExDates: recentExDates?.map(date=>date.slice(0, 10))
-        },
-      };
+         title: mass.title,
+         rrule: {
+           dtstart: mass.startDate,
+           freq: 'daily',
+           count: 1,
+         },
+         exdate: [],
+         exrule: [],
+         extendedProps: {
+           massId: mass.id,
+           recentExDates: recentExDates?.map(date=>date.slice(0, 10)),
+           massTitleCategory: MassUtil.getCategoryByTitle(mass.title)
+         },
+       };
       calEvents.push(calEvent);
     }
     return calEvents;
@@ -262,7 +267,8 @@ export class MassUtil {
       rrule: rrule,
       ...(ScriptUtil.isNotNull(event.exdate) && {exdate: event.exdate}),
       extendedProps: {
-        massId: massId
+        massId: massId,
+        massTitleCategory: MassUtil.getCategoryByTitle(event.title)
       },
       color:event.period?.color
     };
@@ -384,6 +390,34 @@ export class MassUtil {
     }
 
     return titles;
+  }
+
+  /**
+   * Kategória alapján szűrt title-k listája
+   */
+  public static getTitlesByCategory(category: MassTitleCategory): string[] {
+    return MassTitleCategoryConfig.CATEGORY_TITLES[category];
+  }
+
+  /**
+   * Az összes lehetséges kategória
+   */
+  public static getAllCategories(): MassTitleCategory[] {
+    return MassTitleCategoryConfig.getAllCategories();
+  }
+
+  /**
+   * Kategória lekérése title alapján
+   */
+  public static getCategoryByTitle(title: string): MassTitleCategory {
+    return MassTitleCategoryConfig.getCategoryByTitle(title);
+  }
+
+  /**
+   * Szín lekérése kategória alapján
+   */
+  public static getColorByCategory(category: MassTitleCategory): string {
+    return MassTitleCategoryConfig.getColorByCategory(category);
   }
 
   private static getDuration(event: DialogEvent) {

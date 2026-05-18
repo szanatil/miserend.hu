@@ -55,6 +55,8 @@ import {CopyPeriodDialogComponent, CopyPeriodDialogData} from '../copy-period-di
 import {DeletePeriodDialogComponent, DeletePeriodDialogData} from '../delete-period-dialog/delete-period-dialog.component';
 import {DeleteWarningDialogComponent} from '../delete-warning-dialog/delete-warning-dialog.component';
 import { co } from '@fullcalendar/core/internal-common';
+import {MassTitleFilterComponent} from '../mass-title-filter/mass-title-filter.component';
+import {MassTitleCategory} from '../../enum/mass-title-category';
 
 export interface SimpleDialogData {
   dateTime: Date;
@@ -80,7 +82,7 @@ export interface DialogData {
 
 @Component({
   selector: 'app-church-calendar',
-  imports: [CommonModule, FullCalendarModule, AsyncPipe, MatButton, TranslatePipe, MatInput, MatFormField, MatLabel, FormsModule, ReactiveFormsModule, MatButtonToggle, MatButtonToggleGroup, MatIcon, MatTooltip],
+  imports: [CommonModule, FullCalendarModule, AsyncPipe, MatButton, TranslatePipe, MatInput, MatFormField, MatLabel, FormsModule, ReactiveFormsModule, MatButtonToggle, MatButtonToggleGroup, MatIcon, MatTooltip, MassTitleFilterComponent],
   templateUrl: './church-calendar.component.html',
   styleUrls: ['../../../styles.scss', './church-calendar.component.css']
 })
@@ -144,6 +146,9 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     expandOldMasses?: boolean
   }> = [];
 
+  // Szűrés a kategóriák alapján
+  activeFilterCategories: Set<MassTitleCategory> = new Set();
+
   constructor(
     private readonly eventService: EventService,
     private readonly searchService: SearchService,
@@ -157,6 +162,10 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
   ngOnInit() {
     this.initializeCalendar();
+    
+    // Alapértelmezésben mindegyik kategória aktív
+    this.activeFilterCategories = new Set(MassUtil.getAllCategories());
+    
     // determine whether we should render the mass list under the calendar
     const pathname: string = (typeof window !== 'undefined' && window.location && window.location.pathname) ? String(window.location.pathname) : '';
     this.showMassListInEdit = !!this.editable || pathname.indexOf('editschedule') !== -1;
@@ -252,7 +261,8 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     const sensorCalendarEvents = this.convertSensorEventsToCalendarEvents();
     events.push(...sensorCalendarEvents);
 
-    return events;
+    // Szűrés a kategóriák alapján
+    return this.filterCalendarEventsByCategory(events);
   }
 
   /**
@@ -313,12 +323,22 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       eventContent: (info: any) => this.renderEventContent(info),
       noEventsContent: () => this.renderNoEventsContent(),
       ...((this.editable || this.suggestible) && {dateClick: (arg: any) => this.handleDateClick(arg)} ),
-      eventDidMount:  function (info) {
+      eventDidMount: (info: any) => {
         const eventDate = info.event.startStr.slice(0, 10);
         const recentExDates:string[] = info.event.extendedProps['recentExDates'];
+        const massTitleCategory = info.event.extendedProps['massTitleCategory'];
+        
         if (recentExDates?.includes(eventDate)) {
             info.el.style.backgroundColor = '#ff4d4d';
             info.el.style.borderColor = '#ff4d4d';
+        } else if (massTitleCategory) {
+          // Kategória szín alkalmazása csak a title szövegre
+          const color = MassUtil.getColorByCategory(massTitleCategory);
+          
+          const titleElement = info.el.querySelector('.fc-event-title');
+          if (titleElement) {
+            (titleElement as HTMLElement).style.color = color;
+          }
         }
       }
     };
@@ -1808,5 +1828,34 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     }
 
     return { html: `<div class="fc-no-events">Nincs megjeleníthető esemény ebben az időszakban.</div>` };
+  }
+
+  /**
+   * Szűrési logika: meghatározza, hogy egy esemény megjelenjen-e az aktív kategóriák alapján
+   */
+  private isEventVisible(calEvent: CalendarEvent): boolean {
+    // Ha nincs kategória info, akkor megjelenítjük (legacy events)
+    if (!calEvent.extendedProps?.massTitleCategory) {
+      return true;
+    }
+    
+    // Csak akkor jelenítsük meg, ha a kategória aktív
+    return this.activeFilterCategories.has(calEvent.extendedProps.massTitleCategory);
+  }
+
+  /**
+   * Szűri az eseményeket a kategória szűrés alapján
+   */
+  private filterCalendarEventsByCategory(events: CalendarEvent[]): CalendarEvent[] {
+    return events.filter(event => this.isEventVisible(event));
+  }
+
+  /**
+   * Szűrési kategória módosítás kezelése
+   */
+  public onCategoriesChanged(newActiveCategories: Set<MassTitleCategory>): void {
+    this.activeFilterCategories = newActiveCategories;
+    // Naptár frissítése az új szűrés alapján
+    this.refreshCalendarAndMassList();
   }
 }
