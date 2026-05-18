@@ -108,9 +108,9 @@
 
   "MASS_TITLE_CATEGORY": {
     "MASS": "Mise(félék)",
-    "ADORATION": "Szentségimádás",
-    "CONFESSION": "Gyóntatás",
-    "OTHER": "Egyéb"
+    "ADORATION": "Szentségimádások",
+    "CONFESSION": "Gyóntatások",
+    "OTHER": "Egyéb imaalkalmak"
   },
 
   "MASS_FILTER": {

@@ -33,8 +33,8 @@
   <div class="category-badges-container">
     <button
       *ngFor="let category of categories"
-      class="category-badge"
-      [style.backgroundColor]="categoryColors[category]"
+      class="category-badge bt-primary"
+      [style.color]="categoryColors[category]"
       [class.inactive]="!isChecked(category)"
       (click)="toggleCategory(category)"
       [attr.title]="getCategoryLabel(category) | translate"

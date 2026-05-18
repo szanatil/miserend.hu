@@ -55,7 +55,6 @@ import {CopyPeriodDialogComponent, CopyPeriodDialogData} from '../copy-period-di
 import {DeletePeriodDialogComponent, DeletePeriodDialogData} from '../delete-period-dialog/delete-period-dialog.component';
 import {DeleteWarningDialogComponent} from '../delete-warning-dialog/delete-warning-dialog.component';
 import { co } from '@fullcalendar/core/internal-common';
-import {MassTitleFilterComponent} from '../mass-title-filter/mass-title-filter.component';
 import {MassTitleCategory} from '../../enum/mass-title-category';
 import {MassTitleCategoryConfig} from '../../util/mass-title-category-config';
 
@@ -83,7 +82,7 @@ export interface DialogData {
 
 @Component({
   selector: 'app-church-calendar',
-  imports: [CommonModule, FullCalendarModule, AsyncPipe, MatButton, TranslatePipe, MatInput, MatFormField, MatLabel, FormsModule, ReactiveFormsModule, MatButtonToggle, MatButtonToggleGroup, MatIcon, MatTooltip, MassTitleFilterComponent],
+  imports: [CommonModule, FullCalendarModule, AsyncPipe, MatButton, TranslatePipe, MatInput, MatFormField, MatLabel, FormsModule, ReactiveFormsModule, MatButtonToggle, MatButtonToggleGroup, MatIcon, MatTooltip],
   templateUrl: './church-calendar.component.html',
   styleUrls: ['../../../styles.scss', './church-calendar.component.css']
 })

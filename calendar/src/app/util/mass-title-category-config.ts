@@ -8,10 +8,10 @@ import { TranslateService } from '@ngx-translate/core';
 export class MassTitleCategoryConfig {
   // Kategória színek: halványabb árnyalatok, megfelelőek fehér szöveghez
   static readonly CATEGORY_COLORS: Record<MassTitleCategory, string> = {
-    [MassTitleCategory.MASS]: '#D4A574',          // Arany/barna - mise
-    [MassTitleCategory.ADORATION]: '#C4B5A0',    // Vöröses barna - szentségimádás
-    [MassTitleCategory.CONFESSION]: '#B8A8C0',   // Halványlila - gyóntatás
-    [MassTitleCategory.OTHER]: '#A8B8D0'         // Halványkék - egyéb
+    [MassTitleCategory.MASS]: '#0A0A0A',          // Arany/barna - mise
+    [MassTitleCategory.ADORATION]: '#C4B5A0',      // Vöröses barna - szentségimádás
+    [MassTitleCategory.CONFESSION]: '#7A4D9A',     // Erősebb lila - gyóntatás
+    [MassTitleCategory.OTHER]: '#A8B8D0'           // Halványkék - egyéb
   };
 
   // Kategória-cím párosítások (i18n key-ek)

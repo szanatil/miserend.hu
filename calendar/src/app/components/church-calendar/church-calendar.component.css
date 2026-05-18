@@ -59,7 +59,7 @@
 /* Kategória badge-ek szűrő - javaslatok oldalon */
 .category-badges-container {
   display: flex;
-  gap: 6px;
+  gap: 12px;
   justify-content: center;
   padding: 20px;
   padding-top: 0px;
@@ -74,7 +74,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 1.25rem;
   color: #000;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   display: flex;
@@ -92,6 +92,7 @@
   opacity: 0.6;
   cursor: pointer;
   color: #c2c2c2;
+  text-decoration: line-through;
 }
 
 .category-badge.inactive:hover {
