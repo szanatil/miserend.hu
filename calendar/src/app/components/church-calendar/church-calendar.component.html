@@ -29,12 +29,23 @@
 ></full-calendar>
 
 <!-- Kategória szűrés komponens -->
-<div class="mass-filter-wrapper">
-  <app-mass-title-filter
-    [activeCategories]="activeFilterCategories"
-    (categoriesChanged)="onCategoriesChanged($event)"
-  ></app-mass-title-filter>
-</div>
+@if (showFilterComponent) {
+  <div class="category-badges-container">
+    <button
+      *ngFor="let category of categories"
+      class="category-badge"
+      [style.backgroundColor]="categoryColors[category]"
+      [class.inactive]="!isChecked(category)"
+      (click)="toggleCategory(category)"
+      [attr.title]="getCategoryLabel(category) | translate"
+    >
+      <span class="badge-text">{{ getCategoryLabel(category) | translate }}</span>
+    </button>
+  </div>
+} @else {
+  <!-- Javaslatok oldalon nincsenek Badge-ek -->
+  
+}
 
 <!-- Template used to render FullCalendar list items via Angular bindings.
      Context variables provided from component: timeText, title, lang, types, comment -->

@@ -79,43 +79,7 @@ export class MassTitleCategoryConfig {
     return translatedValues;
   }
 
-  /**
-   * Fallback értékek statikus hardcoded fordítások
-   * Ezek az értékek akkor kerülnek felhasználásra, ha a TranslateService nem érhető el
-   */
-  static readonly CATEGORY_TRANSLATED_VALUES: Record<MassTitleCategory, string[]> = {
-    [MassTitleCategory.MASS]: [
-      // Magyar
-      'Szentmise', 'Igeliturgia', 'Szent Liturgia', 'Előszenteltek liturgiája',
-      'Az utolsó vacsora emlékmiséje', 'Nagypénteki szertartás', 'Húsvét vigíliája',
-      'Régi rítusú szentmise', 'Az utolsó vacsora emlékmiséje (régi rítusú)',
-      'Nagypénteki szertartás (régi rítusú)', 'Húsvét vigíliája (régi rítusú)',
-      'Utrenye', 'Vecsernye',
-      // Angol
-      'Holy Mass', 'Liturgy of the Word', 'Divine Liturgy', 'Liturgy of the Presanctified Gifts',
-      'Mass of the Lord\'s Supper', 'Good Friday Liturgy', 'Easter Vigil',
-      'Traditional Latin Mass', 'Traditional Mass of the Lord\'s Supper',
-      'Traditional Good Friday Liturgy', 'Traditional Easter Vigil', 'Matins', 'Vespres'
-    ],
-    [MassTitleCategory.ADORATION]: [
-      // Magyar
-      'Szentségimádás',
-      // Angol
-      'Adoration'
-    ],
-    [MassTitleCategory.CONFESSION]: [
-      // Magyar
-      'Gyóntatás',
-      // Angol
-      'Confession'
-    ],
-    [MassTitleCategory.OTHER]: [
-      // Magyar
-      'Zsolozsma', 'Rózsafüzér', 'Litánia',
-      // Angol
-      'Breviary', 'Rosary', 'Litany'
-    ]
-  };
+  
 
   /**
    * Szín lekérése kategória alapján
@@ -142,13 +106,17 @@ export class MassTitleCategoryConfig {
       }
     }
 
-    // Lekérjük a lefordított értékeket - dinamikusan vagy fallback-ból
-    const translatedValuesToUse = translate ? this.getTranslatedValues(translate) : this.CATEGORY_TRANSLATED_VALUES;
+    // Lekérjük a lefordított értékeket
+    if (!translate) {
+      return MassTitleCategory.OTHER;
+    }
+
+    const translatedValuesToUse = this.getTranslatedValues(translate);
 
     // Majd próbáljuk a lefordított szövegeket (case-insensitive)
     const lowerTitle = title.toLowerCase();
     for (const [category, translatedValues] of Object.entries(translatedValuesToUse)) {
-      if (translatedValues.some(val => val.toLowerCase() === lowerTitle)) {
+      if (translatedValues.some((val: string) => val.toLowerCase() === lowerTitle)) {
         return category as MassTitleCategory;
       }
     }
@@ -156,7 +124,7 @@ export class MassTitleCategoryConfig {
     // Végül fuzzy match: ha a title tartalmazza valamelyik ismert szöveget
     for (const [category, translatedValues] of Object.entries(translatedValuesToUse)) {
       for (const val of translatedValues) {
-        if (lowerTitle.includes(val.toLowerCase()) || val.toLowerCase().includes(lowerTitle)) {
+        if (lowerTitle.includes((val as string).toLowerCase()) || (val as string).toLowerCase().includes(lowerTitle)) {
           return category as MassTitleCategory;
         }
       }

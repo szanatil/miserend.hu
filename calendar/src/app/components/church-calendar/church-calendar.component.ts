@@ -57,6 +57,7 @@ import {DeleteWarningDialogComponent} from '../delete-warning-dialog/delete-warn
 import { co } from '@fullcalendar/core/internal-common';
 import {MassTitleFilterComponent} from '../mass-title-filter/mass-title-filter.component';
 import {MassTitleCategory} from '../../enum/mass-title-category';
+import {MassTitleCategoryConfig} from '../../util/mass-title-category-config';
 
 export interface SimpleDialogData {
   dateTime: Date;
@@ -99,6 +100,9 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
   @Input() changedMasses: number[] = [];
   @Input() sensorEvents: SensorEvent[] = [];
 
+  // Szűrő komponens megjelenítése - kikapcsolt javaslatok oldalon
+  showFilterComponent: boolean = true;
+
 
   datesSet = output<string>();
   private edit = false;
@@ -129,6 +133,10 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
   suggestionSenderMessage: FormControl<string> = new FormControl();
 
   public calendarsTitle: string = '';
+
+  // Kategóriák az új badge szűrőhöz
+  categories: MassTitleCategory[] = [];
+  categoryColors: Record<MassTitleCategory, string> = {} as any;
 
   // Show a simple mass list under the calendar in edit/admin contexts (editschedule)
   public showMassListInEdit: boolean = false;
@@ -166,9 +174,21 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     // Alapértelmezésben mindegyik kategória aktív
     this.activeFilterCategories = new Set(MassUtil.getAllCategories());
     
+    // Kategóriák és szín inicializálása a badge szűrőhöz
+    this.categories = MassUtil.getAllCategories();
+    this.categories.forEach((category: MassTitleCategory) => {
+      this.categoryColors[category] = MassTitleCategoryConfig.getColorByCategory(category);
+    });
+    
     // determine whether we should render the mass list under the calendar
     const pathname: string = (typeof window !== 'undefined' && window.location && window.location.pathname) ? String(window.location.pathname) : '';
     this.showMassListInEdit = !!this.editable || pathname.indexOf('editschedule') !== -1;
+
+    // Detektáljuk, hogy a javaslatok oldalon vagyunk-e
+    // Ha 'javaslatok' vagy 'suggestionpackages' van az URL-ben, akkor elrejtjük az old filter-t
+    const isSuggestionsPage = pathname.indexOf('javaslatok') !== -1 || pathname.indexOf('suggestionpackages') !== -1;
+    this.showFilterComponent = !isSuggestionsPage;
+    console.log('[DEBUG] Pathname:', pathname, 'isSuggestionsPage:', isSuggestionsPage, 'showFilterComponent:', this.showFilterComponent);
 
     // default edit mode: enable immediately for the dedicated editschedule route,
     // otherwise keep false so users see the confirmation dialog on first edit attempt
@@ -210,7 +230,8 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
             periods,
             this.changedMasses,
             this.deletedMasses,
-            this.deletedDates
+            this.deletedDates,
+            this.translateService
           );
           
           // Add sensor events to the calendar
@@ -254,7 +275,8 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       periods,
       [], // changedMasses is empty since we're generating from combined set
       [], // deletedMasses is empty since we've already removed them
-      this.deletedDates
+      this.deletedDates,
+      this.translateService
     );
 
     // Add sensor events to the calendar
@@ -611,7 +633,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
           const parentMassId: number | undefined = this.selectedMassId;
           const newMassId: number = MassUtil.generateTmpMassId();
           const newSingleMass: Mass = MassUtil.createMass(
-            MassUtil.createEventByType(this.dialogEvent, newMassId),
+            MassUtil.createEventByType(this.dialogEvent, newMassId, undefined, this.translateService),
             this.dialogEvent,
             this.currentChurch!,
             newMassId
@@ -647,7 +669,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
           const periodId = this.dialogEvent.period?.periodId;
           const periodWeight = this.dialogEvent.period?.weight;
           const specialPeriodType = this.periodService.getSpecialPeriodType(periodId);
-          const calendarEvent: CalendarEvent = MassUtil.createEventByType(this.dialogEvent, newMassId, specialPeriodType);
+          const calendarEvent: CalendarEvent = MassUtil.createEventByType(this.dialogEvent, newMassId, specialPeriodType, this.translateService);
           const mass: Mass = MassUtil.createMass(calendarEvent, this.dialogEvent, this.currentChurch!, newMassId);
 
           const recentlyExclusionSourcePeriodIds: number[] = this.excludeNewMassFromLowerPeriodMasses(periodId, periodWeight);
@@ -1857,5 +1879,26 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     this.activeFilterCategories = newActiveCategories;
     // Naptár frissítése az új szűrés alapján
     this.refreshCalendarAndMassList();
+  }
+
+  /**
+   * Badge szűrő metódusok
+   */
+  toggleCategory(category: MassTitleCategory): void {
+    if (this.activeFilterCategories.has(category)) {
+      this.activeFilterCategories.delete(category);
+    } else {
+      this.activeFilterCategories.add(category);
+    }
+    // Naptár frissítése az új szűrés alapján
+    this.refreshCalendarAndMassList();
+  }
+
+  isChecked(category: MassTitleCategory): boolean {
+    return this.activeFilterCategories.has(category);
+  }
+
+  getCategoryLabel(category: MassTitleCategory): string {
+    return `MASS_TITLE_CATEGORY.${category}`;
   }
 }
