@@ -569,6 +569,40 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     this.openFullDialog('EDIT_MASS');
   }
 
+  // Open copy dialog for a mass from the mass list
+  public openCopyMassDialog(m: any): void {
+    if (!m || !m.id) return;
+    
+    // Get the original Mass object
+    let mass: Mass | undefined;
+    if (this.changes.has(m.id)) {
+      mass = this.changes.get(m.id);
+    } else if (this.masses.has(m.id)) {
+      mass = this.masses.get(m.id);
+    }
+
+    if (!mass) {
+      console.error('NINCS ILYEN MISE ID: ' + m.id);
+      return;
+    }
+
+    // Clone the mass and prepare it for creating a new one
+    const clonedMass = ScriptUtil.clone(mass);
+    
+    // Prepare dialog event from the cloned mass (for "new mass" mode)
+    this.dialogEvent = MassUtil.massToDialogEvent(clonedMass);
+    
+    // If the mass has a period, set it in the dialog event
+    if (clonedMass.periodId) {
+      this.dialogEvent.period =
+        this.periodService.getCurrentGeneratedPeriodByPeriodId(clonedMass.periodId, new Date(clonedMass.startDate));
+      this.setSpecialPeriodDays(clonedMass);
+    }
+    
+    // Open the dialog with "COPY_NEW_MASS" title to indicate it's a new mass creation
+    this.openFullDialog('COPY_NEW_MASS');
+  }
+
   private processEventViewerDialogResult(result: any) {
     if (this.selectedMassId === undefined) {
       return;

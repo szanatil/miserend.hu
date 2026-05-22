@@ -339,6 +339,9 @@
               </td>
               <td style="padding:10px">{{m.comment}}</td>
               <td style="text-align: right; padding-right: 10px;">
+                <button mat-icon-button (click)="openCopyMassDialog(m)" [matTooltip]="'COPY_THIS_MASS' | translate" aria-label="copy">
+                  <mat-icon>content_copy</mat-icon>
+                </button>
                 <button mat-icon-button (click)="openDeleteMassDialog(m)" [matTooltip]="'DELETE' | translate" aria-label="delete">
                   <mat-icon>delete_outline</mat-icon>
                 </button>
