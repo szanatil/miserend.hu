@@ -366,6 +366,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
           }
         }
       },
+      // Oszlopfők feliratainak testreszabása a nézet típusától függően
       dayHeaderContent: (arg: any) => {
         const viewType = this.calendarComponent?.getApi?.().view?.type || 'dayGridMonth';
         
@@ -382,6 +383,73 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
         
         // Fallback to month view rendering for unknown views
         return this.renderDayHeaderMonthView(arg);
+      },
+      // Oszlopfők osztályainak testreszabása a liturgikus nap szintje alapján (piros keret, ha level < 5)
+      dayHeaderClassNames: (arg: any) => {
+        const classNames: string[] = [];
+        const date = arg.date;
+        const dateStr = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        const liturgicalDay = this.liturgicalDays[dateStr];
+
+        // If liturgicalDay.level < 5: add red border
+        if (liturgicalDay?.level !== undefined && liturgicalDay.level < 5) {
+          classNames.push('liturgical-cell-bg-light-red');
+        }
+
+        return classNames;
+      },
+      // Hónap nézetben a nap cellájának fejlécének testreszabása a liturgikus nap szintje alapján
+      dayCellContent: (arg: any) => {
+
+        const viewType = this.calendarComponent?.getApi?.().view?.type || 'dayGridMonth';
+        if(viewType !== 'dayGridMonth') {
+          return { html: '' };
+        }
+
+        const date = arg.date;
+        const dateStr = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        const liturgicalDay = this.liturgicalDays[dateStr];
+        const dayOfMonth = date.getDate(); // Get day of month (1-31)
+        
+        // If no liturgical day or level >= 5, just show the number (right-aligned, smaller)
+        if (!liturgicalDay?.level || liturgicalDay.level >= 5) {
+          const html = `<div style="text-align: right; font-size: 0.9em; padding: 2px 4px;">${dayOfMonth}</div>`;
+          return { html };
+        }
+        
+        // If liturgicalDay.level < 5, show number (floated right) and name (centered, multiple lines below)
+        const html = `
+          <div style="padding: 2px 4px;">
+            <div style="float: right; font-size: 0.9em; padding-left: 4px;">
+              ${dayOfMonth}
+            </div>
+            <div style="clear: both; text-align: center; font-size: 0.75em; line-height: 1.2; color: #666; word-wrap: break-word; overflow-wrap: break-word; white-space: normal;">
+              ${liturgicalDay.name}
+            </div>
+          </div>
+        `;
+        return { html };
+      
+      },
+      // Hónap és heti nézetben a nap cellájának osztályait is testreszabjuk a liturgikus nap szintje alapján)
+      dayCellClassNames: (arg: any) => {
+        const date = arg.date;
+        const dateStr = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        const liturgicalDay = this.liturgicalDays[dateStr];
+        
+        const classNames: string[] = [];
+
+        // If liturgicalDay.level < 3: add red border
+        if (liturgicalDay?.level !== undefined && liturgicalDay.level < 3) {
+          classNames.push('liturgical-cell-bg-light-red');
+        }
+        
+        // If liturgicalDay.level < 5: also add light red background
+        if (liturgicalDay?.level !== undefined && liturgicalDay.level < 5) {
+          classNames.push('liturgical-cell-bg-light-red');
+        }
+        
+        return classNames;
       }
     };
   }
@@ -408,8 +476,8 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     const shouldShowLiturgicalDay = liturgicalDay?.level !== undefined && liturgicalDay.level < 10;
     const html = `
       <a class="fc-list-day-text" aria-label="${formattedDate}">${dayName}</a>
-      ${shouldShowLiturgicalDay ? `<a class="fc-list-day-center-text" >${liturgicalDayText}</a>` : ''}
-      <a aria-hidden="true" class="fc-list-day-side-text" aria-label="${formattedDate}">${formattedDate}</a>
+      ${shouldShowLiturgicalDay ? `<a class="fc-list-day-center-text" style="font-weight:400">${liturgicalDayText}</a>` : ''}
+      <a aria-hidden="true" class="fc-list-day-side-text " aria-label="${formattedDate}">${formattedDate}</a>
     `;
     
     return { html };
@@ -437,8 +505,8 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     const liturgicalDayText = shouldShowLiturgicalDay ? (liturgicalDay?.name || '') : '';
     
     const html = `
-      <a aria-hidden="true" class="fc-list-day-center-text" aria-label="${formattedDate}">${dayName}</a><br/>
-      ${shouldShowLiturgicalDay ? `<a class="fc-list-day-center-text" >${liturgicalDayText}</a>` : ''}
+      <a aria-hidden="true" class="fc-list-day-center-text" aria-label="${formattedDate}" >${dayName}</a><br/>
+      ${shouldShowLiturgicalDay ? `<a class="fc-list-day-center-text" style="font-weight:400">${liturgicalDayText}</a>` : ''}
       
     `;
     

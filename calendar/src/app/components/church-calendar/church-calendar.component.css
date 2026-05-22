@@ -99,8 +99,24 @@
   opacity: 0.8;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
-
 .badge-text {
   white-space: nowrap;
 }
+
+/* Liturgical day cell styling based on liturgical level */
+::ng-deep .liturgical-cell-border-red {
+  border: 2px solid #ff4444 !important;
+}
+
+
+::ng-deep .liturgical-header-cell-border-red {
+    border-top: 2px solid #ff4444 !important;
+    border-left: 2px solid #ff4444 !important;
+    border-right: 2px solid #ff4444 !important;    
+
+}
+::ng-deep .liturgical-cell-bg-light-red {
+  background-color: #ffe6e6 !important;
+}
+
 
