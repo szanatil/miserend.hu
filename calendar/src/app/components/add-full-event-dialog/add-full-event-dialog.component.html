@@ -1,5 +1,13 @@
 <div class="mat-mdc-card-header">
-  <h2 mat-dialog-title>{{ data.title | translate }}</h2>
+  <h2 mat-dialog-title>
+    @if (data.title === 'COPY_NEW_MASS') {
+      {{ 'COPY_NEW_MASS' | translate }}
+    } @else if (data.title === 'EDIT_MASS') {
+      {{ 'EDIT_MASS' | translate }}
+    } @else {
+      {{ data.title | translate }}
+    }
+  </h2>
   <button mat-icon-button mat-dialog-close class="dialog-header-close">
     <mat-icon>close</mat-icon>
   </button>

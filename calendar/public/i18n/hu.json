@@ -43,6 +43,7 @@
     "MO": "Húsvéthétfő"
   },
   "ADD_NEW_MASS": "Új liturgia rögzítése",
+  "COPY_NEW_MASS": "Új liturgia rögzítése",
   "EDIT_MASS": "Meglévő liturgia szerkesztése",
   "OTHER_SETTINGS": "Tulajdonságok",
   "COMMENT": "Megjegyzés",
@@ -68,6 +69,7 @@
   "SEND": "Beküldés",
   "EDIT": "Szerkesztés",
   "DELETE": "Törlés",
+  "COPY_THIS_MASS": "Mise másolása",
   "DELETE_WARNING": "Biztosan törölni szeretnéd az alábbi eseményt?",
   "DELETE_CONFIRM": "Törlés",
   "DELETE_PERIOD": "Időszak eseményeinek törlése",
