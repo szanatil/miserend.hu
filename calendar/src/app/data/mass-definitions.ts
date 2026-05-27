@@ -1,5 +1,5 @@
 import { MassTitleCategory, MASS_CATEGORY_DEFINITIONS, type MassTitleCategory as MassTitleCategoryType } from '../enum/mass-categories';
-import { Rite } from '../model/mass';
+import { Rite } from '../enum/rites';
 
 /**
  * Egy MASS_TITLE egyedi definíciója

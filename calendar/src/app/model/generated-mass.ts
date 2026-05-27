@@ -1,4 +1,5 @@
-import {Duration, MassType, Rite} from './mass';
+import {Duration, MassType} from './mass';
+import {Rite} from '../enum/rites';
 
 export interface GeneratedMass {
 

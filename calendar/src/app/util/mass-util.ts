@@ -1,6 +1,7 @@
 import {Renum} from '../enum/recurrence';
 import {DateTimeUtil} from './date-time-util';
-import {Mass, Rite} from '../model/mass';
+import {Mass} from '../model/mass';
+import {Rite, RITE_DEFINITIONS} from '../enum/rites';
 import {LanguageCode} from '../enum/language-code';
 import {CalendarEvent} from '../model/calendar/calendar-event';
 import {RecurrenceRule} from '../model/calendar/recurrence-rule';
@@ -343,14 +344,9 @@ export class MassUtil {
   }
 
   private static getSimpleTitleByRite(rite: Rite): string {
-    switch (rite) {
-      case Rite.TRADITIONAL:
-        return "MASS_TITLE.TRADITIONAL_LATIN_MASS";
-      case Rite.GREEK_CATHOLIC:
-        return "MASS_TITLE.DIVINE_LITURGY";
-      default:
-        return "MASS_TITLE.HOLY_MASS";
-    }
+    const riteDef = RITE_DEFINITIONS.find(r => r.key === rite);
+    const simpleTitle = riteDef?.simpleTitle ?? "HOLY_MASS";
+    return `MASS_TITLE.${simpleTitle}`;
   }
 
   public static getSimpleTitle4Church(church: Church): string {

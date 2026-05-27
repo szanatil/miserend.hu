@@ -1,4 +1,5 @@
-import {Mass, Rite} from './mass';
+import {Mass} from './mass';
+import {Rite} from '../enum/rites';
 import {SensorEvent} from './sensor-event';
 
 export interface Church {
