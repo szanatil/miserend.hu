@@ -193,16 +193,13 @@ class SearchResultsMasses extends Html {
              $massDefinitionsPath = dirname(__DIR__) . '/../mass-definitions.json';
              $massDefinitions = json_decode(file_get_contents($massDefinitionsPath), true);
              $titlesByCategory = $massDefinitions['titlesByCategory'] ?? [];
-             printr($massDefinitionsPath);
              // Concatenate arrays for selected categories
              $allTitles = [];
              foreach ($selectedCategories as $cat) {
-                printr($cat);
                  if (isset($titlesByCategory[$cat])) {
                      $allTitles = array_merge($allTitles, $titlesByCategory[$cat]);
                  }
              }
-             printr($allTitles);
              if (!empty($allTitles)) {
                  // Process each title: remove "MASS_TITLE." prefix and add translated version
                  $titleFilters = [];
@@ -214,10 +211,11 @@ class SearchResultsMasses extends Html {
                      $allTitles[] = $translatedTitle;
                  }
                  $titleFilters = array_unique($allTitles);
-                 printr($titleFilters);
+                 // Re-index array to ensure clean numeric keys for proper JSON encoding
+                 $titleFilters = array_values($titleFilters);
                  // Simple query filter: title must be one of these items
                  if (!empty($titleFilters)) {
-                     $search->query['bool']['must'][] = [ 'term' => ['title.keyword' => $titleFilters] ];                     
+                     $search->query['bool']['must'][] = [ 'terms' => ['title.keyword' => $titleFilters] ];
                      $translatedCategoryNames = array_map(function($c){ return t('MASS_TITLE_CATEGORY.' . $c); }, $selectedCategories);
                      $search->filters[] = "Kategóriák: <b>" . implode('</b> vagy <b>', $translatedCategoryNames) . "</b>";
                  }
