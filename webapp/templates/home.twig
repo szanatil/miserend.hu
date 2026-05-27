@@ -581,41 +581,24 @@
                 <div class="form-group row">
                     <label class="col-sm-4 control-label">Típusok</label>
                     <div class="col-sm-8">
-                        <div class="btn-group" role="group" aria-label="Type filters" id="type_Roman_catholic_Group">                            
-                            {{ macros.type_button('ROMAN_CATHOLIC',true)}}
-                            {{ macros.type_button('FAMILY') }}
-                            {{ macros.type_button('STUDENT') }}
-                            {{ macros.type_button('UNIVERSITY_YOUTH') }}
-                            {{ macros.type_button('GUITAR') }}
-                            {{ macros.type_button('ORGAN') }}
-                        </div>
-
-                        {# second group under the first: GREEK_CATHOLIC + FAMILY, STUDENT, UNIVERSITY_YOUTH #}
-                        <div class="btn-group mt-2" role="group" aria-label="Type filters 2"  id="type_Greek_catholic_Group">                            
-                            {{ macros.type_button('GREEK_CATHOLIC', true) }}
-                            {{ macros.type_button('FAMILY') }}
-                            {{ macros.type_button('STUDENT') }}
-                            {{ macros.type_button('UNIVERSITY_YOUTH') }}
-                        </div>
-
-                        {# third group: TRADITIONAL + SINGER and SILENT #}
-                        <div class="btn-group mt-2" role="group" aria-label="Type filters 3"  id="type_Traditional_Group">
-                            {{ macros.type_button('TRADITIONAL',true) }}
-                            {{ macros.type_button('SINGER') }}
-                            {{ macros.type_button('SILENT') }}
-                        </div>
+                        {# Dynamic rites and masstypes loops - generated from mass-definitions.json #}
+                        {% for rite in rites %}
+                            <div class="btn-group{% if not loop.first %} mt-2{% endif %}" role="group" aria-label="Type filters for {{ rite.key }}" id="type_{{ rite.key }}_Group" data-rite="{{ rite.key }}">
+                                {{ macros.type_button(rite.key, true) }}
+                                {% for masstype in rite.masstypes %}
+                                    {{ macros.type_button(masstype) }}
+                                {% endfor %}
+                            </div>
+                        {% endfor %}
 
                         <div style="margin-top:6px; font-size:0.9em; color:#666">Kattints a gombra: zöld = legyen (should), piros = kizárt (must_not)</div>
                         
-                        {# Per-special hidden flags: .should (green) and .must_not (red) Comma-separated lists. #}
-                        <input type="hidden" name="types[ROMAN_CATHOLIC][should]" id="types_ROMAN_CATHOLIC_should" value="">
-                        <input type="hidden" name="types[ROMAN_CATHOLIC][must_not]" id="types_ROMAN_CATHOLIC_must_not" value="">
-
-                        <input type="hidden" name="types[GREEK_CATHOLIC][should]" id="types_GREEK_CATHOLIC_should" value="">
-                        <input type="hidden" name="types[GREEK_CATHOLIC][must_not]" id="types_GREEK_CATHOLIC_must_not" value="">
-
-                        <input type="hidden" name="types[TRADITIONAL][should]" id="types_TRADITIONAL_should" value="">
-                        <input type="hidden" name="types[TRADITIONAL][must_not]" id="types_TRADITIONAL_must_not" value="">
+                        {# Per-rite hidden flags: .should (green) and .must_not (red) Comma-separated lists. #}
+                        {# Dynamically generated from rites array #}
+                        {% for rite in rites %}
+                            <input type="hidden" name="types[{{ rite.key }}][should]" id="types_{{ rite.key }}_should" value="">
+                            <input type="hidden" name="types[{{ rite.key }}][must_not]" id="types_{{ rite.key }}_must_not" value="">
+                        {% endfor %}
 
                         {# Aggregate rites inputs: which rites are 'should' (green) and 'must_not' (red) #}
                         <input type="hidden" name="rites[should]" id="rites_should" value="">
@@ -627,7 +610,27 @@
                     (function($){
                         function updateHiddenInputs() {
                             
-                            // update aggregated rites inputs based on special buttons
+                            // Dynamically iterate through all rites and collect their type states
+                            $('.btn-group[data-rite]').each(function(){
+                                var $group = $(this);
+                                var rite = $group.data('rite');
+                                var shouldArr = [];
+                                var mustNotArr = [];
+                                
+                                // Collect states from non-special buttons in this rite group
+                                $group.find('.type-toggle').not('.special-toggle').each(function(){
+                                    var s = Number($(this).data('state')) || 0;
+                                    var t = $(this).data('type');
+                                    if (s === 1) shouldArr.push(t);
+                                    else if (s === 2) mustNotArr.push(t);
+                                });
+                                
+                                // Update the hidden inputs for this rite
+                                $('#types_' + rite + '_should').val(shouldArr.join(','));
+                                $('#types_' + rite + '_must_not').val(mustNotArr.join(','));
+                            });
+                            
+                            // Update aggregated rites inputs based on special buttons
                             var ritesShould = [];
                             var ritesMustNot = [];
                             $('.special-toggle').each(function(){
@@ -638,42 +641,6 @@
                             });
                             $('#rites_should').val(ritesShould.join(','));
                             $('#rites_must_not').val(ritesMustNot.join(','));
-                            
-                            // ROMAN_CATHOLIC: include the special itself (if green/red) and also                            
-                            var romanShouldArr = [];
-                            var romanMustNotArr = [];
-                            $('#type_Roman_catholic_Group .type-toggle').not('.special-toggle').each(function(){
-                                var s = Number($(this).data('state')) || 0;
-                                var t = $(this).data('type');
-                                if (s === 1) romanShouldArr.push(t);
-                                else if (s === 2) romanMustNotArr.push(t);
-                            });
-                            $('#types_ROMAN_CATHOLIC_should').val(romanShouldArr.join(','));
-                            $('#types_ROMAN_CATHOLIC_must_not').val(romanMustNotArr.join(','));
-
-                            // GREEK_CATHOLIC: include the special itself (if green/red) and also
-                            var greekShouldArr = [];
-                            var greekMustNotArr = [];
-                            $('#type_Greek_catholic_Group .type-toggle').not('.special-toggle').each(function(){
-                                var s = Number($(this).data('state')) || 0;
-                                var t = $(this).data('type');
-                                if (s === 1) greekShouldArr.push(t);
-                                else if (s === 2) greekMustNotArr.push(t);
-                            });
-                            $('#types_GREEK_CATHOLIC_should').val(greekShouldArr.join(','));
-                            $('#types_GREEK_CATHOLIC_must_not').val(greekMustNotArr.join(','));
-
-                            // TRADITIONAL: include the special itself (if green/red) and also
-                            var traditionalShouldArr = [];
-                            var traditionalMustNotArr = [];
-                            $('#type_Traditional_Group .type-toggle').not('.special-toggle').each(function(){
-                                var s = Number($(this).data('state')) || 0;
-                                var t = $(this).data('type');
-                                if (s === 1) traditionalShouldArr.push(t);
-                                else if (s === 2) traditionalMustNotArr.push(t);
-                            });
-                            $('#types_TRADITIONAL_should').val(traditionalShouldArr.join(','));
-                            $('#types_TRADITIONAL_must_not').val(traditionalMustNotArr.join(','));
                         }
 
                         function applyState($btn, state) {

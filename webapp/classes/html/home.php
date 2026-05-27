@@ -16,9 +16,6 @@ class Home extends Html {
     public function __construct() {
         global $user, $config;
 
-        $attributes = unserialize(ATTRIBUTES);
-        $languages = unserialize(LANGUAGES);
-
         $espkers = DB::table('espereskerulet')
                     ->select('id','ehm','nev')
                     ->get();
@@ -93,6 +90,20 @@ class Home extends Html {
 
         $this->favorites = $user->getFavorites();
         $this->searchform = $searchform;
+        
+        // Load rites from mass-definitions.json
+        $massDefinitionsPath = PATH . 'mass-definitions.json';
+        if (file_exists($massDefinitionsPath)) {
+            $massDefinitionsJson = file_get_contents($massDefinitionsPath);
+            $massDefinitionsData = json_decode($massDefinitionsJson, true);
+            if (isset($massDefinitionsData['rites']) && is_array($massDefinitionsData['rites'])) {
+                $this->rites = $massDefinitionsData['rites'];
+            } else {
+                $this->rites = [];
+            }
+        } else {
+            $this->rites = [];
+        }
 		try {
             $this->alert = (new \ExternalApi\NapilelkibatyuApi())->liturgicalAlert();            
         } catch (\Exception $e) {
