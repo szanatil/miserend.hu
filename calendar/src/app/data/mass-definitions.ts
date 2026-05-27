@@ -2,16 +2,6 @@ import { MassTitleCategory, MASS_CATEGORY_DEFINITIONS, type MassTitleCategory as
 import { Rite } from '../model/mass';
 
 /**
- * Rite metaadatai (ikon, szín, stb.)
- */
-export interface RiteMetadata {
-  rite: Rite;
-  icon?: string;       // ikon elérési út (pl. "/assets/icons/rite-rc.svg")
-  color?: string;      // szín (pl. "#FF5733")
-  label?: string;      // i18n key vagy direct string
-}
-
-/**
  * Egy MASS_TITLE egyedi definíciója
  * Az összes metaadat egy helyen
  */
@@ -22,8 +12,8 @@ export interface MassDefinition {
   /** Kategória */
   category: MassTitleCategory;
 
-  /** Melyik rite-okhoz tartozik (metaadatokkal) */
-  rites: RiteMetadata[];
+  /** Melyik rite-okhoz tartozik */
+  rites: Rite[];
 
   /** Default rite (ha csak egyre jellemző) */
   defaultRite?: Rite;
@@ -87,13 +77,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     {
       key: 'MASS_TITLE.HOLY_MASS2',
       category: MassTitleCategory.MASS,
-      rites: [
-        {
-          rite: Rite.ROMAN_CATHOLIC,
-          icon: '/assets/icons/rite-roman-catholic.svg',
-          color: '#FF5733'
-        }
-      ],
+      rites: [Rite.ROMAN_CATHOLIC],
       description: 'Roman Catholic Sunday/weekday Mass',
       specialUsage: null
     },
@@ -101,7 +85,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     {
       key: 'MASS_TITLE.LITURGY_OF_THE_WORD2',
       category: MassTitleCategory.MASS,
-      rites: [{ rite: Rite.ROMAN_CATHOLIC }],
+      rites: [Rite.ROMAN_CATHOLIC],
       description: 'Liturgy of the Word without Eucharist',
       specialUsage: null
     },
@@ -109,7 +93,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     {
       key: 'MASS_TITLE.LITURGY_OF_THE_WORD',
       category: MassTitleCategory.MASS,
-      rites: [{ rite: Rite.ROMAN_CATHOLIC }],
+      rites: [Rite.ROMAN_CATHOLIC],
       description: 'Liturgy of the Word without Eucharist',
       specialUsage: null
     },
@@ -117,7 +101,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     {
       key: 'MASS_TITLE.DIVINE_LITURGY',
       category: MassTitleCategory.MASS,
-      rites: [{ rite: Rite.GREEK_CATHOLIC }],
+      rites: [Rite.GREEK_CATHOLIC],
       defaultRite: Rite.GREEK_CATHOLIC,
       description: 'Greek Catholic Divine Liturgy',
       specialUsage: null
@@ -126,7 +110,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     {
       key: 'MASS_TITLE.LITURGY_OF_THE_PRESANCTIFIED_GIFTS',
       category: MassTitleCategory.MASS,
-      rites: [{ rite: Rite.GREEK_CATHOLIC }],
+      rites: [Rite.GREEK_CATHOLIC],
       description: 'Greek Catholic Liturgy of Presanctified Gifts',
       specialUsage: null
     },
@@ -135,8 +119,8 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
       key: 'MASS_TITLE.MASS_OF_THE_LORD_S_SUPPER',
       category: MassTitleCategory.MASS,
       rites: [
-        { rite: Rite.ROMAN_CATHOLIC },
-        { rite: Rite.TRADITIONAL }
+        Rite.ROMAN_CATHOLIC,
+        Rite.TRADITIONAL
       ],
       description: 'Mass of the Lord\'s Supper (Holy Thursday)',
       specialUsage: 'EASTER'
@@ -146,8 +130,8 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
       key: 'MASS_TITLE.GOOD_FRIDAY_LITURGY',
       category: MassTitleCategory.MASS,
       rites: [
-        { rite: Rite.ROMAN_CATHOLIC },
-        { rite: Rite.TRADITIONAL }
+        Rite.ROMAN_CATHOLIC,
+        Rite.TRADITIONAL
       ],
       description: 'Good Friday Liturgy of the Passion',
       specialUsage: 'EASTER'
@@ -157,8 +141,8 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
       key: 'MASS_TITLE.EASTER_VIGIL',
       category: MassTitleCategory.MASS,
       rites: [
-        { rite: Rite.ROMAN_CATHOLIC },
-        { rite: Rite.TRADITIONAL }
+        Rite.ROMAN_CATHOLIC,
+        Rite.TRADITIONAL
       ],
       description: 'Easter Vigil Mass',
       specialUsage: 'EASTER'
@@ -167,7 +151,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     {
       key: 'MASS_TITLE.TRADITIONAL_LATIN_MASS',
       category: MassTitleCategory.MASS,
-      rites: [{ rite: Rite.TRADITIONAL, icon: '/assets/icons/rite-traditional.svg' }],
+      rites: [Rite.TRADITIONAL],
       defaultRite: Rite.TRADITIONAL,
       description: 'Traditional Latin Mass (Tridentine Rite)',
       specialUsage: null
@@ -176,7 +160,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     {
       key: 'MASS_TITLE.TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER',
       category: MassTitleCategory.MASS,
-      rites: [{ rite: Rite.TRADITIONAL }],
+      rites: [Rite.TRADITIONAL],
       description: 'Traditional Latin Mass of the Lord\'s Supper',
       specialUsage: 'EASTER'
     },
@@ -184,7 +168,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     {
       key: 'MASS_TITLE.TRADITIONAL_GOOD_FRIDAY_LITURGY',
       category: MassTitleCategory.MASS,
-      rites: [{ rite: Rite.TRADITIONAL }],
+      rites: [Rite.TRADITIONAL],
       description: 'Traditional Latin Good Friday Liturgy',
       specialUsage: 'EASTER'
     },
@@ -192,7 +176,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     {
       key: 'MASS_TITLE.TRADITIONAL_EASTER_VIGIL',
       category: MassTitleCategory.MASS,
-      rites: [{ rite: Rite.TRADITIONAL }],
+      rites: [Rite.TRADITIONAL],
       description: 'Traditional Latin Easter Vigil',
       specialUsage: 'EASTER'
     },
@@ -202,7 +186,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     {
       key: 'MASS_TITLE.ADORATION',
       category: MassTitleCategory.ADORATION,
-      rites: [{ rite: Rite.ROMAN_CATHOLIC }],
+      rites: [Rite.ROMAN_CATHOLIC],
       description: 'Eucharistic Adoration',
       specialUsage: null
     },
@@ -213,8 +197,8 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
       key: 'MASS_TITLE.CONFESSION',
       category: MassTitleCategory.CONFESSION,
       rites: [
-        { rite: Rite.ROMAN_CATHOLIC },
-        { rite: Rite.GREEK_CATHOLIC }
+        Rite.ROMAN_CATHOLIC,
+        Rite.GREEK_CATHOLIC
       ],
       description: 'Confession/Penance service',
       specialUsage: null
@@ -225,7 +209,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     {
       key: 'MASS_TITLE.BREVIARY',
       category: MassTitleCategory.OTHER,
-      rites: [{ rite: Rite.ROMAN_CATHOLIC }],
+      rites: [Rite.ROMAN_CATHOLIC],
       description: 'Liturgy of the Hours (Breviary)',
       specialUsage: null
     },
@@ -233,7 +217,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     {
       key: 'MASS_TITLE.ROSARY',
       category: MassTitleCategory.OTHER,
-      rites: [{ rite: Rite.ROMAN_CATHOLIC }],
+      rites: [Rite.ROMAN_CATHOLIC],
       description: 'Rosary recitation',
       specialUsage: null
     },
@@ -241,7 +225,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     {
       key: 'MASS_TITLE.LITANY',
       category: MassTitleCategory.OTHER,
-      rites: [{ rite: Rite.ROMAN_CATHOLIC }],
+      rites: [Rite.ROMAN_CATHOLIC],
       description: 'Litany service',
       specialUsage: null
     },
@@ -249,7 +233,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     {
       key: 'MASS_TITLE.MATINS',
       category: MassTitleCategory.OTHER,
-      rites: [{ rite: Rite.GREEK_CATHOLIC }],
+      rites: [Rite.GREEK_CATHOLIC],
       description: 'Greek Catholic Matins service',
       specialUsage: null
     },
@@ -257,7 +241,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     {
       key: 'MASS_TITLE.VESPRES',
       category: MassTitleCategory.OTHER,
-      rites: [{ rite: Rite.GREEK_CATHOLIC }],
+      rites: [Rite.GREEK_CATHOLIC],
       description: 'Greek Catholic Vespres service',
       specialUsage: null
     }
@@ -288,7 +272,7 @@ export class MassDefinitionsHelper {
    */
   static getTitlesByRite(rite: Rite): MassDefinition[] {
     return MASS_DEFINITIONS_DATA.definitions.filter(
-      def => def.rites.some(rm => rm.rite === rite)
+      def => def.rites.some(rm => rm === rite)
     );
   }
   

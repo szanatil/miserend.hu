@@ -3,22 +3,12 @@ import { Rite } from '../model/mass';
 import { MassTitleCategory } from '../enum/mass-categories';
 
 /**
- * Rite metadata in the JSON export
- */
-export interface RiteMetadataJsonExport {
-  rite: Rite;
-  icon?: string;
-  color?: string;
-  label?: string;
-}
-
-/**
  * Mass definition in the JSON export
  */
 export interface MassDefinitionJsonExport {
   key: string;
   category: MassTitleCategory;
-  rites: RiteMetadataJsonExport[];
+  rites: Rite[];
   defaultRite?: Rite;
   description: string;
   specialUsage?: 'EASTER' | 'CHRISTMAS' | null;
@@ -98,9 +88,9 @@ export function generateMassDefinitionsJson(): MassDefinitionsJsonOutput {
     }
     
     // Add to rite index (for each rite this definition belongs to)
-    def.rites.forEach((riteMetadata) => {
-      if (titlesByRite[riteMetadata.rite]) {
-        titlesByRite[riteMetadata.rite].push(def.key);
+    def.rites.forEach((rite) => {
+      if (titlesByRite[rite]) {
+        titlesByRite[rite].push(def.key);
       }
     });
   });

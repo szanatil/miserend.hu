@@ -1,7 +1,7 @@
 {
   "_generator": "mass-definitions-export.ts",
   "_warning": "Auto-generated from calendar/src/app/data/mass-definitions.ts during Angular build",
-  "_buildDate": "2026-05-27T08:10:42.560Z",
+  "_buildDate": "2026-05-27T08:16:47.628Z",
   "categories": [
     {
       "key": "MASS",
@@ -36,11 +36,7 @@
       "key": "MASS_TITLE.HOLY_MASS2",
       "category": "MASS",
       "rites": [
-        {
-          "rite": "ROMAN_CATHOLIC",
-          "icon": "/assets/icons/rite-roman-catholic.svg",
-          "color": "#FF5733"
-        }
+        "ROMAN_CATHOLIC"
       ],
       "description": "Roman Catholic Sunday/weekday Mass",
       "specialUsage": null
@@ -49,9 +45,7 @@
       "key": "MASS_TITLE.LITURGY_OF_THE_WORD2",
       "category": "MASS",
       "rites": [
-        {
-          "rite": "ROMAN_CATHOLIC"
-        }
+        "ROMAN_CATHOLIC"
       ],
       "description": "Liturgy of the Word without Eucharist",
       "specialUsage": null
@@ -60,9 +54,7 @@
       "key": "MASS_TITLE.LITURGY_OF_THE_WORD",
       "category": "MASS",
       "rites": [
-        {
-          "rite": "ROMAN_CATHOLIC"
-        }
+        "ROMAN_CATHOLIC"
       ],
       "description": "Liturgy of the Word without Eucharist",
       "specialUsage": null
@@ -71,9 +63,7 @@
       "key": "MASS_TITLE.DIVINE_LITURGY",
       "category": "MASS",
       "rites": [
-        {
-          "rite": "GREEK_CATHOLIC"
-        }
+        "GREEK_CATHOLIC"
       ],
       "defaultRite": "GREEK_CATHOLIC",
       "description": "Greek Catholic Divine Liturgy",
@@ -83,9 +73,7 @@
       "key": "MASS_TITLE.LITURGY_OF_THE_PRESANCTIFIED_GIFTS",
       "category": "MASS",
       "rites": [
-        {
-          "rite": "GREEK_CATHOLIC"
-        }
+        "GREEK_CATHOLIC"
       ],
       "description": "Greek Catholic Liturgy of Presanctified Gifts",
       "specialUsage": null
@@ -94,12 +82,8 @@
       "key": "MASS_TITLE.MASS_OF_THE_LORD_S_SUPPER",
       "category": "MASS",
       "rites": [
-        {
-          "rite": "ROMAN_CATHOLIC"
-        },
-        {
-          "rite": "TRADITIONAL"
-        }
+        "ROMAN_CATHOLIC",
+        "TRADITIONAL"
       ],
       "description": "Mass of the Lord's Supper (Holy Thursday)",
       "specialUsage": "EASTER"
@@ -108,12 +92,8 @@
       "key": "MASS_TITLE.GOOD_FRIDAY_LITURGY",
       "category": "MASS",
       "rites": [
-        {
-          "rite": "ROMAN_CATHOLIC"
-        },
-        {
-          "rite": "TRADITIONAL"
-        }
+        "ROMAN_CATHOLIC",
+        "TRADITIONAL"
       ],
       "description": "Good Friday Liturgy of the Passion",
       "specialUsage": "EASTER"
@@ -122,12 +102,8 @@
       "key": "MASS_TITLE.EASTER_VIGIL",
       "category": "MASS",
       "rites": [
-        {
-          "rite": "ROMAN_CATHOLIC"
-        },
-        {
-          "rite": "TRADITIONAL"
-        }
+        "ROMAN_CATHOLIC",
+        "TRADITIONAL"
       ],
       "description": "Easter Vigil Mass",
       "specialUsage": "EASTER"
@@ -136,10 +112,7 @@
       "key": "MASS_TITLE.TRADITIONAL_LATIN_MASS",
       "category": "MASS",
       "rites": [
-        {
-          "rite": "TRADITIONAL",
-          "icon": "/assets/icons/rite-traditional.svg"
-        }
+        "TRADITIONAL"
       ],
       "defaultRite": "TRADITIONAL",
       "description": "Traditional Latin Mass (Tridentine Rite)",
@@ -149,9 +122,7 @@
       "key": "MASS_TITLE.TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER",
       "category": "MASS",
       "rites": [
-        {
-          "rite": "TRADITIONAL"
-        }
+        "TRADITIONAL"
       ],
       "description": "Traditional Latin Mass of the Lord's Supper",
       "specialUsage": "EASTER"
@@ -160,9 +131,7 @@
       "key": "MASS_TITLE.TRADITIONAL_GOOD_FRIDAY_LITURGY",
       "category": "MASS",
       "rites": [
-        {
-          "rite": "TRADITIONAL"
-        }
+        "TRADITIONAL"
       ],
       "description": "Traditional Latin Good Friday Liturgy",
       "specialUsage": "EASTER"
@@ -171,9 +140,7 @@
       "key": "MASS_TITLE.TRADITIONAL_EASTER_VIGIL",
       "category": "MASS",
       "rites": [
-        {
-          "rite": "TRADITIONAL"
-        }
+        "TRADITIONAL"
       ],
       "description": "Traditional Latin Easter Vigil",
       "specialUsage": "EASTER"
@@ -182,9 +149,7 @@
       "key": "MASS_TITLE.ADORATION",
       "category": "ADORATION",
       "rites": [
-        {
-          "rite": "ROMAN_CATHOLIC"
-        }
+        "ROMAN_CATHOLIC"
       ],
       "description": "Eucharistic Adoration",
       "specialUsage": null
@@ -193,12 +158,8 @@
       "key": "MASS_TITLE.CONFESSION",
       "category": "CONFESSION",
       "rites": [
-        {
-          "rite": "ROMAN_CATHOLIC"
-        },
-        {
-          "rite": "GREEK_CATHOLIC"
-        }
+        "ROMAN_CATHOLIC",
+        "GREEK_CATHOLIC"
       ],
       "description": "Confession/Penance service",
       "specialUsage": null
@@ -207,9 +168,7 @@
       "key": "MASS_TITLE.BREVIARY",
       "category": "OTHER",
       "rites": [
-        {
-          "rite": "ROMAN_CATHOLIC"
-        }
+        "ROMAN_CATHOLIC"
       ],
       "description": "Liturgy of the Hours (Breviary)",
       "specialUsage": null
@@ -218,9 +177,7 @@
       "key": "MASS_TITLE.ROSARY",
       "category": "OTHER",
       "rites": [
-        {
-          "rite": "ROMAN_CATHOLIC"
-        }
+        "ROMAN_CATHOLIC"
       ],
       "description": "Rosary recitation",
       "specialUsage": null
@@ -229,9 +186,7 @@
       "key": "MASS_TITLE.LITANY",
       "category": "OTHER",
       "rites": [
-        {
-          "rite": "ROMAN_CATHOLIC"
-        }
+        "ROMAN_CATHOLIC"
       ],
       "description": "Litany service",
       "specialUsage": null
@@ -240,9 +195,7 @@
       "key": "MASS_TITLE.MATINS",
       "category": "OTHER",
       "rites": [
-        {
-          "rite": "GREEK_CATHOLIC"
-        }
+        "GREEK_CATHOLIC"
       ],
       "description": "Greek Catholic Matins service",
       "specialUsage": null
@@ -251,9 +204,7 @@
       "key": "MASS_TITLE.VESPRES",
       "category": "OTHER",
       "rites": [
-        {
-          "rite": "GREEK_CATHOLIC"
-        }
+        "GREEK_CATHOLIC"
       ],
       "description": "Greek Catholic Vespres service",
       "specialUsage": null
