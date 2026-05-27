@@ -604,7 +604,7 @@
                         <input type="hidden" name="rites[must_not]" id="rites_must_not" value="">
                     </div>
     
-                    {# Button group for categories: cycles neutral -> success -> danger -> neutral #}
+                    {# Button group for categories: simple toggle between neutral and green #}
                     <div class="form-group row">
                         <label class="col-sm-4 control-label">Kategóriák</label>
                         <div class="col-sm-8">
@@ -617,45 +617,40 @@
                                 {% endfor %}
                             </div>
     
-                            <div style="margin-top:6px; font-size:0.9em; color:#666">Kattints a gombra: zöld = legyen (should)</div>
+                            <div style="margin-top:6px; font-size:0.9em; color:#666">Kattints a gombra: zöld = legyen</div>
                             
-                            {# Per-category hidden flags: .should (green) only. #}
-                            {# Dynamically generated from categories array #}
-                            {% for category in categories %}
-                                <input type="hidden" name="categories[{{ category.key }}][should]" id="categories_{{ category.key }}_should" value="">
-                            {% endfor %}
+                            {# Single input for selected categories #}
+                            <input type="hidden" name="categories" id="categories_list" value="">
                         </div>
                     </div>
     
                     <script>
                         (function($){
-                            function updateCategoryHiddenInputs() {
-                                
-                                // Dynamically iterate through all categories and collect their states
+                            function updateCategoriesList() {
+                                // Collect all green (state 1) categories
+                                var selectedCategories = [];
                                 $('.category-toggle').each(function(){
-                                    var $btn = $(this);
-                                    var category = $btn.data('category');
-                                    var state = Number($btn.data('state')) || 0;
-                                    
-                                    // Only green (state 1) gets added to should, neutral (state 0) adds nothing
-                                    var shouldVal = state === 1 ? category : '';
-                                    
-                                    // Update the hidden inputs for this category
-                                    $('#categories_' + category + '_should').val(shouldVal);
+                                    var state = Number($(this).data('state')) || 0;
+                                    if (state === 1) {
+                                        selectedCategories.push($(this).data('category'));
+                                    }
                                 });
+                                
+                                // Update the hidden input with comma-separated list
+                                $('#categories_list').val(selectedCategories.join(','));
                             }
-        
+            
                             function applyCategoryState($btn, state) {
-                                // state: 0 neutral, 1 success (green) - no red option for categories
+                                // state: 0 neutral, 1 success (green)
                                 $btn.data('state', state);
-                                $btn.removeClass('btn-light btn-success btn-danger');
+                                $btn.removeClass('btn-light btn-success');
                                 if (state === 0) {
                                     $btn.addClass('btn-light');
                                 } else if (state === 1) {
                                     $btn.addClass('btn-success');
                                 }
                             }
-        
+            
                             $(function(){
                                 // Initialize: MASS is green by default, others neutral
                                 $('.category-toggle').each(function(){
@@ -666,19 +661,19 @@
                                         applyCategoryState($(this), 0);
                                     }
                                 });
-        
-                                // Click handler: cycle through states 0 -> 1 -> 0 (no red option)
+            
+                                // Click handler: toggle between neutral and green
                                 $(document).on('click', '.category-toggle', function(e){
                                     e.preventDefault();
                                     var $btn = $(this);
                                     var state = Number($btn.data('state')) || 0;
                                     var next = (state + 1) % 2;
                                     applyCategoryState($btn, next);
-                                    updateCategoryHiddenInputs();
+                                    updateCategoriesList();
                                 });
-        
+            
                                 // Update on init
-                                updateCategoryHiddenInputs();
+                                updateCategoriesList();
                             });
                         })(jQuery);
                     </script>
