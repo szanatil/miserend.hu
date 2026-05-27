@@ -1,7 +1,7 @@
 {
   "_generator": "mass-definitions-export.ts",
   "_warning": "Auto-generated from calendar/src/app/data/mass-definitions.ts during Angular build",
-  "_buildDate": "2026-05-27T09:13:36.931Z",
+  "_buildDate": "2026-05-27T16:44:09.655Z",
   "categories": [
     {
       "key": "MASS",
@@ -64,16 +64,7 @@
       "rites": [
         "ROMAN_CATHOLIC"
       ],
-      "description": "Liturgy of the Word without Eucharist",
-      "specialUsage": null
-    },
-    {
-      "key": "LITURGY_OF_THE_WORD",
-      "category": "MASS",
-      "rites": [
-        "ROMAN_CATHOLIC"
-      ],
-      "description": "Liturgy of the Word without Eucharist",
+      "description": "Liturgy of the Word",
       "specialUsage": null
     },
     {
@@ -134,33 +125,6 @@
       "defaultRite": "TRADITIONAL",
       "description": "Traditional Latin Mass (Tridentine Rite)",
       "specialUsage": null
-    },
-    {
-      "key": "TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER",
-      "category": "MASS",
-      "rites": [
-        "TRADITIONAL"
-      ],
-      "description": "Traditional Latin Mass of the Lord's Supper",
-      "specialUsage": "EASTER"
-    },
-    {
-      "key": "TRADITIONAL_GOOD_FRIDAY_LITURGY",
-      "category": "MASS",
-      "rites": [
-        "TRADITIONAL"
-      ],
-      "description": "Traditional Latin Good Friday Liturgy",
-      "specialUsage": "EASTER"
-    },
-    {
-      "key": "TRADITIONAL_EASTER_VIGIL",
-      "category": "MASS",
-      "rites": [
-        "TRADITIONAL"
-      ],
-      "description": "Traditional Latin Easter Vigil",
-      "specialUsage": "EASTER"
     },
     {
       "key": "ADORATION",
@@ -229,18 +193,14 @@
   ],
   "titlesByCategory": {
     "MASS": [
-      "MASS_TITLE.HOLY_MASS2",
-      "MASS_TITLE.LITURGY_OF_THE_WORD2",
+      "MASS_TITLE.HOLY_MASS",
       "MASS_TITLE.LITURGY_OF_THE_WORD",
       "MASS_TITLE.DIVINE_LITURGY",
       "MASS_TITLE.LITURGY_OF_THE_PRESANCTIFIED_GIFTS",
       "MASS_TITLE.MASS_OF_THE_LORD_S_SUPPER",
       "MASS_TITLE.GOOD_FRIDAY_LITURGY",
       "MASS_TITLE.EASTER_VIGIL",
-      "MASS_TITLE.TRADITIONAL_LATIN_MASS",
-      "MASS_TITLE.TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER",
-      "MASS_TITLE.TRADITIONAL_GOOD_FRIDAY_LITURGY",
-      "MASS_TITLE.TRADITIONAL_EASTER_VIGIL"
+      "MASS_TITLE.TRADITIONAL_LATIN_MASS"
     ],
     "ADORATION": [
       "MASS_TITLE.ADORATION"
@@ -258,8 +218,7 @@
   },
   "titlesByRite": {
     "ROMAN_CATHOLIC": [
-      "MASS_TITLE.HOLY_MASS2",
-      "MASS_TITLE.LITURGY_OF_THE_WORD2",
+      "MASS_TITLE.HOLY_MASS",
       "MASS_TITLE.LITURGY_OF_THE_WORD",
       "MASS_TITLE.MASS_OF_THE_LORD_S_SUPPER",
       "MASS_TITLE.GOOD_FRIDAY_LITURGY",
@@ -281,10 +240,7 @@
       "MASS_TITLE.MASS_OF_THE_LORD_S_SUPPER",
       "MASS_TITLE.GOOD_FRIDAY_LITURGY",
       "MASS_TITLE.EASTER_VIGIL",
-      "MASS_TITLE.TRADITIONAL_LATIN_MASS",
-      "MASS_TITLE.TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER",
-      "MASS_TITLE.TRADITIONAL_GOOD_FRIDAY_LITURGY",
-      "MASS_TITLE.TRADITIONAL_EASTER_VIGIL"
+      "MASS_TITLE.TRADITIONAL_LATIN_MASS"
     ]
   }
 }
