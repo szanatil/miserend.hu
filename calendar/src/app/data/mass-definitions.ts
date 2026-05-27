@@ -69,13 +69,13 @@ export interface MassDefinitionsData {
  * Ez a SINGLE SOURCE OF TRUTH az összes misekategória és rite adatra
  */
 export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
-  version: '1.0.0',
+  version: '1.0.1',
   lastUpdated: '2026-05-27',
   definitions: [
     // ============ MASS kategória ============
 
     {
-      key: 'HOLY_MASS2',
+      key: 'HOLY_MASS',
       category: MassTitleCategory.MASS,
       rites: [Rite.ROMAN_CATHOLIC],
       description: 'Roman Catholic Sunday/weekday Mass',
@@ -83,18 +83,10 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     },
 
     {
-      key: 'LITURGY_OF_THE_WORD2',
-      category: MassTitleCategory.MASS,
-      rites: [Rite.ROMAN_CATHOLIC],
-      description: 'Liturgy of the Word without Eucharist',
-      specialUsage: null
-    },
-
-    {
       key: 'LITURGY_OF_THE_WORD',
       category: MassTitleCategory.MASS,
       rites: [Rite.ROMAN_CATHOLIC],
-      description: 'Liturgy of the Word without Eucharist',
+      description: 'Liturgy of the Word',
       specialUsage: null
     },
 
@@ -156,30 +148,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
       description: 'Traditional Latin Mass (Tridentine Rite)',
       specialUsage: null
     },
-
-    {
-      key: 'TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER',
-      category: MassTitleCategory.MASS,
-      rites: [Rite.TRADITIONAL],
-      description: 'Traditional Latin Mass of the Lord\'s Supper',
-      specialUsage: 'EASTER'
-    },
-
-    {
-      key: 'TRADITIONAL_GOOD_FRIDAY_LITURGY',
-      category: MassTitleCategory.MASS,
-      rites: [Rite.TRADITIONAL],
-      description: 'Traditional Latin Good Friday Liturgy',
-      specialUsage: 'EASTER'
-    },
-
-    {
-      key: 'TRADITIONAL_EASTER_VIGIL',
-      category: MassTitleCategory.MASS,
-      rites: [Rite.TRADITIONAL],
-      description: 'Traditional Latin Easter Vigil',
-      specialUsage: 'EASTER'
-    },
+    
 
     // ============ ADORATION kategória ============
 
