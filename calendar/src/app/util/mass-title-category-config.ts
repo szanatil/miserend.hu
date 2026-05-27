@@ -1,4 +1,4 @@
-import { MassTitleCategory } from '../enum/mass-title-category';
+import { MassTitleCategory } from '../enum/mass-categories';
 import { TranslateService } from '@ngx-translate/core';
 import { MASS_DEFINITIONS_DATA, MassDefinitionsHelper } from '../data/mass-definitions';
 
@@ -10,22 +10,15 @@ import { MASS_DEFINITIONS_DATA, MassDefinitionsHelper } from '../data/mass-defin
 export class MassTitleCategoryConfig {
   /**
    * Kategória színek: a MASS_DEFINITIONS_DATA-ból lekérdezve
-   * Fallback: halványabb árnyalatok, megfelelőek fehér szöveghez
+   * Minden szín a centralizált adatforrásból származik, nincs fallback
    */
   static get CATEGORY_COLORS(): Record<MassTitleCategory, string> {
-    const colors: Record<MassTitleCategory, string> = {
-      [MassTitleCategory.MASS]: '#0A0A0A',
-      [MassTitleCategory.ADORATION]: '#C4B5A0',
-      [MassTitleCategory.CONFESSION]: '#7A4D9A',
-      [MassTitleCategory.OTHER]: '#A8B8D0'
-    };
+    const colors: Record<MassTitleCategory, string> = {} as Record<MassTitleCategory, string>;
 
-    // Felülírjuk a MASS_DEFINITIONS_DATA-ból
+    // Kategóriák és színek dinamikusan a MASS_DEFINITIONS_DATA-ból
     for (const categoryDef of MASS_DEFINITIONS_DATA.categories) {
       const key = categoryDef.key as MassTitleCategory;
-      if (categoryDef.color) {
-        colors[key] = categoryDef.color;
-      }
+      colors[key] = categoryDef.color;
     }
 
     return colors;
@@ -33,14 +26,16 @@ export class MassTitleCategoryConfig {
 
   /**
    * Kategória-cím párosítások (i18n key-ek) a MASS_DEFINITIONS_DATA-ból
+   * Dinamikusan generálva, kategóriák a MASS_DEFINITIONS_DATA-ból
    */
   static get CATEGORY_TITLES(): Record<MassTitleCategory, string[]> {
-    const titles: Record<MassTitleCategory, string[]> = {
-      [MassTitleCategory.MASS]: [],
-      [MassTitleCategory.ADORATION]: [],
-      [MassTitleCategory.CONFESSION]: [],
-      [MassTitleCategory.OTHER]: []
-    };
+    // Inicializáljuk az összes kategóriát dinamikusan
+    const titles: Record<MassTitleCategory, string[]> = {} as Record<MassTitleCategory, string[]>;
+    
+    for (const categoryDef of MASS_DEFINITIONS_DATA.categories) {
+      const key = categoryDef.key as MassTitleCategory;
+      titles[key] = [];
+    }
 
     // Felépítjük a kategóriák alapján a MASS_DEFINITIONS_DATA-ból
     for (const definition of MASS_DEFINITIONS_DATA.definitions) {
@@ -62,12 +57,13 @@ export class MassTitleCategoryConfig {
    * @param translate A TranslateService az i18n értékek lekéréséhez
    */
   static getTranslatedValues(translate: TranslateService): Record<MassTitleCategory, string[]> {
-    const translatedValues: Record<MassTitleCategory, string[]> = {
-      [MassTitleCategory.MASS]: [],
-      [MassTitleCategory.ADORATION]: [],
-      [MassTitleCategory.CONFESSION]: [],
-      [MassTitleCategory.OTHER]: []
-    };
+    // Inicializáljuk az összes kategóriát dinamikusan
+    const translatedValues: Record<MassTitleCategory, string[]> = {} as Record<MassTitleCategory, string[]>;
+    
+    for (const categoryDef of MASS_DEFINITIONS_DATA.categories) {
+      const key = categoryDef.key as MassTitleCategory;
+      translatedValues[key] = [];
+    }
 
     // Végigmegyünk az összes kategórián és i18n kulcson
     for (const [category, titleKeys] of Object.entries(this.CATEGORY_TITLES)) {
@@ -105,7 +101,8 @@ export class MassTitleCategoryConfig {
    */
   static getCategoryByTitle(title: string, translate?: TranslateService): MassTitleCategory {
     if (!title) {
-      return MassTitleCategory.OTHER;
+      // Default kategória az MASS_DEFINITIONS_DATA-ból
+      return MASS_DEFINITIONS_DATA.categories[MASS_DEFINITIONS_DATA.categories.length - 1].key as MassTitleCategory;
     }
 
     // Először próbáljuk meg az i18n key alapján (pl. "MASS_TITLE.ADORATION")
@@ -117,7 +114,8 @@ export class MassTitleCategoryConfig {
 
     // Lekérjük a lefordított értékeket
     if (!translate) {
-      return MassTitleCategory.OTHER;
+      // Default kategória az MASS_DEFINITIONS_DATA-ból
+      return MASS_DEFINITIONS_DATA.categories[MASS_DEFINITIONS_DATA.categories.length - 1].key as MassTitleCategory;
     }
 
     const translatedValuesToUse = this.getTranslatedValues(translate);
@@ -139,7 +137,8 @@ export class MassTitleCategoryConfig {
       }
     }
 
-    return MassTitleCategory.OTHER;
+    // Default kategória az MASS_DEFINITIONS_DATA-ból
+    return MASS_DEFINITIONS_DATA.categories[MASS_DEFINITIONS_DATA.categories.length - 1].key as MassTitleCategory;
   }
 
   /**

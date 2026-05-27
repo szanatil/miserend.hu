@@ -13,7 +13,7 @@ import {ChristmasDay} from "../enum/christmas-day";
 import {EasterDay} from "../enum/easter-day";
 import {Day} from "../enum/day";
 import {SpecialType} from "../model/period";
-import {MassTitleCategory} from '../enum/mass-title-category';
+import {MassTitleCategory} from '../enum/mass-categories';
 import {MassTitleCategoryConfig} from './mass-title-category-config';
 import {MASS_DEFINITIONS_DATA, MassDefinitionsHelper} from '../data/mass-definitions';
 

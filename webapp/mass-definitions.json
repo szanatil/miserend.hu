@@ -1,7 +1,7 @@
 {
   "_generator": "mass-definitions-export.ts",
   "_warning": "Auto-generated from calendar/src/app/data/mass-definitions.ts during Angular build",
-  "_buildDate": "2026-05-27T07:11:31.924Z",
+  "_buildDate": "2026-05-27T08:10:42.560Z",
   "categories": [
     {
       "key": "MASS",

@@ -1,4 +1,4 @@
-import { MassTitleCategory } from '../../enum/mass-title-category';
+import { MassTitleCategory } from '../../enum/mass-categories';
 
 export interface ExtendedProps {
   massId?: number;

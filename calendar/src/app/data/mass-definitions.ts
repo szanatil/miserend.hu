@@ -1,4 +1,4 @@
-import { MassTitleCategory } from '../enum/mass-title-category';
+import { MassTitleCategory, MASS_CATEGORY_DEFINITIONS, type MassTitleCategory as MassTitleCategoryType } from '../enum/mass-categories';
 import { Rite } from '../model/mass';
 
 /**
@@ -43,6 +43,17 @@ export interface CategoryDefinition {
   key: MassTitleCategory;
   color: string;
 }
+
+/**
+ * Kategóriák automatikus generálása a MASTER SOURCE OF TRUTH-ból
+ * MASS_CATEGORY_DEFINITIONS az egyetlen hely az értékek definiálásához!
+ */
+const generateCategories = (): CategoryDefinition[] => {
+  return MASS_CATEGORY_DEFINITIONS.map(({ key, color }) => ({
+    key: key as MassTitleCategory,
+    color
+  }));
+};
 
 /**
  * Rite-cím párosítás (TypeScript verzió - titleKeys NÉLKÜL)
@@ -252,24 +263,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     }
   ],
 
-  categories: [
-    {
-      key: MassTitleCategory.MASS,
-      color: '#0A0A0A'
-    },
-    {
-      key: MassTitleCategory.ADORATION,
-      color: '#C4B5A0'
-    },
-    {
-      key: MassTitleCategory.CONFESSION,
-      color: '#7A4D9A'
-    },
-    {
-      key: MassTitleCategory.OTHER,
-      color: '#A8B8D0'
-    }
-  ],
+  categories: generateCategories(),
 
   rites: [
     {

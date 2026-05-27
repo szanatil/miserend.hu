@@ -1,6 +1,6 @@
 import { MASS_DEFINITIONS_DATA, MassDefinition, CategoryDefinition, RiteDefinition } from './mass-definitions';
 import { Rite } from '../model/mass';
-import { MassTitleCategory } from '../enum/mass-title-category';
+import { MassTitleCategory } from '../enum/mass-categories';
 
 /**
  * Rite metadata in the JSON export
