@@ -5,9 +5,8 @@
 
 {% set pageTitle = 'Miserend' %}
 
-{% if "miserend" in user.roles %}
-		{% set columns2 = true  %}		
-{% endif %}
+{% set columns2 = true  %}		
+
 
 {# Macro to render a type-toggle button. Usage: {{ macros.type_button('FAMILY', 'Family') }} #}
 {% macro type_button(type, special=false) %}
@@ -604,8 +603,87 @@
                         <input type="hidden" name="rites[should]" id="rites_should" value="">
                         <input type="hidden" name="rites[must_not]" id="rites_must_not" value="">
                     </div>
-                </div>
-
+    
+                    {# Button group for categories: cycles neutral -> success -> danger -> neutral #}
+                    <div class="form-group row">
+                        <label class="col-sm-4 control-label">Kategóriák</label>
+                        <div class="col-sm-8">
+                            {# Dynamic categories loop - generated from mass-definitions.json #}
+                            <div class="btn-group" role="group" aria-label="Category filters" id="category_group" style="display: flex; flex-wrap: wrap;">
+                                {% for category in categories %}
+                                    <button type="button" class="btn btn-light category-toggle" data-category="{{ category.key }}" data-state="0" style="padding:6px; margin-right:0px; margin-bottom:4px">
+                                        {{ ("MASS_TITLE_CATEGORY." ~ category.key)|trans }}
+                                    </button>
+                                {% endfor %}
+                            </div>
+    
+                            <div style="margin-top:6px; font-size:0.9em; color:#666">Kattints a gombra: zöld = legyen (should)</div>
+                            
+                            {# Per-category hidden flags: .should (green) only. #}
+                            {# Dynamically generated from categories array #}
+                            {% for category in categories %}
+                                <input type="hidden" name="categories[{{ category.key }}][should]" id="categories_{{ category.key }}_should" value="">
+                            {% endfor %}
+                        </div>
+                    </div>
+    
+                    <script>
+                        (function($){
+                            function updateCategoryHiddenInputs() {
+                                
+                                // Dynamically iterate through all categories and collect their states
+                                $('.category-toggle').each(function(){
+                                    var $btn = $(this);
+                                    var category = $btn.data('category');
+                                    var state = Number($btn.data('state')) || 0;
+                                    
+                                    // Only green (state 1) gets added to should, neutral (state 0) adds nothing
+                                    var shouldVal = state === 1 ? category : '';
+                                    
+                                    // Update the hidden inputs for this category
+                                    $('#categories_' + category + '_should').val(shouldVal);
+                                });
+                            }
+        
+                            function applyCategoryState($btn, state) {
+                                // state: 0 neutral, 1 success (green) - no red option for categories
+                                $btn.data('state', state);
+                                $btn.removeClass('btn-light btn-success btn-danger');
+                                if (state === 0) {
+                                    $btn.addClass('btn-light');
+                                } else if (state === 1) {
+                                    $btn.addClass('btn-success');
+                                }
+                            }
+        
+                            $(function(){
+                                // Initialize: MASS is green by default, others neutral
+                                $('.category-toggle').each(function(){
+                                    var category = $(this).data('category');
+                                    if (category === 'MASS') {
+                                        applyCategoryState($(this), 1);
+                                    } else {
+                                        applyCategoryState($(this), 0);
+                                    }
+                                });
+        
+                                // Click handler: cycle through states 0 -> 1 -> 0 (no red option)
+                                $(document).on('click', '.category-toggle', function(e){
+                                    e.preventDefault();
+                                    var $btn = $(this);
+                                    var state = Number($btn.data('state')) || 0;
+                                    var next = (state + 1) % 2;
+                                    applyCategoryState($btn, next);
+                                    updateCategoryHiddenInputs();
+                                });
+        
+                                // Update on init
+                                updateCategoryHiddenInputs();
+                            });
+                        })(jQuery);
+                    </script>
+    
+                 </div>
                 <script>
                     (function($){
                         function updateHiddenInputs() {
@@ -742,9 +820,48 @@
             </div>
 
             <div align=center class="form-group" style="margin-top:12px">
-                <button type=submit name="q" value="SearchResultsMasses"  class="btn btn-primary">Mise keresése</button>
+                <button type=submit name="q" value="SearchResultsMasses"  class="btn btn-primary" id="search_masses_btn"></button>
                 <button type=submit name="q" value="SearchResultsChurches"  class="btn btn-primary">Templom keresése</button>
             </div>
+            
+            <script>
+                (function($){
+                    function updateMassesButtonText() {
+                        // Count selected categories (state === 1)
+                        var selectedCategories = [];
+                        $('.category-toggle').each(function(){
+                            var state = Number($(this).data('state')) || 0;
+                            if (state === 1) {
+                                selectedCategories.push({
+                                    key: $(this).data('category'),
+                                    text: $(this).text().trim()
+                                });
+                            }
+                        });
+                        
+                        var $btn = $('#search_masses_btn');
+                        if (selectedCategories.length === 1) {
+                            // Show the category name with "keresése"
+                            $btn.text(selectedCategories[0].text + ' keresése');
+                        } else {
+                            // Default text
+                            $btn.text('Események keresése');
+                        }
+                    }
+                    
+                    // Update on category button clicks
+                    $(document).on('click', '.category-toggle', function(){
+                        setTimeout(function(){
+                            updateMassesButtonText();
+                        }, 0);
+                    });
+                    
+                    // Update on init
+                    $(function(){
+                        updateMassesButtonText();
+                    });
+                })(jQuery);
+            </script>
 
         </form>
     </div>
