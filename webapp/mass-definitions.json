@@ -1,0 +1,322 @@
+{
+  "_generator": "mass-definitions-export.ts",
+  "_warning": "Auto-generated from calendar/src/app/data/mass-definitions.ts during Angular build",
+  "_buildDate": "2026-05-27T07:11:31.924Z",
+  "categories": [
+    {
+      "key": "MASS",
+      "color": "#0A0A0A"
+    },
+    {
+      "key": "ADORATION",
+      "color": "#C4B5A0"
+    },
+    {
+      "key": "CONFESSION",
+      "color": "#7A4D9A"
+    },
+    {
+      "key": "OTHER",
+      "color": "#A8B8D0"
+    }
+  ],
+  "rites": [
+    {
+      "key": "ROMAN_CATHOLIC"
+    },
+    {
+      "key": "GREEK_CATHOLIC"
+    },
+    {
+      "key": "TRADITIONAL"
+    }
+  ],
+  "definitions": [
+    {
+      "key": "MASS_TITLE.HOLY_MASS2",
+      "category": "MASS",
+      "rites": [
+        {
+          "rite": "ROMAN_CATHOLIC",
+          "icon": "/assets/icons/rite-roman-catholic.svg",
+          "color": "#FF5733"
+        }
+      ],
+      "description": "Roman Catholic Sunday/weekday Mass",
+      "specialUsage": null
+    },
+    {
+      "key": "MASS_TITLE.LITURGY_OF_THE_WORD2",
+      "category": "MASS",
+      "rites": [
+        {
+          "rite": "ROMAN_CATHOLIC"
+        }
+      ],
+      "description": "Liturgy of the Word without Eucharist",
+      "specialUsage": null
+    },
+    {
+      "key": "MASS_TITLE.LITURGY_OF_THE_WORD",
+      "category": "MASS",
+      "rites": [
+        {
+          "rite": "ROMAN_CATHOLIC"
+        }
+      ],
+      "description": "Liturgy of the Word without Eucharist",
+      "specialUsage": null
+    },
+    {
+      "key": "MASS_TITLE.DIVINE_LITURGY",
+      "category": "MASS",
+      "rites": [
+        {
+          "rite": "GREEK_CATHOLIC"
+        }
+      ],
+      "defaultRite": "GREEK_CATHOLIC",
+      "description": "Greek Catholic Divine Liturgy",
+      "specialUsage": null
+    },
+    {
+      "key": "MASS_TITLE.LITURGY_OF_THE_PRESANCTIFIED_GIFTS",
+      "category": "MASS",
+      "rites": [
+        {
+          "rite": "GREEK_CATHOLIC"
+        }
+      ],
+      "description": "Greek Catholic Liturgy of Presanctified Gifts",
+      "specialUsage": null
+    },
+    {
+      "key": "MASS_TITLE.MASS_OF_THE_LORD_S_SUPPER",
+      "category": "MASS",
+      "rites": [
+        {
+          "rite": "ROMAN_CATHOLIC"
+        },
+        {
+          "rite": "TRADITIONAL"
+        }
+      ],
+      "description": "Mass of the Lord's Supper (Holy Thursday)",
+      "specialUsage": "EASTER"
+    },
+    {
+      "key": "MASS_TITLE.GOOD_FRIDAY_LITURGY",
+      "category": "MASS",
+      "rites": [
+        {
+          "rite": "ROMAN_CATHOLIC"
+        },
+        {
+          "rite": "TRADITIONAL"
+        }
+      ],
+      "description": "Good Friday Liturgy of the Passion",
+      "specialUsage": "EASTER"
+    },
+    {
+      "key": "MASS_TITLE.EASTER_VIGIL",
+      "category": "MASS",
+      "rites": [
+        {
+          "rite": "ROMAN_CATHOLIC"
+        },
+        {
+          "rite": "TRADITIONAL"
+        }
+      ],
+      "description": "Easter Vigil Mass",
+      "specialUsage": "EASTER"
+    },
+    {
+      "key": "MASS_TITLE.TRADITIONAL_LATIN_MASS",
+      "category": "MASS",
+      "rites": [
+        {
+          "rite": "TRADITIONAL",
+          "icon": "/assets/icons/rite-traditional.svg"
+        }
+      ],
+      "defaultRite": "TRADITIONAL",
+      "description": "Traditional Latin Mass (Tridentine Rite)",
+      "specialUsage": null
+    },
+    {
+      "key": "MASS_TITLE.TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER",
+      "category": "MASS",
+      "rites": [
+        {
+          "rite": "TRADITIONAL"
+        }
+      ],
+      "description": "Traditional Latin Mass of the Lord's Supper",
+      "specialUsage": "EASTER"
+    },
+    {
+      "key": "MASS_TITLE.TRADITIONAL_GOOD_FRIDAY_LITURGY",
+      "category": "MASS",
+      "rites": [
+        {
+          "rite": "TRADITIONAL"
+        }
+      ],
+      "description": "Traditional Latin Good Friday Liturgy",
+      "specialUsage": "EASTER"
+    },
+    {
+      "key": "MASS_TITLE.TRADITIONAL_EASTER_VIGIL",
+      "category": "MASS",
+      "rites": [
+        {
+          "rite": "TRADITIONAL"
+        }
+      ],
+      "description": "Traditional Latin Easter Vigil",
+      "specialUsage": "EASTER"
+    },
+    {
+      "key": "MASS_TITLE.ADORATION",
+      "category": "ADORATION",
+      "rites": [
+        {
+          "rite": "ROMAN_CATHOLIC"
+        }
+      ],
+      "description": "Eucharistic Adoration",
+      "specialUsage": null
+    },
+    {
+      "key": "MASS_TITLE.CONFESSION",
+      "category": "CONFESSION",
+      "rites": [
+        {
+          "rite": "ROMAN_CATHOLIC"
+        },
+        {
+          "rite": "GREEK_CATHOLIC"
+        }
+      ],
+      "description": "Confession/Penance service",
+      "specialUsage": null
+    },
+    {
+      "key": "MASS_TITLE.BREVIARY",
+      "category": "OTHER",
+      "rites": [
+        {
+          "rite": "ROMAN_CATHOLIC"
+        }
+      ],
+      "description": "Liturgy of the Hours (Breviary)",
+      "specialUsage": null
+    },
+    {
+      "key": "MASS_TITLE.ROSARY",
+      "category": "OTHER",
+      "rites": [
+        {
+          "rite": "ROMAN_CATHOLIC"
+        }
+      ],
+      "description": "Rosary recitation",
+      "specialUsage": null
+    },
+    {
+      "key": "MASS_TITLE.LITANY",
+      "category": "OTHER",
+      "rites": [
+        {
+          "rite": "ROMAN_CATHOLIC"
+        }
+      ],
+      "description": "Litany service",
+      "specialUsage": null
+    },
+    {
+      "key": "MASS_TITLE.MATINS",
+      "category": "OTHER",
+      "rites": [
+        {
+          "rite": "GREEK_CATHOLIC"
+        }
+      ],
+      "description": "Greek Catholic Matins service",
+      "specialUsage": null
+    },
+    {
+      "key": "MASS_TITLE.VESPRES",
+      "category": "OTHER",
+      "rites": [
+        {
+          "rite": "GREEK_CATHOLIC"
+        }
+      ],
+      "description": "Greek Catholic Vespres service",
+      "specialUsage": null
+    }
+  ],
+  "titlesByCategory": {
+    "MASS": [
+      "MASS_TITLE.HOLY_MASS2",
+      "MASS_TITLE.LITURGY_OF_THE_WORD2",
+      "MASS_TITLE.LITURGY_OF_THE_WORD",
+      "MASS_TITLE.DIVINE_LITURGY",
+      "MASS_TITLE.LITURGY_OF_THE_PRESANCTIFIED_GIFTS",
+      "MASS_TITLE.MASS_OF_THE_LORD_S_SUPPER",
+      "MASS_TITLE.GOOD_FRIDAY_LITURGY",
+      "MASS_TITLE.EASTER_VIGIL",
+      "MASS_TITLE.TRADITIONAL_LATIN_MASS",
+      "MASS_TITLE.TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER",
+      "MASS_TITLE.TRADITIONAL_GOOD_FRIDAY_LITURGY",
+      "MASS_TITLE.TRADITIONAL_EASTER_VIGIL"
+    ],
+    "ADORATION": [
+      "MASS_TITLE.ADORATION"
+    ],
+    "CONFESSION": [
+      "MASS_TITLE.CONFESSION"
+    ],
+    "OTHER": [
+      "MASS_TITLE.BREVIARY",
+      "MASS_TITLE.ROSARY",
+      "MASS_TITLE.LITANY",
+      "MASS_TITLE.MATINS",
+      "MASS_TITLE.VESPRES"
+    ]
+  },
+  "titlesByRite": {
+    "ROMAN_CATHOLIC": [
+      "MASS_TITLE.HOLY_MASS2",
+      "MASS_TITLE.LITURGY_OF_THE_WORD2",
+      "MASS_TITLE.LITURGY_OF_THE_WORD",
+      "MASS_TITLE.MASS_OF_THE_LORD_S_SUPPER",
+      "MASS_TITLE.GOOD_FRIDAY_LITURGY",
+      "MASS_TITLE.EASTER_VIGIL",
+      "MASS_TITLE.ADORATION",
+      "MASS_TITLE.CONFESSION",
+      "MASS_TITLE.BREVIARY",
+      "MASS_TITLE.ROSARY",
+      "MASS_TITLE.LITANY"
+    ],
+    "GREEK_CATHOLIC": [
+      "MASS_TITLE.DIVINE_LITURGY",
+      "MASS_TITLE.LITURGY_OF_THE_PRESANCTIFIED_GIFTS",
+      "MASS_TITLE.CONFESSION",
+      "MASS_TITLE.MATINS",
+      "MASS_TITLE.VESPRES"
+    ],
+    "TRADITIONAL": [
+      "MASS_TITLE.MASS_OF_THE_LORD_S_SUPPER",
+      "MASS_TITLE.GOOD_FRIDAY_LITURGY",
+      "MASS_TITLE.EASTER_VIGIL",
+      "MASS_TITLE.TRADITIONAL_LATIN_MASS",
+      "MASS_TITLE.TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER",
+      "MASS_TITLE.TRADITIONAL_GOOD_FRIDAY_LITURGY",
+      "MASS_TITLE.TRADITIONAL_EASTER_VIGIL"
+    ]
+  }
+}

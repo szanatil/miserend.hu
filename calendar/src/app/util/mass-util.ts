@@ -15,6 +15,7 @@ import {Day} from "../enum/day";
 import {SpecialType} from "../model/period";
 import {MassTitleCategory} from '../enum/mass-title-category';
 import {MassTitleCategoryConfig} from './mass-title-category-config';
+import {MASS_DEFINITIONS_DATA, MassDefinitionsHelper} from '../data/mass-definitions';
 
 export class MassUtil {
 
@@ -357,39 +358,8 @@ export class MassUtil {
   }
 
   public static getTitles(rite: Rite): string[] {
-    let titles: string[];
-
-    if (rite === Rite.TRADITIONAL) {
-      titles = [
-        "MASS_TITLE.TRADITIONAL_LATIN_MASS",
-        "MASS_TITLE.TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER",
-        "MASS_TITLE.TRADITIONAL_GOOD_FRIDAY_LITURGY",
-        "MASS_TITLE.TRADITIONAL_EASTER_VIGIL"
-      ];
-    } else if (rite === Rite.GREEK_CATHOLIC) {
-      titles = [
-        "MASS_TITLE.DIVINE_LITURGY",
-        "MASS_TITLE.LITURGY_OF_THE_PRESANCTIFIED_GIFTS",
-        "MASS_TITLE.MATINS",
-        "MASS_TITLE.VESPRES",
-        "MASS_TITLE.CONFESSION"
-      ];
-    } else {
-      titles = [
-        "MASS_TITLE.HOLY_MASS",
-        "MASS_TITLE.LITURGY_OF_THE_WORD",
-        "MASS_TITLE.ADORATION",
-        "MASS_TITLE.CONFESSION",
-        "MASS_TITLE.BREVIARY",
-        "MASS_TITLE.ROSARY",
-        "MASS_TITLE.LITANY",
-        "MASS_TITLE.MASS_OF_THE_LORD_S_SUPPER",
-        "MASS_TITLE.GOOD_FRIDAY_LITURGY",
-        "MASS_TITLE.EASTER_VIGIL"
-      ];
-    }
-
-    return titles;
+    // Az adatok a centralizált MASS_DEFINITIONS_DATA-ból származnak
+    return MassDefinitionsHelper.getTitleKeysByRite(rite);
   }
 
   /**

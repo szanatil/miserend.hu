@@ -1,48 +1,57 @@
 import { MassTitleCategory } from '../enum/mass-title-category';
 import { TranslateService } from '@ngx-translate/core';
+import { MASS_DEFINITIONS_DATA, MassDefinitionsHelper } from '../data/mass-definitions';
 
 /**
  * Kategória-szín és kategória-cím párosítások konfigurációja
+ * Az adatok a centralizált MASS_DEFINITIONS_DATA-ból származnak
  * Biztosítja az egyházilag illő halványabb árnyalatokat
  */
 export class MassTitleCategoryConfig {
-  // Kategória színek: halványabb árnyalatok, megfelelőek fehér szöveghez
-  static readonly CATEGORY_COLORS: Record<MassTitleCategory, string> = {
-    [MassTitleCategory.MASS]: '#0A0A0A',          // Arany/barna - mise
-    [MassTitleCategory.ADORATION]: '#C4B5A0',      // Vöröses barna - szentségimádás
-    [MassTitleCategory.CONFESSION]: '#7A4D9A',     // Erősebb lila - gyóntatás
-    [MassTitleCategory.OTHER]: '#A8B8D0'           // Halványkék - egyéb
-  };
+  /**
+   * Kategória színek: a MASS_DEFINITIONS_DATA-ból lekérdezve
+   * Fallback: halványabb árnyalatok, megfelelőek fehér szöveghez
+   */
+  static get CATEGORY_COLORS(): Record<MassTitleCategory, string> {
+    const colors: Record<MassTitleCategory, string> = {
+      [MassTitleCategory.MASS]: '#0A0A0A',
+      [MassTitleCategory.ADORATION]: '#C4B5A0',
+      [MassTitleCategory.CONFESSION]: '#7A4D9A',
+      [MassTitleCategory.OTHER]: '#A8B8D0'
+    };
 
-  // Kategória-cím párosítások (i18n key-ek)
-  static readonly CATEGORY_TITLES: Record<MassTitleCategory, string[]> = {
-    [MassTitleCategory.MASS]: [
-      'MASS_TITLE.HOLY_MASS',
-      'MASS_TITLE.LITURGY_OF_THE_WORD',
-      'MASS_TITLE.DIVINE_LITURGY',
-      'MASS_TITLE.LITURGY_OF_THE_PRESANCTIFIED_GIFTS',
-      'MASS_TITLE.MASS_OF_THE_LORD_S_SUPPER',
-      'MASS_TITLE.GOOD_FRIDAY_LITURGY',
-      'MASS_TITLE.EASTER_VIGIL',
-      'MASS_TITLE.TRADITIONAL_LATIN_MASS',
-      'MASS_TITLE.TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER',
-      'MASS_TITLE.TRADITIONAL_GOOD_FRIDAY_LITURGY',
-      'MASS_TITLE.TRADITIONAL_EASTER_VIGIL',
-      'MASS_TITLE.MATINS',
-      'MASS_TITLE.VESPRES'
-    ],
-    [MassTitleCategory.ADORATION]: [
-      'MASS_TITLE.ADORATION'
-    ],
-    [MassTitleCategory.CONFESSION]: [
-      'MASS_TITLE.CONFESSION'
-    ],
-    [MassTitleCategory.OTHER]: [
-      'MASS_TITLE.BREVIARY',
-      'MASS_TITLE.ROSARY',
-      'MASS_TITLE.LITANY'
-    ]
-  };
+    // Felülírjuk a MASS_DEFINITIONS_DATA-ból
+    for (const categoryDef of MASS_DEFINITIONS_DATA.categories) {
+      const key = categoryDef.key as MassTitleCategory;
+      if (categoryDef.color) {
+        colors[key] = categoryDef.color;
+      }
+    }
+
+    return colors;
+  }
+
+  /**
+   * Kategória-cím párosítások (i18n key-ek) a MASS_DEFINITIONS_DATA-ból
+   */
+  static get CATEGORY_TITLES(): Record<MassTitleCategory, string[]> {
+    const titles: Record<MassTitleCategory, string[]> = {
+      [MassTitleCategory.MASS]: [],
+      [MassTitleCategory.ADORATION]: [],
+      [MassTitleCategory.CONFESSION]: [],
+      [MassTitleCategory.OTHER]: []
+    };
+
+    // Felépítjük a kategóriák alapján a MASS_DEFINITIONS_DATA-ból
+    for (const definition of MASS_DEFINITIONS_DATA.definitions) {
+      const category = definition.category as MassTitleCategory;
+      if (titles[category]) {
+        titles[category].push(definition.key);
+      }
+    }
+
+    return titles;
+  }
 
   // Lefordított szövegek a kategóriákhoz - dinamikusan generálva az i18n JSON alapján
   private static _translatedValuesCache: Record<MassTitleCategory, string[]> | null = null;
