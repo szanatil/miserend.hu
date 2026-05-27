@@ -6,7 +6,7 @@ import { Rite } from '../model/mass';
  * Az összes metaadat egy helyen
  */
 export interface MassDefinition {
-  /** i18n key (pl. "MASS_TITLE.HOLY_MASS") */
+  /** i18n key (pl. "HOLY_MASS") */
   key: string;
 
   /** Kategória */
@@ -75,7 +75,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     // ============ MASS kategória ============
 
     {
-      key: 'MASS_TITLE.HOLY_MASS2',
+      key: 'HOLY_MASS2',
       category: MassTitleCategory.MASS,
       rites: [Rite.ROMAN_CATHOLIC],
       description: 'Roman Catholic Sunday/weekday Mass',
@@ -83,7 +83,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     },
 
     {
-      key: 'MASS_TITLE.LITURGY_OF_THE_WORD2',
+      key: 'LITURGY_OF_THE_WORD2',
       category: MassTitleCategory.MASS,
       rites: [Rite.ROMAN_CATHOLIC],
       description: 'Liturgy of the Word without Eucharist',
@@ -91,7 +91,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     },
 
     {
-      key: 'MASS_TITLE.LITURGY_OF_THE_WORD',
+      key: 'LITURGY_OF_THE_WORD',
       category: MassTitleCategory.MASS,
       rites: [Rite.ROMAN_CATHOLIC],
       description: 'Liturgy of the Word without Eucharist',
@@ -99,7 +99,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     },
 
     {
-      key: 'MASS_TITLE.DIVINE_LITURGY',
+      key: 'DIVINE_LITURGY',
       category: MassTitleCategory.MASS,
       rites: [Rite.GREEK_CATHOLIC],
       defaultRite: Rite.GREEK_CATHOLIC,
@@ -108,7 +108,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     },
 
     {
-      key: 'MASS_TITLE.LITURGY_OF_THE_PRESANCTIFIED_GIFTS',
+      key: 'LITURGY_OF_THE_PRESANCTIFIED_GIFTS',
       category: MassTitleCategory.MASS,
       rites: [Rite.GREEK_CATHOLIC],
       description: 'Greek Catholic Liturgy of Presanctified Gifts',
@@ -116,7 +116,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     },
 
     {
-      key: 'MASS_TITLE.MASS_OF_THE_LORD_S_SUPPER',
+      key: 'MASS_OF_THE_LORD_S_SUPPER',
       category: MassTitleCategory.MASS,
       rites: [
         Rite.ROMAN_CATHOLIC,
@@ -127,7 +127,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     },
 
     {
-      key: 'MASS_TITLE.GOOD_FRIDAY_LITURGY',
+      key: 'GOOD_FRIDAY_LITURGY',
       category: MassTitleCategory.MASS,
       rites: [
         Rite.ROMAN_CATHOLIC,
@@ -138,7 +138,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     },
 
     {
-      key: 'MASS_TITLE.EASTER_VIGIL',
+      key: 'EASTER_VIGIL',
       category: MassTitleCategory.MASS,
       rites: [
         Rite.ROMAN_CATHOLIC,
@@ -149,7 +149,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     },
 
     {
-      key: 'MASS_TITLE.TRADITIONAL_LATIN_MASS',
+      key: 'TRADITIONAL_LATIN_MASS',
       category: MassTitleCategory.MASS,
       rites: [Rite.TRADITIONAL],
       defaultRite: Rite.TRADITIONAL,
@@ -158,7 +158,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     },
 
     {
-      key: 'MASS_TITLE.TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER',
+      key: 'TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER',
       category: MassTitleCategory.MASS,
       rites: [Rite.TRADITIONAL],
       description: 'Traditional Latin Mass of the Lord\'s Supper',
@@ -166,7 +166,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     },
 
     {
-      key: 'MASS_TITLE.TRADITIONAL_GOOD_FRIDAY_LITURGY',
+      key: 'TRADITIONAL_GOOD_FRIDAY_LITURGY',
       category: MassTitleCategory.MASS,
       rites: [Rite.TRADITIONAL],
       description: 'Traditional Latin Good Friday Liturgy',
@@ -174,7 +174,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     },
 
     {
-      key: 'MASS_TITLE.TRADITIONAL_EASTER_VIGIL',
+      key: 'TRADITIONAL_EASTER_VIGIL',
       category: MassTitleCategory.MASS,
       rites: [Rite.TRADITIONAL],
       description: 'Traditional Latin Easter Vigil',
@@ -184,7 +184,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     // ============ ADORATION kategória ============
 
     {
-      key: 'MASS_TITLE.ADORATION',
+      key: 'ADORATION',
       category: MassTitleCategory.ADORATION,
       rites: [Rite.ROMAN_CATHOLIC],
       description: 'Eucharistic Adoration',
@@ -194,7 +194,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     // ============ CONFESSION kategória ============
 
     {
-      key: 'MASS_TITLE.CONFESSION',
+      key: 'CONFESSION',
       category: MassTitleCategory.CONFESSION,
       rites: [
         Rite.ROMAN_CATHOLIC,
@@ -207,7 +207,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     // ============ OTHER kategória ============
 
     {
-      key: 'MASS_TITLE.BREVIARY',
+      key: 'BREVIARY',
       category: MassTitleCategory.OTHER,
       rites: [Rite.ROMAN_CATHOLIC],
       description: 'Liturgy of the Hours (Breviary)',
@@ -215,7 +215,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     },
 
     {
-      key: 'MASS_TITLE.ROSARY',
+      key: 'ROSARY',
       category: MassTitleCategory.OTHER,
       rites: [Rite.ROMAN_CATHOLIC],
       description: 'Rosary recitation',
@@ -223,7 +223,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     },
 
     {
-      key: 'MASS_TITLE.LITANY',
+      key: 'LITANY',
       category: MassTitleCategory.OTHER,
       rites: [Rite.ROMAN_CATHOLIC],
       description: 'Litany service',
@@ -231,7 +231,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     },
 
     {
-      key: 'MASS_TITLE.MATINS',
+      key: 'MATINS',
       category: MassTitleCategory.OTHER,
       rites: [Rite.GREEK_CATHOLIC],
       description: 'Greek Catholic Matins service',
@@ -239,7 +239,7 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
     },
 
     {
-      key: 'MASS_TITLE.VESPRES',
+      key: 'VESPRES',
       category: MassTitleCategory.OTHER,
       rites: [Rite.GREEK_CATHOLIC],
       description: 'Greek Catholic Vespres service',
@@ -266,59 +266,95 @@ export const MASS_DEFINITIONS_DATA: MassDefinitionsData = {
  * Segéd osztály a centralizált MASS_TITLE adatok eléréséhez
  */
 export class MassDefinitionsHelper {
-  
-  /**
-   * Összes title-definíció lekérése rite alapján szűrve
-   */
-  static getTitlesByRite(rite: Rite): MassDefinition[] {
-    return MASS_DEFINITIONS_DATA.definitions.filter(
-      def => def.rites.some(rm => rm === rite)
-    );
-  }
-  
-  /**
-   * Összes title-definíció lekérése kategória alapján
-   */
-  static getTitlesByCategory(category: MassTitleCategory): MassDefinition[] {
-    return MASS_DEFINITIONS_DATA.definitions.filter(
-      def => def.category === category
-    );
-  }
-  
-  /**
-   * Title-definíció lekérése i18n key alapján
-   */
-  static getDefinitionByKey(key: string): MassDefinition | undefined {
-    return MASS_DEFINITIONS_DATA.definitions.find(def => def.key === key);
-  }
-  
-  /**
-   * Kategória szín lekérése
-   */
-  static getCategoryColor(category: MassTitleCategory): string {
-    return MASS_DEFINITIONS_DATA.categories.find(c => c.key === category)?.color || '#A8B8D0';
-  }
-  
-  /**
-   * I18n key lista rite alapján
-   */
-  static getTitleKeysByRite(rite: Rite): string[] {
-    return this.getTitlesByRite(rite).map(def => def.key);
-  }
-  
-  /**
-   * Default title lekérése rite alapján
-   */
-  static getDefaultTitleByRite(rite: Rite): string {
-    const titles = this.getTitlesByRite(rite);
-    const defaultTitle = titles.find(def => def.defaultRite === rite);
-    return defaultTitle?.key || titles[0]?.key || 'MASS_TITLE.HOLY_MASS';
-  }
-  
-  /**
-   * Összes kategória lekérése
-   */
-  static getAllCategories(): MassTitleCategory[] {
-    return MASS_DEFINITIONS_DATA.categories.map(c => c.key);
-  }
+   private static readonly MASS_TITLE_PREFIX = 'MASS_TITLE.';
+   
+   /**
+    * Összes title-definíció lekérése rite alapján szűrve
+    */
+   static getTitlesByRite(rite: Rite): MassDefinition[] {
+     return MASS_DEFINITIONS_DATA.definitions.filter(
+       def => def.rites.some(rm => rm === rite)
+     );
+   }
+   
+   /**
+    * Összes title-definíció lekérése kategória alapján
+    */
+   static getTitlesByCategory(category: MassTitleCategory): MassDefinition[] {
+     return MASS_DEFINITIONS_DATA.definitions.filter(
+       def => def.category === category
+     );
+   }
+   
+   /**
+    * Title-definíció lekérése i18n key alapján
+    */
+   static getDefinitionByKey(key: string): MassDefinition | undefined {
+     return MASS_DEFINITIONS_DATA.definitions.find(def => def.key === key);
+   }
+   
+   /**
+    * Kategória szín lekérése
+    */
+   static getCategoryColor(category: MassTitleCategory): string {
+     return MASS_DEFINITIONS_DATA.categories.find(c => c.key === category)?.color || '#A8B8D0';
+   }
+   
+   /**
+    * I18n key lista rite alapján (MASS_TITLE. prefixszel)
+    */
+   static getTitleKeysByRite(rite: Rite): string[] {
+     return this.getTitlesByRite(rite).map(def => this.MASS_TITLE_PREFIX + def.key);
+   }
+   
+   /**
+    * Default title lekérése rite alapján
+    */
+   static getDefaultTitleByRite(rite: Rite): string {
+     const titles = this.getTitlesByRite(rite);
+     const defaultTitle = titles.find(def => def.defaultRite === rite);
+     return defaultTitle?.key || titles[0]?.key || 'HOLY_MASS';
+   }
+   
+   /**
+    * Összes kategória lekérése
+    */
+   static getAllCategories(): MassTitleCategory[] {
+     return MASS_DEFINITIONS_DATA.categories.map(c => c.key);
+   }
+
+   /**
+    * Összes Húsvét-specifikus title key (MASS_TITLE. prefixszel)
+    */
+   static getEasterSpecificTitleKeys(): string[] {
+     return MASS_DEFINITIONS_DATA.definitions
+       .filter(def => def.specialUsage === 'EASTER')
+       .map(def => this.MASS_TITLE_PREFIX + def.key);
+   }
+
+   /**
+    * Összes Karácsony-specifikus title key (MASS_TITLE. prefixszel)
+    */
+   static getChristmasSpecificTitleKeys(): string[] {
+     return MASS_DEFINITIONS_DATA.definitions
+       .filter(def => def.specialUsage === 'CHRISTMAS')
+       .map(def => this.MASS_TITLE_PREFIX + def.key);
+   }
+
+   /**
+    * Get i18n key with MASS_TITLE. prefix
+    */
+   static getPrefixedKey(key: string): string {
+     return this.MASS_TITLE_PREFIX + key;
+   }
+
+   /**
+    * Get unprefixed key (remove MASS_TITLE. prefix if present)
+    */
+   static getUnprefixedKey(key: string): string {
+     if (key.startsWith(this.MASS_TITLE_PREFIX)) {
+       return key.substring(this.MASS_TITLE_PREFIX.length);
+     }
+     return key;
+   }
 }

@@ -64,6 +64,8 @@ export interface MassDefinitionsJsonOutput {
  * @returns MassDefinitionsJsonOutput - Complete JSON export with all metadata
  */
 export function generateMassDefinitionsJson(): MassDefinitionsJsonOutput {
+  const MASS_TITLE_PREFIX = 'MASS_TITLE.';
+  
   // Initialize category index
   const titlesByCategory: TitlesByCategory = {};
   
@@ -82,27 +84,34 @@ export function generateMassDefinitionsJson(): MassDefinitionsJsonOutput {
   
   // Process definitions and populate indexes
   MASS_DEFINITIONS_DATA.definitions.forEach((def: MassDefinition) => {
+    const exportKey = MASS_TITLE_PREFIX + def.key;
+    
     // Add to category index
     if (titlesByCategory[def.category]) {
-      titlesByCategory[def.category].push(def.key);
+      titlesByCategory[def.category].push(exportKey);
     }
     
     // Add to rite index (for each rite this definition belongs to)
     def.rites.forEach((rite) => {
       if (titlesByRite[rite]) {
-        titlesByRite[rite].push(def.key);
+        titlesByRite[rite].push(exportKey);
       }
     });
   });
   
-  // Return the complete JSON export structure
+  // Return the complete JSON export structure with prefixed keys
+  const exportDefinitions: MassDefinitionJsonExport[] = MASS_DEFINITIONS_DATA.definitions.map(def => ({
+    ...def,
+    key: MASS_TITLE_PREFIX + def.key
+  }));
+  
   return {
     _generator: 'mass-definitions-export.ts',
     _warning: 'Auto-generated from calendar/src/app/data/mass-definitions.ts during Angular build',
     _buildDate: new Date().toISOString(),
     categories: MASS_DEFINITIONS_DATA.categories,
     rites: MASS_DEFINITIONS_DATA.rites,
-    definitions: MASS_DEFINITIONS_DATA.definitions,
+    definitions: exportDefinitions,
     titlesByCategory,
     titlesByRite
   };
