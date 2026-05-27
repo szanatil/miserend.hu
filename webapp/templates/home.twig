@@ -118,7 +118,7 @@
                 <div class="form-group row">
                     <label class="col-sm-4 control-label">Mise</label>
                     <div class="col-sm-8">
-                        <div class="btn-group" role="group" aria-label="Mass date/time filters" id="mass_datetime_group" style="display: flex; flex-wrap: nowrap;">
+                        <div class="btn-group" role="group" aria-label="Mass date/time filters" id="mass_datetime_group">
                             <button type="button" class="btn btn-success mass-date-btn" id="start_date_btn" data-type="start_date">
                                 <span id="start_date_display">YYYY.mm.dd</span>
                             </button>
@@ -507,9 +507,9 @@
                 </script>
 
                 <div class="form-group row">
-                    <label class="col-sm-4 control-label" >nyelv</label>
+                    <label class="col-sm-4 control-label" >Nyelvek</label>
                     <div class="col-sm-8">
-                        <div class="btn-group" role="group" aria-label="Language filters" id="language_group" style="display: flex; flex-wrap: wrap;">
+                        <div class="btn-group" role="group" aria-label="Language filters" id="language_group">
                             {% for lang in langs %}
                                 <button type="button" class="btn btn-light lang-toggle" data-lang="{{ lang }}" data-state="0" style="padding:4px">
                                     <img src="/cal_images/flags/{{ lang|lower }}.svg" alt="{{ ('LANGUAGES.' ~ lang)|trans }}" title="{{ ('LANGUAGES.' ~ lang)|trans }}" style="height:1.3em; margin-right:0px; vertical-align:middle;">
@@ -589,9 +589,7 @@
                                 {% endfor %}
                             </div>
                         {% endfor %}
-
-                        <div style="margin-top:6px; font-size:0.9em; color:#666">Kattints a gombra: zöld = legyen (should), piros = kizárt (must_not)</div>
-                        
+                                                
                         {# Per-rite hidden flags: .should (green) and .must_not (red) Comma-separated lists. #}
                         {# Dynamically generated from rites array #}
                         {% for rite in rites %}
@@ -603,82 +601,79 @@
                         <input type="hidden" name="rites[should]" id="rites_should" value="">
                         <input type="hidden" name="rites[must_not]" id="rites_must_not" value="">
                     </div>
-    
-                    {# Button group for categories: simple toggle between neutral and green #}
-                    <div class="form-group row">
-                        <label class="col-sm-4 control-label">Kategóriák</label>
-                        <div class="col-sm-8">
-                            {# Dynamic categories loop - generated from mass-definitions.json #}
-                            <div class="btn-group" role="group" aria-label="Category filters" id="category_group" style="display: flex; flex-wrap: wrap;">
-                                {% for category in categories %}
-                                    <button type="button" class="btn btn-light category-toggle" data-category="{{ category.key }}" data-state="0" style="padding:6px; margin-right:0px; margin-bottom:4px">
-                                        {{ ("MASS_TITLE_CATEGORY." ~ category.key)|trans }}
-                                    </button>
-                                {% endfor %}
-                            </div>
-    
-                            <div style="margin-top:6px; font-size:0.9em; color:#666">Kattints a gombra: zöld = legyen</div>
-                            
-                            {# Single input for selected categories #}
-                            <input type="hidden" name="categories" id="categories_list" value="">
+                </div>
+                {# Button group for categories: simple toggle between neutral and green #}
+                <div class="form-group row">
+                    <label class="col-sm-4 control-label">Kategóriák</label>
+                    <div class="col-sm-8">
+                        {# Dynamic categories loop - generated from mass-definitions.json #}
+                        <div class="btn-group" role="group" aria-label="Category filters" id="category_group" style="display: flex; flex-wrap: wrap;">
+                            {% for category in categories %}
+                                <button type="button" class="btn btn-light category-toggle" data-category="{{ category.key }}" data-state="0" style="padding:6px; margin-right:0px; margin-bottom:4px">
+                                    {{ ("MASS_TITLE_CATEGORY." ~ category.key)|trans }}
+                                </button>
+                            {% endfor %}
                         </div>
+                                                        
+                        {# Single input for selected categories #}
+                        <input type="hidden" name="categories" id="categories_list" value="">
                     </div>
-    
-                    <script>
-                        (function($){
-                            function updateCategoriesList() {
-                                // Collect all green (state 1) categories
-                                var selectedCategories = [];
-                                $('.category-toggle').each(function(){
-                                    var state = Number($(this).data('state')) || 0;
-                                    if (state === 1) {
-                                        selectedCategories.push($(this).data('category'));
-                                    }
-                                });
-                                
-                                // Update the hidden input with comma-separated list
-                                $('#categories_list').val(selectedCategories.join(','));
-                            }
-            
-                            function applyCategoryState($btn, state) {
-                                // state: 0 neutral, 1 success (green)
-                                $btn.data('state', state);
-                                $btn.removeClass('btn-light btn-success');
-                                if (state === 0) {
-                                    $btn.addClass('btn-light');
-                                } else if (state === 1) {
-                                    $btn.addClass('btn-success');
+                </div>
+
+                <script>
+                    (function($){
+                        function updateCategoriesList() {
+                            // Collect all green (state 1) categories
+                            var selectedCategories = [];
+                            $('.category-toggle').each(function(){
+                                var state = Number($(this).data('state')) || 0;
+                                if (state === 1) {
+                                    selectedCategories.push($(this).data('category'));
                                 }
+                            });
+                            
+                            // Update the hidden input with comma-separated list
+                            $('#categories_list').val(selectedCategories.join(','));
+                        }
+        
+                        function applyCategoryState($btn, state) {
+                            // state: 0 neutral, 1 success (green)
+                            $btn.data('state', state);
+                            $btn.removeClass('btn-light btn-success');
+                            if (state === 0) {
+                                $btn.addClass('btn-light');
+                            } else if (state === 1) {
+                                $btn.addClass('btn-success');
                             }
-            
-                            $(function(){
-                                // Initialize: MASS is green by default, others neutral
-                                $('.category-toggle').each(function(){
-                                    var category = $(this).data('category');
-                                    if (category === 'MASS') {
-                                        applyCategoryState($(this), 1);
-                                    } else {
-                                        applyCategoryState($(this), 0);
-                                    }
-                                });
-            
-                                // Click handler: toggle between neutral and green
-                                $(document).on('click', '.category-toggle', function(e){
-                                    e.preventDefault();
-                                    var $btn = $(this);
-                                    var state = Number($btn.data('state')) || 0;
-                                    var next = (state + 1) % 2;
-                                    applyCategoryState($btn, next);
-                                    updateCategoriesList();
-                                });
-            
-                                // Update on init
+                        }
+        
+                        $(function(){
+                            // Initialize: MASS is green by default, others neutral
+                            $('.category-toggle').each(function(){
+                                var category = $(this).data('category');
+                                if (category === 'MASS') {
+                                    applyCategoryState($(this), 1);
+                                } else {
+                                    applyCategoryState($(this), 0);
+                                }
+                            });
+        
+                            // Click handler: toggle between neutral and green
+                            $(document).on('click', '.category-toggle', function(e){
+                                e.preventDefault();
+                                var $btn = $(this);
+                                var state = Number($btn.data('state')) || 0;
+                                var next = (state + 1) % 2;
+                                applyCategoryState($btn, next);
                                 updateCategoriesList();
                             });
-                        })(jQuery);
-                    </script>
+        
+                            // Update on init
+                            updateCategoriesList();
+                        });
+                    })(jQuery);
+                </script>
     
-                 </div>
                 <script>
                     (function($){
                         function updateHiddenInputs() {

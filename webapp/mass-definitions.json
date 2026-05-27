@@ -50,7 +50,7 @@
   ],
   "definitions": [
     {
-      "key": "HOLY_MASS2",
+      "key": "HOLY_MASS",
       "category": "MASS",
       "rites": [
         "ROMAN_CATHOLIC"
@@ -59,7 +59,7 @@
       "specialUsage": null
     },
     {
-      "key": "LITURGY_OF_THE_WORD2",
+      "key": "LITURGY_OF_THE_WORD",
       "category": "MASS",
       "rites": [
         "ROMAN_CATHOLIC"
