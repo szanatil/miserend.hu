@@ -1,5 +1,6 @@
 import {RecurrenceRule} from './calendar/recurrence-rule';
 import {Rite} from '../enum/rites';
+import {MassType} from '../enum/types';
 
 export interface Mass {
 
@@ -78,40 +79,6 @@ export interface Mass {
    */
   comment?: string | null;
 }
-
-export enum MassType {
-  FAMILY = 'FAMILY',
-  STUDENT = 'STUDENT',
-  UNIVERSITY_YOUTH = 'UNIVERSITY_YOUTH',
-  GUITAR = 'GUITAR',
-  ORGAN = 'ORGAN',
-  SILENT = 'SILENT',
-  SINGER = 'SINGER',
-}
-
-export const RiteMassTypes = {
-  ROMAN_CATHOLIC: [
-    MassType.FAMILY,
-    MassType.STUDENT,
-    MassType.UNIVERSITY_YOUTH,
-    MassType.GUITAR,
-    MassType.ORGAN,
-    MassType.SILENT
-  ],
-  GREEK_CATHOLIC: [
-    MassType.FAMILY,
-    MassType.STUDENT,
-    MassType.UNIVERSITY_YOUTH
-  ],
-  TRADITIONAL: [
-    MassType.SINGER,
-    MassType.SILENT
-  ],
-  TRADITIONAL_3: [
-    MassType.SINGER,
-    MassType.SILENT
-  ],
-} satisfies Record<Rite, MassType[]>;
 
 export interface Duration {
   days?: number,

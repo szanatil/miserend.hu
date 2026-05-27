@@ -1,5 +1,5 @@
 import { MASS_DEFINITIONS_DATA, MassDefinition, CategoryDefinition, RiteDefinition } from './mass-definitions';
-import { Rite } from '../enum/rites';
+import { Rite, RITE_DEFINITIONS } from '../enum/rites';
 import { MassTitleCategory } from '../enum/mass-categories';
 
 /**
@@ -27,6 +27,7 @@ export interface CategoryDefinitionJsonExport {
  */
 export interface RiteDefinitionJsonExport {
   key: Rite;
+  masstypes?: string[];
 }
 
 /**
@@ -99,10 +100,19 @@ export function generateMassDefinitionsJson(): MassDefinitionsJsonOutput {
     });
   });
   
+  // Build rites with masstypes from RITE_DEFINITIONS
+  const ritesWithMasstypes: RiteDefinitionJsonExport[] = MASS_DEFINITIONS_DATA.rites.map((rite: RiteDefinition) => {
+    const riteDefinition = RITE_DEFINITIONS.find((rd: any) => rd.key === rite.key);
+    return {
+      key: rite.key,
+      masstypes: riteDefinition?.massTypes ? riteDefinition.massTypes.map((mt: string) => mt) : []
+    };
+  });
+  
   // Return the complete JSON export structure with prefixed keys
   const exportDefinitions: MassDefinitionJsonExport[] = MASS_DEFINITIONS_DATA.definitions.map(def => ({
     ...def,
-    key: MASS_TITLE_PREFIX + def.key
+    key: def.key
   }));
   
   return {
@@ -110,7 +120,7 @@ export function generateMassDefinitionsJson(): MassDefinitionsJsonOutput {
     _warning: 'Auto-generated from calendar/src/app/data/mass-definitions.ts during Angular build',
     _buildDate: new Date().toISOString(),
     categories: MASS_DEFINITIONS_DATA.categories,
-    rites: MASS_DEFINITIONS_DATA.rites,
+    rites: ritesWithMasstypes,
     definitions: exportDefinitions,
     titlesByCategory,
     titlesByRite

@@ -1,7 +1,7 @@
 {
   "_generator": "mass-definitions-export.ts",
   "_warning": "Auto-generated from calendar/src/app/data/mass-definitions.ts during Angular build",
-  "_buildDate": "2026-05-27T08:51:02.342Z",
+  "_buildDate": "2026-05-27T09:13:36.931Z",
   "categories": [
     {
       "key": "MASS",
@@ -22,18 +22,35 @@
   ],
   "rites": [
     {
-      "key": "ROMAN_CATHOLIC"
+      "key": "ROMAN_CATHOLIC",
+      "masstypes": [
+        "FAMILY",
+        "STUDENT",
+        "UNIVERSITY_YOUTH",
+        "GUITAR",
+        "ORGAN",
+        "SILENT"
+      ]
     },
     {
-      "key": "GREEK_CATHOLIC"
+      "key": "GREEK_CATHOLIC",
+      "masstypes": [
+        "FAMILY",
+        "STUDENT",
+        "UNIVERSITY_YOUTH"
+      ]
     },
     {
-      "key": "TRADITIONAL"
+      "key": "TRADITIONAL",
+      "masstypes": [
+        "SINGER",
+        "SILENT"
+      ]
     }
   ],
   "definitions": [
     {
-      "key": "MASS_TITLE.HOLY_MASS2",
+      "key": "HOLY_MASS2",
       "category": "MASS",
       "rites": [
         "ROMAN_CATHOLIC"
@@ -42,7 +59,7 @@
       "specialUsage": null
     },
     {
-      "key": "MASS_TITLE.LITURGY_OF_THE_WORD2",
+      "key": "LITURGY_OF_THE_WORD2",
       "category": "MASS",
       "rites": [
         "ROMAN_CATHOLIC"
@@ -51,7 +68,7 @@
       "specialUsage": null
     },
     {
-      "key": "MASS_TITLE.LITURGY_OF_THE_WORD",
+      "key": "LITURGY_OF_THE_WORD",
       "category": "MASS",
       "rites": [
         "ROMAN_CATHOLIC"
@@ -60,7 +77,7 @@
       "specialUsage": null
     },
     {
-      "key": "MASS_TITLE.DIVINE_LITURGY",
+      "key": "DIVINE_LITURGY",
       "category": "MASS",
       "rites": [
         "GREEK_CATHOLIC"
@@ -70,7 +87,7 @@
       "specialUsage": null
     },
     {
-      "key": "MASS_TITLE.LITURGY_OF_THE_PRESANCTIFIED_GIFTS",
+      "key": "LITURGY_OF_THE_PRESANCTIFIED_GIFTS",
       "category": "MASS",
       "rites": [
         "GREEK_CATHOLIC"
@@ -79,7 +96,7 @@
       "specialUsage": null
     },
     {
-      "key": "MASS_TITLE.MASS_OF_THE_LORD_S_SUPPER",
+      "key": "MASS_OF_THE_LORD_S_SUPPER",
       "category": "MASS",
       "rites": [
         "ROMAN_CATHOLIC",
@@ -89,7 +106,7 @@
       "specialUsage": "EASTER"
     },
     {
-      "key": "MASS_TITLE.GOOD_FRIDAY_LITURGY",
+      "key": "GOOD_FRIDAY_LITURGY",
       "category": "MASS",
       "rites": [
         "ROMAN_CATHOLIC",
@@ -99,7 +116,7 @@
       "specialUsage": "EASTER"
     },
     {
-      "key": "MASS_TITLE.EASTER_VIGIL",
+      "key": "EASTER_VIGIL",
       "category": "MASS",
       "rites": [
         "ROMAN_CATHOLIC",
@@ -109,7 +126,7 @@
       "specialUsage": "EASTER"
     },
     {
-      "key": "MASS_TITLE.TRADITIONAL_LATIN_MASS",
+      "key": "TRADITIONAL_LATIN_MASS",
       "category": "MASS",
       "rites": [
         "TRADITIONAL"
@@ -119,7 +136,7 @@
       "specialUsage": null
     },
     {
-      "key": "MASS_TITLE.TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER",
+      "key": "TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER",
       "category": "MASS",
       "rites": [
         "TRADITIONAL"
@@ -128,7 +145,7 @@
       "specialUsage": "EASTER"
     },
     {
-      "key": "MASS_TITLE.TRADITIONAL_GOOD_FRIDAY_LITURGY",
+      "key": "TRADITIONAL_GOOD_FRIDAY_LITURGY",
       "category": "MASS",
       "rites": [
         "TRADITIONAL"
@@ -137,7 +154,7 @@
       "specialUsage": "EASTER"
     },
     {
-      "key": "MASS_TITLE.TRADITIONAL_EASTER_VIGIL",
+      "key": "TRADITIONAL_EASTER_VIGIL",
       "category": "MASS",
       "rites": [
         "TRADITIONAL"
@@ -146,7 +163,7 @@
       "specialUsage": "EASTER"
     },
     {
-      "key": "MASS_TITLE.ADORATION",
+      "key": "ADORATION",
       "category": "ADORATION",
       "rites": [
         "ROMAN_CATHOLIC"
@@ -155,7 +172,7 @@
       "specialUsage": null
     },
     {
-      "key": "MASS_TITLE.CONFESSION",
+      "key": "CONFESSION",
       "category": "CONFESSION",
       "rites": [
         "ROMAN_CATHOLIC",
@@ -165,7 +182,7 @@
       "specialUsage": null
     },
     {
-      "key": "MASS_TITLE.BREVIARY",
+      "key": "BREVIARY",
       "category": "OTHER",
       "rites": [
         "ROMAN_CATHOLIC"
@@ -174,7 +191,7 @@
       "specialUsage": null
     },
     {
-      "key": "MASS_TITLE.ROSARY",
+      "key": "ROSARY",
       "category": "OTHER",
       "rites": [
         "ROMAN_CATHOLIC"
@@ -183,7 +200,7 @@
       "specialUsage": null
     },
     {
-      "key": "MASS_TITLE.LITANY",
+      "key": "LITANY",
       "category": "OTHER",
       "rites": [
         "ROMAN_CATHOLIC"
@@ -192,7 +209,7 @@
       "specialUsage": null
     },
     {
-      "key": "MASS_TITLE.MATINS",
+      "key": "MATINS",
       "category": "OTHER",
       "rites": [
         "GREEK_CATHOLIC"
@@ -201,7 +218,7 @@
       "specialUsage": null
     },
     {
-      "key": "MASS_TITLE.VESPRES",
+      "key": "VESPRES",
       "category": "OTHER",
       "rites": [
         "GREEK_CATHOLIC"
