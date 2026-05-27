@@ -2,7 +2,7 @@
 
 {% extends "layout.twig" %}
 
-{% set pageTitle = 'Szentmise keresés | Miserend' %}
+
 
 {% block extraHead %}
     <script src="/js/boundary-autocomplete.js"></script>
@@ -14,7 +14,7 @@
 
 {% block pageHeader %}
     <div class="page-header">
-        <h1>Szentmise keresés</h1>
+        <h1>{{ title|raw }}</h1>
     </div>
     {% include 'announcment.twig' ignore missing %}
 {%  endblock %}

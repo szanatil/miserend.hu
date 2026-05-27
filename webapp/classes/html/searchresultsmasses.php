@@ -16,7 +16,6 @@ class SearchResultsMasses extends Html {
         parent::__construct();
         global $user, $config;
 
-        $this->setTitle("Szentmise kereső");
         $search = new \Search('masses');
         //Data for pagination
         $params = [
@@ -222,7 +221,19 @@ class SearchResultsMasses extends Html {
              }
          }
 
-        $offset = $this->pagination->take * $this->pagination->active;
+       // Set title based on number of selected categories
+       $selectedCategories = !empty($categoriesReq) ? array_filter(array_map('trim', explode(',', $categoriesReq))) : [];
+       if (count($selectedCategories) === 1) {
+           // If only one category is selected, use its translated name + " kereső"
+           $categoryKey = reset($selectedCategories);
+           $categoryTranslation = t('MASS_TITLE_CATEGORY.' . $categoryKey);
+           $this->setTitle($categoryTranslation . ' keresése');
+       } else {
+           // Otherwise use the default "Esemény kereső"
+           $this->setTitle('Események keresése');
+       }
+
+       $offset = $this->pagination->take * $this->pagination->active;
         $limit = $this->pagination->take;     	        
         $results = $search->getResults($offset, $limit, false);
                                         
