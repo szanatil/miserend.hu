@@ -5,9 +5,8 @@
 
 {% set pageTitle = 'Miserend' %}
 
-{% if "miserend" in user.roles %}
-		{% set columns2 = true  %}		
-{% endif %}
+{% set columns2 = true  %}		
+
 
 {# Macro to render a type-toggle button. Usage: {{ macros.type_button('FAMILY', 'Family') }} #}
 {% macro type_button(type, special=false) %}
@@ -119,7 +118,7 @@
                 <div class="form-group row">
                     <label class="col-sm-4 control-label">Mise</label>
                     <div class="col-sm-8">
-                        <div class="btn-group" role="group" aria-label="Mass date/time filters" id="mass_datetime_group" style="display: flex; flex-wrap: nowrap;">
+                        <div class="btn-group" role="group" aria-label="Mass date/time filters" id="mass_datetime_group">
                             <button type="button" class="btn btn-success mass-date-btn" id="start_date_btn" data-type="start_date">
                                 <span id="start_date_display">YYYY.mm.dd</span>
                             </button>
@@ -508,9 +507,9 @@
                 </script>
 
                 <div class="form-group row">
-                    <label class="col-sm-4 control-label" >nyelv</label>
+                    <label class="col-sm-4 control-label" >Nyelvek</label>
                     <div class="col-sm-8">
-                        <div class="btn-group" role="group" aria-label="Language filters" id="language_group" style="display: flex; flex-wrap: wrap;">
+                        <div class="btn-group" role="group" aria-label="Language filters" id="language_group">
                             {% for lang in langs %}
                                 <button type="button" class="btn btn-light lang-toggle" data-lang="{{ lang }}" data-state="0" style="padding:4px">
                                     <img src="/cal_images/flags/{{ lang|lower }}.svg" alt="{{ ('LANGUAGES.' ~ lang)|trans }}" title="{{ ('LANGUAGES.' ~ lang)|trans }}" style="height:1.3em; margin-right:0px; vertical-align:middle;">
@@ -581,53 +580,125 @@
                 <div class="form-group row">
                     <label class="col-sm-4 control-label">Típusok</label>
                     <div class="col-sm-8">
-                        <div class="btn-group" role="group" aria-label="Type filters" id="type_Roman_catholic_Group">                            
-                            {{ macros.type_button('ROMAN_CATHOLIC',true)}}
-                            {{ macros.type_button('FAMILY') }}
-                            {{ macros.type_button('STUDENT') }}
-                            {{ macros.type_button('UNIVERSITY_YOUTH') }}
-                            {{ macros.type_button('GUITAR') }}
-                            {{ macros.type_button('ORGAN') }}
-                        </div>
-
-                        {# second group under the first: GREEK_CATHOLIC + FAMILY, STUDENT, UNIVERSITY_YOUTH #}
-                        <div class="btn-group mt-2" role="group" aria-label="Type filters 2"  id="type_Greek_catholic_Group">                            
-                            {{ macros.type_button('GREEK_CATHOLIC', true) }}
-                            {{ macros.type_button('FAMILY') }}
-                            {{ macros.type_button('STUDENT') }}
-                            {{ macros.type_button('UNIVERSITY_YOUTH') }}
-                        </div>
-
-                        {# third group: TRADITIONAL + SINGER and SILENT #}
-                        <div class="btn-group mt-2" role="group" aria-label="Type filters 3"  id="type_Traditional_Group">
-                            {{ macros.type_button('TRADITIONAL',true) }}
-                            {{ macros.type_button('SINGER') }}
-                            {{ macros.type_button('SILENT') }}
-                        </div>
-
-                        <div style="margin-top:6px; font-size:0.9em; color:#666">Kattints a gombra: zöld = legyen (should), piros = kizárt (must_not)</div>
-                        
-                        {# Per-special hidden flags: .should (green) and .must_not (red) Comma-separated lists. #}
-                        <input type="hidden" name="types[ROMAN_CATHOLIC][should]" id="types_ROMAN_CATHOLIC_should" value="">
-                        <input type="hidden" name="types[ROMAN_CATHOLIC][must_not]" id="types_ROMAN_CATHOLIC_must_not" value="">
-
-                        <input type="hidden" name="types[GREEK_CATHOLIC][should]" id="types_GREEK_CATHOLIC_should" value="">
-                        <input type="hidden" name="types[GREEK_CATHOLIC][must_not]" id="types_GREEK_CATHOLIC_must_not" value="">
-
-                        <input type="hidden" name="types[TRADITIONAL][should]" id="types_TRADITIONAL_should" value="">
-                        <input type="hidden" name="types[TRADITIONAL][must_not]" id="types_TRADITIONAL_must_not" value="">
+                        {# Dynamic rites and masstypes loops - generated from mass-definitions.json #}
+                        {% for rite in rites %}
+                            <div class="btn-group{% if not loop.first %} mt-2{% endif %}" role="group" aria-label="Type filters for {{ rite.key }}" id="type_{{ rite.key }}_Group" data-rite="{{ rite.key }}">
+                                {{ macros.type_button(rite.key, true) }}
+                                {% for masstype in rite.masstypes %}
+                                    {{ macros.type_button(masstype) }}
+                                {% endfor %}
+                            </div>
+                        {% endfor %}
+                                                
+                        {# Per-rite hidden flags: .should (green) and .must_not (red) Comma-separated lists. #}
+                        {# Dynamically generated from rites array #}
+                        {% for rite in rites %}
+                            <input type="hidden" name="types[{{ rite.key }}][should]" id="types_{{ rite.key }}_should" value="">
+                            <input type="hidden" name="types[{{ rite.key }}][must_not]" id="types_{{ rite.key }}_must_not" value="">
+                        {% endfor %}
 
                         {# Aggregate rites inputs: which rites are 'should' (green) and 'must_not' (red) #}
                         <input type="hidden" name="rites[should]" id="rites_should" value="">
                         <input type="hidden" name="rites[must_not]" id="rites_must_not" value="">
                     </div>
                 </div>
+                {# Button group for categories: simple toggle between neutral and green #}
+                <div class="form-group row">
+                    <label class="col-sm-4 control-label">Kategóriák</label>
+                    <div class="col-sm-8">
+                        {# Dynamic categories loop - generated from mass-definitions.json #}
+                        <div class="btn-group" role="group" aria-label="Category filters" id="category_group" style="display: flex; flex-wrap: wrap;">
+                            {% for category in categories %}
+                                <button type="button" class="btn btn-light category-toggle" data-category="{{ category.key }}" data-state="0" style="padding:6px; margin-right:0px; margin-bottom:4px">
+                                    {{ ("MASS_TITLE_CATEGORY." ~ category.key)|trans }}
+                                </button>
+                            {% endfor %}
+                        </div>
+                                                        
+                        {# Single input for selected categories #}
+                        <input type="hidden" name="categories" id="categories_list" value="">
+                    </div>
+                </div>
 
+                <script>
+                    (function($){
+                        function updateCategoriesList() {
+                            // Collect all green (state 1) categories
+                            var selectedCategories = [];
+                            $('.category-toggle').each(function(){
+                                var state = Number($(this).data('state')) || 0;
+                                if (state === 1) {
+                                    selectedCategories.push($(this).data('category'));
+                                }
+                            });
+                            
+                            // Update the hidden input with comma-separated list
+                            $('#categories_list').val(selectedCategories.join(','));
+                        }
+        
+                        function applyCategoryState($btn, state) {
+                            // state: 0 neutral, 1 success (green)
+                            $btn.data('state', state);
+                            $btn.removeClass('btn-light btn-success');
+                            if (state === 0) {
+                                $btn.addClass('btn-light');
+                            } else if (state === 1) {
+                                $btn.addClass('btn-success');
+                            }
+                        }
+        
+                        $(function(){
+                            // Initialize: MASS is green by default, others neutral
+                            $('.category-toggle').each(function(){
+                                var category = $(this).data('category');
+                                if (category === 'MASS') {
+                                    applyCategoryState($(this), 1);
+                                } else {
+                                    applyCategoryState($(this), 0);
+                                }
+                            });
+        
+                            // Click handler: toggle between neutral and green
+                            $(document).on('click', '.category-toggle', function(e){
+                                e.preventDefault();
+                                var $btn = $(this);
+                                var state = Number($btn.data('state')) || 0;
+                                var next = (state + 1) % 2;
+                                applyCategoryState($btn, next);
+                                updateCategoriesList();
+                            });
+        
+                            // Update on init
+                            updateCategoriesList();
+                        });
+                    })(jQuery);
+                </script>
+    
                 <script>
                     (function($){
                         function updateHiddenInputs() {
                             
-                            // update aggregated rites inputs based on special buttons
+                            // Dynamically iterate through all rites and collect their type states
+                            $('.btn-group[data-rite]').each(function(){
+                                var $group = $(this);
+                                var rite = $group.data('rite');
+                                var shouldArr = [];
+                                var mustNotArr = [];
+                                
+                                // Collect states from non-special buttons in this rite group
+                                $group.find('.type-toggle').not('.special-toggle').each(function(){
+                                    var s = Number($(this).data('state')) || 0;
+                                    var t = $(this).data('type');
+                                    if (s === 1) shouldArr.push(t);
+                                    else if (s === 2) mustNotArr.push(t);
+                                });
+                                
+                                // Update the hidden inputs for this rite
+                                $('#types_' + rite + '_should').val(shouldArr.join(','));
+                                $('#types_' + rite + '_must_not').val(mustNotArr.join(','));
+                            });
+                            
+                            // Update aggregated rites inputs based on special buttons
                             var ritesShould = [];
                             var ritesMustNot = [];
                             $('.special-toggle').each(function(){
@@ -638,42 +709,6 @@
                             });
                             $('#rites_should').val(ritesShould.join(','));
                             $('#rites_must_not').val(ritesMustNot.join(','));
-                            
-                            // ROMAN_CATHOLIC: include the special itself (if green/red) and also                            
-                            var romanShouldArr = [];
-                            var romanMustNotArr = [];
-                            $('#type_Roman_catholic_Group .type-toggle').not('.special-toggle').each(function(){
-                                var s = Number($(this).data('state')) || 0;
-                                var t = $(this).data('type');
-                                if (s === 1) romanShouldArr.push(t);
-                                else if (s === 2) romanMustNotArr.push(t);
-                            });
-                            $('#types_ROMAN_CATHOLIC_should').val(romanShouldArr.join(','));
-                            $('#types_ROMAN_CATHOLIC_must_not').val(romanMustNotArr.join(','));
-
-                            // GREEK_CATHOLIC: include the special itself (if green/red) and also
-                            var greekShouldArr = [];
-                            var greekMustNotArr = [];
-                            $('#type_Greek_catholic_Group .type-toggle').not('.special-toggle').each(function(){
-                                var s = Number($(this).data('state')) || 0;
-                                var t = $(this).data('type');
-                                if (s === 1) greekShouldArr.push(t);
-                                else if (s === 2) greekMustNotArr.push(t);
-                            });
-                            $('#types_GREEK_CATHOLIC_should').val(greekShouldArr.join(','));
-                            $('#types_GREEK_CATHOLIC_must_not').val(greekMustNotArr.join(','));
-
-                            // TRADITIONAL: include the special itself (if green/red) and also
-                            var traditionalShouldArr = [];
-                            var traditionalMustNotArr = [];
-                            $('#type_Traditional_Group .type-toggle').not('.special-toggle').each(function(){
-                                var s = Number($(this).data('state')) || 0;
-                                var t = $(this).data('type');
-                                if (s === 1) traditionalShouldArr.push(t);
-                                else if (s === 2) traditionalMustNotArr.push(t);
-                            });
-                            $('#types_TRADITIONAL_should').val(traditionalShouldArr.join(','));
-                            $('#types_TRADITIONAL_must_not').val(traditionalMustNotArr.join(','));
                         }
 
                         function applyState($btn, state) {
@@ -775,9 +810,48 @@
             </div>
 
             <div align=center class="form-group" style="margin-top:12px">
-                <button type=submit name="q" value="SearchResultsMasses"  class="btn btn-primary">Mise keresése</button>
+                <button type=submit name="q" value="SearchResultsMasses"  class="btn btn-primary" id="search_masses_btn"></button>
                 <button type=submit name="q" value="SearchResultsChurches"  class="btn btn-primary">Templom keresése</button>
             </div>
+            
+            <script>
+                (function($){
+                    function updateMassesButtonText() {
+                        // Count selected categories (state === 1)
+                        var selectedCategories = [];
+                        $('.category-toggle').each(function(){
+                            var state = Number($(this).data('state')) || 0;
+                            if (state === 1) {
+                                selectedCategories.push({
+                                    key: $(this).data('category'),
+                                    text: $(this).text().trim()
+                                });
+                            }
+                        });
+                        
+                        var $btn = $('#search_masses_btn');
+                        if (selectedCategories.length === 1) {
+                            // Show the category name with "keresése"
+                            $btn.text(selectedCategories[0].text + ' keresése');
+                        } else {
+                            // Default text
+                            $btn.text('Események keresése');
+                        }
+                    }
+                    
+                    // Update on category button clicks
+                    $(document).on('click', '.category-toggle', function(){
+                        setTimeout(function(){
+                            updateMassesButtonText();
+                        }, 0);
+                    });
+                    
+                    // Update on init
+                    $(function(){
+                        updateMassesButtonText();
+                    });
+                })(jQuery);
+            </script>
 
         </form>
     </div>

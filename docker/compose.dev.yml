@@ -1,4 +1,12 @@
 services:
+  npm-init:
+    image: node:18
+    volumes:
+      - ../webapp:/webapp
+      - node_modules_data:/webapp/node_modules
+    working_dir: /webapp
+    command: npm install
+    restart: "no"
   mailcatcher:
     image: dockage/mailcatcher
     container_name: mailcatcher
@@ -11,6 +19,9 @@ services:
         aliases:
           - mailcatcher
   miserend:
+    depends_on:
+      npm-init:
+        condition: service_completed_successfully
     environment:
       - SMTP_HOST=mailcatcher
       - SMTP_PORT=1025

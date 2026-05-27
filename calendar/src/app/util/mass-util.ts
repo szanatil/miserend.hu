@@ -1,6 +1,7 @@
 import {Renum} from '../enum/recurrence';
 import {DateTimeUtil} from './date-time-util';
-import {Mass, Rite} from '../model/mass';
+import {Mass} from '../model/mass';
+import {Rite, RITE_DEFINITIONS} from '../enum/rites';
 import {LanguageCode} from '../enum/language-code';
 import {CalendarEvent} from '../model/calendar/calendar-event';
 import {RecurrenceRule} from '../model/calendar/recurrence-rule';
@@ -13,8 +14,9 @@ import {ChristmasDay} from "../enum/christmas-day";
 import {EasterDay} from "../enum/easter-day";
 import {Day} from "../enum/day";
 import {SpecialType} from "../model/period";
-import {MassTitleCategory} from '../enum/mass-title-category';
+import {MassTitleCategory} from '../enum/mass-categories';
 import {MassTitleCategoryConfig} from './mass-title-category-config';
+import {MASS_DEFINITIONS_DATA, MassDefinitionsHelper} from '../data/mass-definitions';
 
 export class MassUtil {
 
@@ -342,14 +344,9 @@ export class MassUtil {
   }
 
   private static getSimpleTitleByRite(rite: Rite): string {
-    switch (rite) {
-      case Rite.TRADITIONAL:
-        return "MASS_TITLE.TRADITIONAL_LATIN_MASS";
-      case Rite.GREEK_CATHOLIC:
-        return "MASS_TITLE.DIVINE_LITURGY";
-      default:
-        return "MASS_TITLE.HOLY_MASS";
-    }
+    const riteDef = RITE_DEFINITIONS.find(r => r.key === rite);
+    const simpleTitle = riteDef?.simpleTitle ?? "HOLY_MASS";
+    return `MASS_TITLE.${simpleTitle}`;
   }
 
   public static getSimpleTitle4Church(church: Church): string {
@@ -357,39 +354,8 @@ export class MassUtil {
   }
 
   public static getTitles(rite: Rite): string[] {
-    let titles: string[];
-
-    if (rite === Rite.TRADITIONAL) {
-      titles = [
-        "MASS_TITLE.TRADITIONAL_LATIN_MASS",
-        "MASS_TITLE.TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER",
-        "MASS_TITLE.TRADITIONAL_GOOD_FRIDAY_LITURGY",
-        "MASS_TITLE.TRADITIONAL_EASTER_VIGIL"
-      ];
-    } else if (rite === Rite.GREEK_CATHOLIC) {
-      titles = [
-        "MASS_TITLE.DIVINE_LITURGY",
-        "MASS_TITLE.LITURGY_OF_THE_PRESANCTIFIED_GIFTS",
-        "MASS_TITLE.MATINS",
-        "MASS_TITLE.VESPRES",
-        "MASS_TITLE.CONFESSION"
-      ];
-    } else {
-      titles = [
-        "MASS_TITLE.HOLY_MASS",
-        "MASS_TITLE.LITURGY_OF_THE_WORD",
-        "MASS_TITLE.ADORATION",
-        "MASS_TITLE.CONFESSION",
-        "MASS_TITLE.BREVIARY",
-        "MASS_TITLE.ROSARY",
-        "MASS_TITLE.LITANY",
-        "MASS_TITLE.MASS_OF_THE_LORD_S_SUPPER",
-        "MASS_TITLE.GOOD_FRIDAY_LITURGY",
-        "MASS_TITLE.EASTER_VIGIL"
-      ];
-    }
-
-    return titles;
+    // Az adatok a centralizált MASS_DEFINITIONS_DATA-ból származnak
+    return MassDefinitionsHelper.getTitleKeysByRite(rite);
   }
 
   /**

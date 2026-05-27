@@ -1,4 +1,6 @@
-import {Duration, MassType, Rite} from './mass';
+import {Duration} from './mass';
+import {Rite} from '../enum/rites';
+import {MassType} from '../enum/types';
 import {LanguageCode} from '../enum/language-code';
 import {Renum} from '../enum/recurrence';
 import {Day} from '../enum/day';

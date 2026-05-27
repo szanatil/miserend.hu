@@ -56,7 +56,7 @@ import {CopyPeriodDialogComponent, CopyPeriodDialogData} from '../copy-period-di
 import {DeletePeriodDialogComponent, DeletePeriodDialogData} from '../delete-period-dialog/delete-period-dialog.component';
 import {DeleteWarningDialogComponent} from '../delete-warning-dialog/delete-warning-dialog.component';
 import { co } from '@fullcalendar/core/internal-common';
-import {MassTitleCategory} from '../../enum/mass-title-category';
+import {MassTitleCategory} from '../../enum/mass-categories';
 import {MassTitleCategoryConfig} from '../../util/mass-title-category-config';
 
 export interface SimpleDialogData {

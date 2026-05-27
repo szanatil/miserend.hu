@@ -56,7 +56,7 @@ $twig->addFilter(new \Twig\TwigFilter('floor', 'floor'));
 //
 //  Useful CONSTANTS
 //
-// ATTRIBUTES, LANGUAGES, ROLES 
+// LANGUAGES, ROLES 
 //
 use Illuminate\Database\Capsule\Manager as DB;
 
@@ -82,88 +82,6 @@ $_honapok = [
 	12 => ['dec','december'],
 ];
 
-$milyen = array(
-    'csal' => array(
-        'abbrev' => 'csal',
-        'name' => 'családos/mocorgós',
-        'file' => 'lany.png',
-        'group' => 'age'
-    ),
-    'd' => array(
-        'abbrev' => 'd',
-        'name' => 'diák',
-        'file' => 'diak.gif',
-        'group' => 'age'
-    ),
-    'ifi' => array(
-        'abbrev' => 'ifi',
-        'name' => 'ifjúsági/egyetemista',
-        'file' => 'fiu.png',
-        'group' => 'age'
-    ),
-    'g' => array(
-        'abbrev' => 'g',
-        'name' => 'gitáros',
-        'file' => 'gitar.gif',
-        'group' => 'music'
-    ),
-    'cs' => array(
-        'abbrev' => 'cs',
-        'name' => 'csendes',
-        'file' => 'csendes.gif',
-        'group' => 'music'
-    ),
-    'gor' => array(
-        'abbrev' => 'gor',
-        'name' => 'görögkatolikus liturgia',
-        'file' => 'jelzes1.png',
-        'group' => 'liturgy',
-        'isitmass' => true
-    ),
-    'rom' => array(
-        'abbrev' => 'rom',
-        'name' => 'római katolikus szentmise',
-        'file' => 'jelzes10.png',
-        'group' => 'liturgy',
-        'isitmass' => true
-    ),
-    'regi' => array(
-        'abbrev' => 'regi',
-        'name' => 'régi rítusú szentmise',
-        'file' => 'jelzes6.png',
-        'group' => 'liturgy',
-        'isitmass' => true
-    ),
-    'ige' => array(
-        'abbrev' => 'ige',
-        'name' => 'igeliturgia',
-        'file' => 'biblia.gif',
-        'group' => 'liturgy'
-    ),
-    'vecs' => array(
-        'abbrev' => 'vecs',
-        'name' => 'vecsernye',
-        'file' => 'jelzes7.png',
-        'group' => 'liturgy'
-    ),
-    'utr' => array(
-        'abbrev' => 'utr',
-        'name' => 'utrenye',
-        'file' => 'jelzes8.png',
-        'group' => 'liturgy'
-    ),
-    'szent' => array(
-        'abbrev' => 'szent',
-        'name' => 'szentségimádás',
-        'file' => 'jelzes9.png',
-        'group' => 'liturgy'
-    )
-);
-foreach ($milyen as $k => $v) {
-    if (!isset($v['description']))
-        $milyen[$k]['description'] = $v['name'];
-}
-define("ATTRIBUTES", serialize($milyen));
 
 // Gyűjtse össze a CalMass modellekben előforduló, egyedi "lang" mezőértékeket
 $_calmass_langs = collect(\Eloquent\CalMass::select('lang')->distinct()->pluck('lang'))

@@ -16,11 +16,9 @@ class SearchResultsMasses extends Html {
         parent::__construct();
         global $user, $config;
 
-        $this->setTitle("Szentmise kereső");
         $search = new \Search('masses');
-
         //Data for pagination
-		$params = [
+        $params = [
             'q' => 'SearchResultsMasses',
             'boundaries' => \Request::StringArray('boundaries', []),
             'varos' => \Request::Text('varos'),
@@ -31,6 +29,7 @@ class SearchResultsMasses extends Html {
             'ehm' => \Request::Integer('ehm'),
             'types' => \Request::ArrayArray('types'),  // Be aware: this is a nested array with rite keys, e.g. types[rite1][should], types[rite1][must_not], types[rite2][should], etc.
             'rites' => \Request::StringArray('rites'), // Be aware: this is an array with 'should' and 'must_not' keys, e.g. rites[should], rites[must_not]
+            'categories' => \Request::Text('categories'), // Simple comma-separated list of selected category keys
             'start_date' => \Request::Text('start_date'),
             'start_time' => \Request::Text('start_time'),
             'end_date' => \Request::Text('end_date'),
@@ -89,10 +88,11 @@ class SearchResultsMasses extends Html {
         $this->liturgicalDays = $api->getLiturgicalDaysInRange($from, $until);
                                  
         // Process advanced rites/types filters (if provided)
-        $typesReq = isset($params['types']) ? $params['types'] : [];
-        $ritesReq = isset($params['rites']) ? $params['rites'] : [];
-
-        if (!empty($typesReq) || !empty($ritesReq)) {
+         $typesReq = isset($params['types']) ? $params['types'] : [];
+         $ritesReq = isset($params['rites']) ? $params['rites'] : [];
+         $categoriesReq = isset($params['categories']) ? $params['categories'] : '';
+             
+         if (!empty($typesReq) || !empty($ritesReq)) {
             // 1) Handle rites.must_not - exclude these rites entirely
             if (!empty($ritesReq['must_not'])) {
                 $mustNotRites = array_filter(array_map('trim', explode(',', $ritesReq['must_not'])));
@@ -101,7 +101,7 @@ class SearchResultsMasses extends Html {
                     $search->filters[] = "A rítus nem lehet: <i>" . htmlspecialchars(t($r)) . "</i>";
                     // add to query must_not
                     $search->query['bool']['must_not'][] = [ 'term' => ['rite.keyword' => $r] ];
-                }
+                }   
             }
 
             // 2) Handle rites.should - at least one of these rite+type combinations must match
@@ -183,7 +183,57 @@ class SearchResultsMasses extends Html {
             
         }
 
-        $offset = $this->pagination->take * $this->pagination->active;
+         // Process categories filter
+         // Collect titlesByCategory from mass-definitions.json and filter by selected categories
+         if (!empty($categoriesReq)) {
+             $selectedCategories = array_filter(array_map('trim', explode(',', $categoriesReq)));
+             
+             // Load mass definitions to get titlesByCategory
+             $massDefinitionsPath = dirname(__DIR__) . '/../mass-definitions.json';
+             $massDefinitions = json_decode(file_get_contents($massDefinitionsPath), true);
+             $titlesByCategory = $massDefinitions['titlesByCategory'] ?? [];
+             // Concatenate arrays for selected categories
+             $allTitles = [];
+             foreach ($selectedCategories as $cat) {
+                 if (isset($titlesByCategory[$cat])) {
+                     $allTitles = array_merge($allTitles, $titlesByCategory[$cat]);
+                 }
+             }
+             if (!empty($allTitles)) {
+                 // Process each title: remove "MASS_TITLE." prefix and add translated version
+                 $titleFilters = [];
+                 foreach ($allTitles as $title) {
+                     // Remove "MASS_TITLE." prefix if exists
+                     $cleanTitle = preg_replace('/^MASS_TITLE\./', '', $title);
+                     $allTitles[] = $title;
+                     $translatedTitle = t('MASS_TITLE.' . $cleanTitle);
+                     $allTitles[] = $translatedTitle;
+                 }
+                 $titleFilters = array_unique($allTitles);
+                 // Re-index array to ensure clean numeric keys for proper JSON encoding
+                 $titleFilters = array_values($titleFilters);
+                 // Simple query filter: title must be one of these items
+                 if (!empty($titleFilters)) {
+                     $search->query['bool']['must'][] = [ 'terms' => ['title.keyword' => $titleFilters] ];
+                     $translatedCategoryNames = array_map(function($c){ return t('MASS_TITLE_CATEGORY.' . $c); }, $selectedCategories);
+                     $search->filters[] = "Kategóriák: <b>" . implode('</b> vagy <b>', $translatedCategoryNames) . "</b>";
+                 }
+             }
+         }
+
+       // Set title based on number of selected categories
+       $selectedCategories = !empty($categoriesReq) ? array_filter(array_map('trim', explode(',', $categoriesReq))) : [];
+       if (count($selectedCategories) === 1) {
+           // If only one category is selected, use its translated name + " kereső"
+           $categoryKey = reset($selectedCategories);
+           $categoryTranslation = t('MASS_TITLE_CATEGORY.' . $categoryKey);
+           $this->setTitle($categoryTranslation . ' keresése');
+       } else {
+           // Otherwise use the default "Esemény kereső"
+           $this->setTitle('Események keresése');
+       }
+
+       $offset = $this->pagination->take * $this->pagination->active;
         $limit = $this->pagination->take;     	        
         $results = $search->getResults($offset, $limit, false);
                                         
