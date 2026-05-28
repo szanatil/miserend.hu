@@ -957,6 +957,13 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
   }
 
   public onSendToApprove() {
+    const generatedSuggestions = SuggestionUtil.generateSuggestions(this.masses, this.changes, this.deletedMasses);
+
+    if (generatedSuggestions.length === 0) {
+      this.snackBarService.error('Üres javaslatot nem lehet beküldeni.');
+      return;
+    }
+
     this.spinnerService.show();
 
     const suggestionPackage: SuggestionPackage = {
@@ -965,7 +972,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       senderEmail: this.suggestionSenderEmail.value,
       senderUserId: this.suggestionSenderID.value,
       senderMessage: this.suggestionSenderMessage.value,
-      suggestions: SuggestionUtil.generateSuggestions(this.masses, this.changes, this.deletedMasses),
+      suggestions: generatedSuggestions,
       state: SuggestionState.PENDING,
       createdAt: new Date()
     }
