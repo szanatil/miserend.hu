@@ -104,9 +104,15 @@ export class AddFullEventDialogComponent {
   ) {
     const hasPeriodId = !!(this.data.event.period && (this.data.event.period as any).periodId);
 
-    // A választható időszakokat furcsa sorrendben jelenítjük meg direkt. 
+    // A választható időszakokat furcsa sorrendben jelenítjük meg direkt.
     periodService.getSelectableGeneratedPeriodsByDate(this.data.event.start).subscribe(generatedPeriods => {
       this.selectableGenPeriods = generatedPeriods;
+      // Új mise létrehozásánál a választott napra érvényes/várható időszak az alapértelmezett.
+      // A getSelectableGeneratedPeriodsByDate az aktuális dátum szerint sorba rendezve adja vissza,
+      // így a lista első eleme a leginkább releváns időszak.
+      if (!this.data.event.period && generatedPeriods.length > 0) {
+        this.periodCtr.setValue(generatedPeriods[0]);
+      }
     });
 
     this.periodCtr.valueChanges.subscribe(value => {
