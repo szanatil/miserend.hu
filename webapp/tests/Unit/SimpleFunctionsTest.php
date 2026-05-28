@@ -124,6 +124,86 @@ class SimpleFunctionsTest extends TestCase {
         $this->assertMatchesRegularExpression('/[a-záéíóöőüű]+\.?\s+\d+\./', $result);
     }
 
+    public function testTwigPhoneLinksWrapsPlusThirtySixFormat() {
+        $result = twig_phone_links('Hívható: +36 30 1234567 között.');
+
+        $this->assertStringContainsString('<a href="tel:+36301234567"', $result);
+        $this->assertStringContainsString('class="phone-link"', $result);
+        $this->assertStringContainsString('>+36 30 1234567</a>', $result);
+    }
+
+    public function testTwigPhoneLinksWrapsZeroSixWithSpacesAndDashes() {
+        $result = twig_phone_links('Iroda: 06-30-123-4567');
+
+        $this->assertStringContainsString('href="tel:+36301234567"', $result);
+        $this->assertStringContainsString('>06-30-123-4567</a>', $result);
+    }
+
+    public function testTwigPhoneLinksWrapsCompactZeroSixNumber() {
+        $result = twig_phone_links('06301234567');
+
+        $this->assertStringContainsString('href="tel:+36301234567"', $result);
+    }
+
+    public function testTwigPhoneLinksWrapsBudapestLandlineWithParens() {
+        $result = twig_phone_links('Plébánia: +36 (1) 234-5678');
+
+        $this->assertStringContainsString('href="tel:+3612345678"', $result);
+    }
+
+    public function testTwigPhoneLinksLeavesShortDigitSequencesAlone() {
+        // No country prefix -> not a phone, just a date or post code
+        $input = 'Mise: 2023-04-05, irányítószám: 1052';
+
+        $result = twig_phone_links($input);
+
+        $this->assertEquals($input, $result);
+    }
+
+    public function testTwigPhoneLinksDoesNotRewrapExistingAnchorTel() {
+        $input = '<a href="tel:+36301234567">+36 30 1234567</a>';
+
+        $result = twig_phone_links($input);
+
+        $this->assertEquals($input, $result);
+        // No nested <a>
+        $this->assertEquals(1, substr_count($result, '<a '));
+    }
+
+    public function testTwigPhoneLinksLeavesPlainTextUntouched() {
+        $input = 'A plébánia címe: Budapest, Fő utca 1.';
+
+        $this->assertEquals($input, twig_phone_links($input));
+    }
+
+    public function testTwigPhoneLinksHandlesMultipleNumbersInOneString() {
+        $result = twig_phone_links("Iroda: +36 1 234 5678\nMobil: 06 30 1234567");
+
+        $this->assertEquals(2, substr_count($result, '<a href="tel:'));
+        $this->assertStringContainsString('tel:+3612345678', $result);
+        $this->assertStringContainsString('tel:+36301234567', $result);
+    }
+
+    public function testTwigPhoneLinksReturnsEmptyStringWhenInputIsEmpty() {
+        $this->assertEquals('', twig_phone_links(''));
+    }
+
+    public function testTwigPhoneLinksReturnsNullInputUnchanged() {
+        $this->assertNull(twig_phone_links(null));
+    }
+
+    public function testTwigPhoneLinksHandlesStringableObjectsLikeTwigMarkup() {
+        // |nl2br already returned a Twig\Markup before our filter runs.
+        $markupLike = new class {
+            public function __toString(): string { return 'Hívható: +36 30 1234567'; }
+        };
+
+        $result = twig_phone_links($markupLike);
+
+        $this->assertIsString($result);
+        $this->assertStringContainsString('href="tel:+36301234567"', $result);
+    }
+
     public function testTwigHungarianDateFormatForDateInCurrentWeekIncludesTimeWhenRequested() {
         $lastSunday = strtotime('last sunday');
         $todayMidnight = strtotime(date('Y-m-d'));

@@ -71,9 +71,73 @@ function twig_hungarian_date_format($date, $format = null) {
 }
 
 function twig_translate($text) {
-    
+
     $text = Translator::translate($text);
-    
+
     return $text;
+}
+
+/**
+ * #373: Magyar telefonszámokat keres egy szöveg- vagy HTML-blokkban (pl. a plébánia
+ * leírásában) és köré tördel egy `<a href="tel:...">` linket, hogy mobilról egy
+ * gombnyomással hívható legyen. A linket egy „phone-link” class-szal és telefon
+ * ikonnal jelöljük.
+ *
+ * Már meglévő `<a>...</a>` elemekbe nem ír bele (pl. egy korábban kézzel beillesztett
+ * `tel:` vagy `mailto:` link érintetlen marad).
+ */
+function twig_phone_links($html) {
+    if ($html === null || $html === '') {
+        return $html;
+    }
+    // A korábbi szűrők (pl. |nl2br) Twig\Markup objektumot adhatnak vissza, ami
+    // nem string, de __toString-gel string-é alakítható.
+    if (!is_string($html) && !(is_object($html) && method_exists($html, '__toString'))) {
+        return $html;
+    }
+    $html = (string)$html;
+
+    // A meglévő <a> tageket változatlanul hagyjuk - csak a szövegben szereplő
+    // telefonszámokat akarjuk autolinkelni. PREG_SPLIT_DELIM_CAPTURE-rel a páratlan
+    // indexű elemek lesznek maguk a <a>...</a> blokkok.
+    $parts = preg_split('#(<a\b[^>]*>.*?</a>)#is', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
+    if ($parts === false) {
+        return $html;
+    }
+
+    // Magyar számformátumok: +36, 0036 vagy 06 országhívóval, utána 1-2 jegyű
+    // körzet/szolgáltató (zárójellel is megengedett), majd 6-9 jegy szóköz/-/./
+    // tagolóval. A környezet ne legyen számjegy, hogy ne kapjunk be hosszabb
+    // számsort (pl. tranzakcióazonosító).
+    $phoneRegex = '/(?<![\d\w])((?:\+36|0036|06)[\s\-\.\/]*\(?\d{1,2}\)?[\s\-\.\/]*\d{2,4}[\s\-\.\/]*\d{2,4}(?:[\s\-\.\/]*\d{1,4})?)(?![\d\w])/u';
+
+    foreach ($parts as $i => $part) {
+        if ($i % 2 === 1) {
+            // <a>...</a> blokk - érintetlenül hagyjuk.
+            continue;
+        }
+        $parts[$i] = preg_replace_callback($phoneRegex, function ($m) {
+            $display = $m[1];
+            $digits  = preg_replace('/\D/', '', $display);
+            if ($digits === null || $digits === '') {
+                return $display;
+            }
+            // Csak akkor linkeljünk, ha legalább annyi jegy van mint egy érvényes
+            // magyar szám (országhívóval együtt 10 jegy: 36 + 8 vidéki / 36 + 9 mobil).
+            if (strlen($digits) < 10) {
+                return $display;
+            }
+            // E.164 normalizálás a tel: linkhez.
+            if (strpos($digits, '0036') === 0) {
+                $digits = substr($digits, 2);
+            } elseif (strpos($digits, '06') === 0) {
+                $digits = '36' . substr($digits, 2);
+            }
+            $tel = '+' . $digits;
+            return '<a href="tel:' . htmlspecialchars($tel, ENT_QUOTES, 'UTF-8') . '" class="phone-link" title="Hívás"><i class="fa fa-phone"></i> ' . $display . '</a>';
+        }, $part);
+    }
+
+    return implode('', $parts);
 }
 
