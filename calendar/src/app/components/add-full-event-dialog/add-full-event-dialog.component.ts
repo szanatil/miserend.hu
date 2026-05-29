@@ -107,11 +107,25 @@ export class AddFullEventDialogComponent {
     // A választható időszakokat furcsa sorrendben jelenítjük meg direkt.
     periodService.getSelectableGeneratedPeriodsByDate(this.data.event.start).subscribe(generatedPeriods => {
       this.selectableGenPeriods = generatedPeriods;
-      // Új mise létrehozásánál a választott napra érvényes/várható időszak az alapértelmezett.
-      // A getSelectableGeneratedPeriodsByDate az aktuális dátum szerint sorba rendezve adja vissza,
-      // így a lista első eleme a leginkább releváns időszak.
+      // #308 (borazslo review): új mise létrehozásánál próbáljuk a templom már
+      // meglévő miserend-mintájához illeszteni az alapértelmezést.
+      // A getSelectableGeneratedPeriodsByDate súly szerint rendezi a periódusokat,
+      // így először a magas-súlyú (pl. húsvét, karácsony) jönnek, aztán a normál
+      // (pl. évközi / tanítási idő).
+      //
+      // Ha a templomnak vannak már miséi, és valamelyiknek a periódusa
+      // szerepel a sorrendben, AZT vegyük első ajánlatra - így egy szerdai
+      // májusi kattintás inkább "tanítási idő"-t ajánl, nem "húsvét"-ot vagy
+      // "május 1."-et.
+      //
+      // Ha nincs egyezés (új templom, vagy soha nem volt mise ilyen időszakra),
+      // marad a régi viselkedés: [0]. elem.
       if (!this.data.event.period && generatedPeriods.length > 0) {
-        this.periodCtr.setValue(generatedPeriods[0]);
+        const existingPeriodIds = new Set(this.data.existingPeriodIds ?? []);
+        const matched = existingPeriodIds.size > 0
+          ? generatedPeriods.find(p => existingPeriodIds.has(p.periodId))
+          : null;
+        this.periodCtr.setValue(matched ?? generatedPeriods[0]);
       }
     });
 
