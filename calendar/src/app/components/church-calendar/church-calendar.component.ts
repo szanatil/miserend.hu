@@ -79,6 +79,12 @@ export interface DeleteDialogData {
 export interface DialogData {
   title: string;
   event: DialogEvent;
+  // #308 (borazslo review): a templom már létező miséinek periódus-azonosítói
+  // (a betöltött + a folyamatban lévő változások egyesítve, deduplikálva).
+  // A dialog az alapértelmezett periódus-választás során előnyben részesíti
+  // ezeket: olyan miséhez ne ajánljunk új időszakot (pl. húsvét), ha a
+  // templomnak van már „illeszthető" rendszeres miserendje (pl. tanítási idő).
+  existingPeriodIds?: number[];
 }
 
 @Component({
@@ -816,8 +822,27 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       this.dialogEvent!.start = date;
     }
 
+    // #308 (borazslo review): a templom már létező miséinek periódusait
+    // előnyben részesítjük az alapértelmezett periódus-választáskor.
+    // A betöltött masses + folyamatban lévő changes összesítve, hogy a
+    // még el nem mentett új miserend is számítson.
+    const existingPeriodIds: number[] = [];
+    const seenPeriodIds = new Set<number>();
+    const addPeriodId = (periodId?: number | null) => {
+      if (ScriptUtil.isNotNull(periodId) && !seenPeriodIds.has(periodId)) {
+        seenPeriodIds.add(periodId);
+        existingPeriodIds.push(periodId);
+      }
+    };
+    for (const m of this.masses.values()) {
+      addPeriodId(m.periodId);
+    }
+    for (const m of this.changes.values()) {
+      addPeriodId(m.periodId);
+    }
+
     const dialogRef = this.dialog.open(AddFullEventDialogComponent, {
-      data: {title: title, event: this.dialogEvent}
+      data: {title: title, event: this.dialogEvent, existingPeriodIds: existingPeriodIds}
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -957,6 +982,13 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
   }
 
   public onSendToApprove() {
+    const generatedSuggestions = SuggestionUtil.generateSuggestions(this.masses, this.changes, this.deletedMasses);
+
+    if (generatedSuggestions.length === 0) {
+      this.snackBarService.error('Üres javaslatot nem lehet beküldeni.');
+      return;
+    }
+
     this.spinnerService.show();
 
     const suggestionPackage: SuggestionPackage = {
@@ -965,7 +997,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       senderEmail: this.suggestionSenderEmail.value,
       senderUserId: this.suggestionSenderID.value,
       senderMessage: this.suggestionSenderMessage.value,
-      suggestions: SuggestionUtil.generateSuggestions(this.masses, this.changes, this.deletedMasses),
+      suggestions: generatedSuggestions,
       state: SuggestionState.PENDING,
       createdAt: new Date()
     }
