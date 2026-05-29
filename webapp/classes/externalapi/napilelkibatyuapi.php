@@ -164,10 +164,8 @@ class NapilelkibatyuApi extends \ExternalApi\ExternalApi {
 	 */
 	private function renderAlert($dateInfo, $nextDayInfo) {
 		global $twig;
-		global $_honapok;
 		return $twig->render('alert_liturgicalday.html',
 			array(
-				'honapok' => $_honapok,
 				'date' => $dateInfo,
 				'nextDay' => $nextDayInfo,
 			));

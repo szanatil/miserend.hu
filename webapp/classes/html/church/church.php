@@ -57,7 +57,6 @@ class Church extends \Html\Html {
     public $readAccess;
     public $writeAccess;
     public $accessibility;
-    public $_honapok;
     public $hasWorkAccess;
     public $church;
     public $neighbours;
@@ -106,10 +105,7 @@ class Church extends \Html\Html {
             ->limit(5)
             ->get()
             ->toArray();
-        		   
-		global $_honapok;
-		$this->_honapok = $_honapok;
-		
+        		   		
          /*
          * 
          */
