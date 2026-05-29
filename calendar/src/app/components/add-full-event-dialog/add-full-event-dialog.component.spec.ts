@@ -135,6 +135,28 @@ describe('AddFullEventDialogComponent (#308 default period)', () => {
     expect(component.periodCtr.value).toEqual(fromServer);
   });
 
+  it('synchronously syncs data.event.period when prefilling (avoids save-race)', async () => {
+    const evkozi = makeGeneratedPeriod({id: 1, periodId: 10, name: 'Iskolaidő'});
+
+    await setup([evkozi]);
+
+    expect(component.periodCtr.value).toEqual(evkozi);
+    expect(component.data.event.period).toEqual(evkozi as any);
+  });
+
+  it('onSave defensively syncs data.event.period from periodCtr if they drifted apart', async () => {
+    const evkozi = makeGeneratedPeriod({id: 1, periodId: 10});
+    await setup([evkozi]);
+
+    (component.data.event as any).period = null;
+    component.singleEvent = false;
+
+    component.onSave();
+
+    expect(component.data.event.period).toEqual(evkozi as any);
+    expect(component.dialogRef.close).toHaveBeenCalled();
+  });
+
   it('handles missing existingPeriodIds (undefined) like an empty list — fallback to [0]', async () => {
     const p10 = makeGeneratedPeriod({id: 1, periodId: 10, name: 'Iskolaidő'});
 
