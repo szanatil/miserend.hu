@@ -125,7 +125,10 @@ export class AddFullEventDialogComponent {
         const matched = existingPeriodIds.size > 0
           ? generatedPeriods.find(p => existingPeriodIds.has(p.periodId))
           : null;
-        this.periodCtr.setValue(matched ?? generatedPeriods[0]);
+        const selectedPeriod = matched ?? generatedPeriods[0];
+        // Immediately sync to data.event.period to avoid async race condition with validation
+        this.data.event.period = selectedPeriod;
+        this.periodCtr.setValue(selectedPeriod);
       }
     });
 
@@ -177,6 +180,11 @@ export class AddFullEventDialogComponent {
   }
 
   onSave(): void {
+    // Ensure data.event.period is synced from FormControl if needed
+    if (this.data.event.period === null && this.periodCtr.value !== null) {
+      this.data.event.period = this.periodCtr.value;
+    }
+    
     if (!this.singleEvent && ScriptUtil.isNull(this.data.event.period)) {
       this.periodCtr.setErrors({required: true});
       return;
