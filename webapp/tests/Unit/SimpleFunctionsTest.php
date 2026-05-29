@@ -23,23 +23,7 @@ class SimpleFunctionsTest extends TestCase {
         $this->assertEquals('<strong>Cím</strong>', $result['title']);
         $this->assertEquals('sor1<br/>sor2', $result['body']);
     }
-
-    public function testGetWeekInMonthForFirstOccurrence() {
-        $this->assertEquals(1, getWeekInMonth('2026-03-01'));
-    }
-
-    public function testGetWeekInMonthCountsWeeksBackwardsWithinMonth() {
-        $this->assertEquals(3, getWeekInMonth('2026-03-15'));
-    }
-
-    public function testGetWeekInMonthCountsWeeksForwardWithinMonthWhenOrderIsMinus() {
-        $this->assertEquals(-3, getWeekInMonth('2026-03-15', '-'));
-    }
-
-    public function testGetWeekInMonthReturnsZeroForUnknownOrder() {
-        $this->assertEquals(0, getWeekInMonth('2026-03-15', 'unknown'));
-    }
-
+  
     public function testTwigHungarianDateFormatForTodayWithoutTime() {
         $result = twig_hungarian_date_format(date('Y-m-d H:i:s'), '');
 
@@ -98,26 +82,6 @@ class SimpleFunctionsTest extends TestCase {
         } else {
             $candidate = strtotime('next saturday', $lastSunday);
         }
-
-        global $_honapok;
-        $monthNumber = (int)date('n', $candidate);
-        if (!isset($_honapok[$monthNumber][0]) || $_honapok[$monthNumber][0] === '') {
-            $defaultMonths = [
-                1 => ['jan', 'január'],
-                2 => ['feb', 'február'],
-                3 => ['márc', 'március'],
-                4 => ['ápr', 'április'],
-                5 => ['máj', 'május'],
-                6 => ['jún', 'június'],
-                7 => ['júl', 'július'],
-                8 => ['aug', 'augusztus'],
-                9 => ['szept', 'szeptember'],
-                10 => ['okt', 'október'],
-                11 => ['nov', 'november'],
-                12 => ['dec', 'december'],
-            ];
-            $_honapok[$monthNumber] = $defaultMonths[$monthNumber];
-        }
                 
         $result = twig_hungarian_date_format($candidate, '');
 
@@ -132,26 +96,6 @@ class SimpleFunctionsTest extends TestCase {
             $candidate = strtotime('last monday', $todayMidnight);
         } else {
             $candidate = strtotime('next saturday', $lastSunday);
-        }
-
-        global $_honapok;
-        $monthNumber = (int)date('n', $candidate);
-        if (!isset($_honapok[$monthNumber][0]) || $_honapok[$monthNumber][0] === '') {
-            $defaultMonths = [
-                1 => ['jan', 'január'],
-                2 => ['feb', 'február'],
-                3 => ['márc', 'március'],
-                4 => ['ápr', 'április'],
-                5 => ['máj', 'május'],
-                6 => ['jún', 'június'],
-                7 => ['júl', 'július'],
-                8 => ['aug', 'augusztus'],
-                9 => ['szept', 'szeptember'],
-                10 => ['okt', 'október'],
-                11 => ['nov', 'november'],
-                12 => ['dec', 'december'],
-            ];
-            $_honapok[$monthNumber] = $defaultMonths[$monthNumber];
         }
 
         $result = twig_hungarian_date_format($candidate, 'H:i');

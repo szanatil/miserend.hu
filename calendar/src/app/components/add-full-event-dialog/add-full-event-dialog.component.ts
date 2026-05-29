@@ -104,9 +104,32 @@ export class AddFullEventDialogComponent {
   ) {
     const hasPeriodId = !!(this.data.event.period && (this.data.event.period as any).periodId);
 
-    // A választható időszakokat furcsa sorrendben jelenítjük meg direkt. 
+    // A választható időszakokat furcsa sorrendben jelenítjük meg direkt.
     periodService.getSelectableGeneratedPeriodsByDate(this.data.event.start).subscribe(generatedPeriods => {
       this.selectableGenPeriods = generatedPeriods;
+      // #308 (borazslo review): új mise létrehozásánál próbáljuk a templom már
+      // meglévő miserend-mintájához illeszteni az alapértelmezést.
+      // A getSelectableGeneratedPeriodsByDate súly szerint rendezi a periódusokat,
+      // így először a magas-súlyú (pl. húsvét, karácsony) jönnek, aztán a normál
+      // (pl. évközi / tanítási idő).
+      //
+      // Ha a templomnak vannak már miséi, és valamelyiknek a periódusa
+      // szerepel a sorrendben, AZT vegyük első ajánlatra - így egy szerdai
+      // májusi kattintás inkább "tanítási idő"-t ajánl, nem "húsvét"-ot vagy
+      // "május 1."-et.
+      //
+      // Ha nincs egyezés (új templom, vagy soha nem volt mise ilyen időszakra),
+      // marad a régi viselkedés: [0]. elem.
+      if (!this.data.event.period && generatedPeriods.length > 0) {
+        const existingPeriodIds = new Set(this.data.existingPeriodIds ?? []);
+        const matched = existingPeriodIds.size > 0
+          ? generatedPeriods.find(p => existingPeriodIds.has(p.periodId))
+          : null;
+        const selectedPeriod = matched ?? generatedPeriods[0];
+        // Immediately sync to data.event.period to avoid async race condition with validation
+        this.data.event.period = selectedPeriod;
+        this.periodCtr.setValue(selectedPeriod);
+      }
     });
 
     this.periodCtr.valueChanges.subscribe(value => {
@@ -157,6 +180,11 @@ export class AddFullEventDialogComponent {
   }
 
   onSave(): void {
+    // Ensure data.event.period is synced from FormControl if needed
+    if (this.data.event.period === null && this.periodCtr.value !== null) {
+      this.data.event.period = this.periodCtr.value;
+    }
+    
     if (!this.singleEvent && ScriptUtil.isNull(this.data.event.period)) {
       this.periodCtr.setErrors({required: true});
       return;

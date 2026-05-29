@@ -964,8 +964,14 @@ class Church extends \Illuminate\Database\Eloquent\Model {
      * boundary értéket, ha még nincs. Ill. összekapcsolást.
      */
     function MmigrateBoundaries() {
-        global $_egyhazmegyek, $_espereskeruletek, $_orszagok, $_megyek, $_varosok;
-                                           
+        
+        // Sok templom vizsgálata esetén ez eléggé erőforráspazarló. De csak azoknál kerülhet elő, ahol nincs koordináta. Az pedig néhány eltévedt bárányka.
+        $_egyhazmegyek = collect(DB::table('egyhazmegye')->get())->keyBy('id')->sortBy('sorrend');
+        $_espereskeruletek = collect(DB::table('espereskerulet')->get())->keyBy('id');
+        $_orszagok = collect(DB::table('orszagok')->get())->keyBy('id');
+        $_megyek = collect(DB::table('megye')->select('*','megyenev as nev')->get())->keyBy('id');
+        $_varosok = collect(DB::table('varosok')->get())->keyBy('id');
+        
         /* egyházmegye */
         $tmp = $this->boundaries()
                 ->where('boundary','religious_administration')

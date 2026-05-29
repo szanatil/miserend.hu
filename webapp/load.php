@@ -55,60 +55,6 @@ $twig->addFilter(new \Twig\TwigFilter('floor', 'floor'));
 
 //
 //  Useful CONSTANTS
-//
-// LANGUAGES, ROLES 
-//
-use Illuminate\Database\Capsule\Manager as DB;
 
-$_egyhazmegyek = collect(DB::table('egyhazmegye')->get())->keyBy('id')->sortBy('sorrend');
-$_espereskeruletek = collect(DB::table('espereskerulet')->get())->keyBy('id');
-$_orszagok = collect(DB::table('orszagok')->get())->keyBy('id');
-$_megyek = collect(DB::table('megye')->select('*','megyenev as nev')->get())->keyBy('id');
-$_varosok = collect(DB::table('varosok')->get())->keyBy('id');
-
-
-$_honapok = [
-	1 => ['jan','január'],
-	2 => ['feb','február'],
-	3 => ['márc','március'],
-	4 => ['ápr','április'],
-	5 => ['máj','május'],
-	6 => ['jún','június'],
-	7 => ['júl','július'],
-	8 => ['aug','augusztus'],
-	9 => ['szept','szeptember'],
-	10 => ['okt','október'],
-	11 => ['nov','november'],
-	12 => ['dec','december'],
-];
-
-
-// Gyűjtse össze a CalMass modellekben előforduló, egyedi "lang" mezőértékeket
-$_calmass_langs = collect(\Eloquent\CalMass::select('lang')->distinct()->pluck('lang'))
-    ->filter(function($v){ return $v !== null && $v !== ''; })
-    ->map(function($v){ return trim($v); })
-    ->unique()
-    ->sort()
-    ->values()
-    ->all();
-asort($_calmass_langs);
-$_calmass_langs = array_values($_calmass_langs);
-$huIndex = array_search('hu', $_calmass_langs, true);
-if ($huIndex !== false) {
-    array_splice($_calmass_langs, $huIndex, 1);
-    array_unshift($_calmass_langs, 'hu');
-}
-
-foreach($_calmass_langs as $k => $langAbbrev) {
-    $nyelvek[$langAbbrev] = [
-        'abbrev' => $langAbbrev,
-        'name' => t('LANGUAGES.' . $langAbbrev),
-        'file' => 'zaszloikon/' . $langAbbrev . '.gif',
-        'description' => t('LANGUAGES.' . $langAbbrev) . ' nyelven'
-    ];
-}
-define("LANGUAGES", serialize($nyelvek));
-
-$roles = ['miserend', 'user'];
-define("ROLES", serialize($roles));
+define("ROLES", serialize(['miserend', 'user']));
 ?>
