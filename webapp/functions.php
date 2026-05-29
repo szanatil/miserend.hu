@@ -75,20 +75,6 @@ function mapquestGeocode($location) {
     return array_merge($mapquest['results'][0]['locations'][0]['latLng'], array('mapUrl' => $mapquest['results'][0]['locations'][0]['mapUrl']));
 }
 
-function getWeekInMonth($date, $order = '+') {
-    $num = 0;
-    if ($order == '+')
-        for ($i = 0; $i < 6; $i++) {
-            if (date("m", strtotime($date)) == date('m', strtotime($date . " -" . $i . " week")))
-                $num++;
-        }
-    if ($order == '-')
-        for ($i = 0; $i < 6; $i++) {
-            if (date("m", strtotime($date)) == date('m', strtotime($date . " +" . $i . " week")))
-                $num--;
-        }
-    return $num;
-}
 
 function feltoltes_block() {
     global $user;
@@ -135,28 +121,6 @@ function copyArrayToObject($array, &$object) {
     foreach ($array as $key => $value) {
         $object->$key = $value;
     }
-}
-
-function br2nl($string) {
-    return preg_replace('/\<br(\s*)?\/?\>/i', PHP_EOL, $string);
-}
-
-function idoszak($i) {
-    switch ($i) {
-        case 'a': $tmp = 'Ádventi idő';
-            break;
-        case 'k': $tmp = 'Karácsonyi idő';
-            break;
-        case 'n': $tmp = 'Nagyböjti idő';
-            break;
-        case 'h': $tmp = 'Húsvéti idő';
-            break;
-        case 'e': $tmp = 'Évközi idő';
-            break;
-        case 's': $tmp = 'Szent ünnepe';
-            break;
-    }
-    return $tmp;
 }
 
 function dumpToFile(mixed ...$values): void {

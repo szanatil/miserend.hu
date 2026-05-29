@@ -23,23 +23,7 @@ class SimpleFunctionsTest extends TestCase {
         $this->assertEquals('<strong>Cím</strong>', $result['title']);
         $this->assertEquals('sor1<br/>sor2', $result['body']);
     }
-
-    public function testGetWeekInMonthForFirstOccurrence() {
-        $this->assertEquals(1, getWeekInMonth('2026-03-01'));
-    }
-
-    public function testGetWeekInMonthCountsWeeksBackwardsWithinMonth() {
-        $this->assertEquals(3, getWeekInMonth('2026-03-15'));
-    }
-
-    public function testGetWeekInMonthCountsWeeksForwardWithinMonthWhenOrderIsMinus() {
-        $this->assertEquals(-3, getWeekInMonth('2026-03-15', '-'));
-    }
-
-    public function testGetWeekInMonthReturnsZeroForUnknownOrder() {
-        $this->assertEquals(0, getWeekInMonth('2026-03-15', 'unknown'));
-    }
-
+  
     public function testTwigHungarianDateFormatForTodayWithoutTime() {
         $result = twig_hungarian_date_format(date('Y-m-d H:i:s'), '');
 
