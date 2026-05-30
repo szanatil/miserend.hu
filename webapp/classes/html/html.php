@@ -62,6 +62,7 @@ class Html {
         $this->twig->addFilter(new \Twig\TwigFilter('miserend_date', 'twig_hungarian_date_format'));
         $this->twig->addFilter(new \Twig\TwigFilter('trans', 'twig_translate'));
         $this->twig->addFilter(new \Twig\TwigFilter('floor', 'floor'));
+        $this->twig->addFilter(new \Twig\TwigFilter('phone_links', 'twig_phone_links'));
         // DANGER: a twig declarálva van / meg van hívva a Load.php -ban is. Így ott is módosítani kellhet a filterket
 
     }

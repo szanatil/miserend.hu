@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, inject} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, inject} from '@angular/core';
 import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {MatButtonModule} from '@angular/material/button';
 import {DialogData} from '../church-calendar/church-calendar.component';
@@ -101,6 +101,7 @@ export class AddFullEventDialogComponent {
   constructor(
     readonly periodService: PeriodService,
     readonly translateService: TranslateService,
+    readonly cdr: ChangeDetectorRef,
   ) {
     const hasPeriodId = !!(this.data.event.period && (this.data.event.period as any).periodId);
 
@@ -293,10 +294,17 @@ export class AddFullEventDialogComponent {
         return `${datePart}T${startTime}`;
       });
     }
+    // Recalculate duration range when start time changes
+    this.cdr.markForCheck();
   }
 
   onSelectedDaysChange() {
     this.dayError = false;
+  }
+
+  onDurationChange(): void {
+    // Trigger change detection to recalculate the duration range hint
+    this.cdr.markForCheck();
   }
 
   onSelectedChristmasDayChange() {
@@ -369,6 +377,42 @@ export class AddFullEventDialogComponent {
   }
 
   protected readonly RiteMassTypes = RiteMassTypes;
-  protected readonly Renum = Renum;
-  protected readonly SpecialType = SpecialType;
+   protected readonly Renum = Renum;
+   protected readonly SpecialType = SpecialType;
+
+   getFormattedDurationRange(): string {
+     const startTime = this.data.event.start;
+     const duration = this.data.event.duration;
+     
+     if (!startTime || !duration) {
+       return '';
+     }
+
+     const startHours = startTime.getHours().toString().padStart(2, '0');
+     const startMinutes = startTime.getMinutes().toString().padStart(2, '0');
+     
+     // Calculate end time by adding duration
+     const durationMs =
+       ((duration.days ?? 0) * 24 * 60 * 60 * 1000) +
+       ((duration.hours ?? 0) * 60 * 60 * 1000) +
+       ((duration.minutes ?? 0) * 60 * 1000);
+     
+     const endTime = new Date(startTime.getTime() + durationMs);
+     const endHours = endTime.getHours().toString().padStart(2, '0');
+     const endMinutes = endTime.getMinutes().toString().padStart(2, '0');
+     
+     // Check if event extends to the next day
+     const startDate = new Date(startTime.getFullYear(), startTime.getMonth(), startTime.getDate());
+     const endDate = new Date(endTime.getFullYear(), endTime.getMonth(), endTime.getDate());
+     const dayDifference = Math.floor((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
+     
+     let result = `${startHours}:${startMinutes} - ${endHours}:${endMinutes}`;
+     
+     if (dayDifference > 0) {
+       const dayLabel = this.translateService.instant('DURATION_EXTENDED_DAYS');
+       result += ` +${dayDifference}\u00A0${dayLabel}`;
+     }
+     
+     return result;
+   }
 }

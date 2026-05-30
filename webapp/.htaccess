@@ -12,6 +12,19 @@
     RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
     RewriteRule ^(.*)$ http://%1/$1 [R=301,L]
 
+    # Redirect query parameter ?templom=ID to path /templom/ID for Angular
+    # Case 1: Only ?templom=ID (no other parameters)
+    RewriteCond %{QUERY_STRING} ^templom=([0-9]+)$
+    RewriteRule ^/?$ /templom/%1 [R=301,L]
+    
+    # Case 2: ?templom=ID&other=params (temple at start)
+    RewriteCond %{QUERY_STRING} ^templom=([0-9]+)&(.+)$
+    RewriteRule ^/?$ /templom/%1?%2 [R=301,L]
+    
+    # Case 3: ?other=params&templom=ID (and possibly more params after)
+    RewriteCond %{QUERY_STRING} ^(.+?)&templom=([0-9]+)((?:&.+)?)$
+    RewriteRule ^/?$ /templom/%2?%1%3 [R=301,L]
+
     # Handle Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
