@@ -50,7 +50,6 @@ export interface TitlesByRite {
 export interface MassDefinitionsJsonOutput {
   _generator: string;
   _warning: string;
-  _buildDate: string;
   categories: CategoryDefinitionJsonExport[];
   rites: RiteDefinitionJsonExport[];
   definitions: MassDefinitionJsonExport[];
@@ -118,7 +117,6 @@ export function generateMassDefinitionsJson(): MassDefinitionsJsonOutput {
   return {
     _generator: 'mass-definitions-export.ts',
     _warning: 'Auto-generated from calendar/src/app/data/mass-definitions.ts during Angular build',
-    _buildDate: new Date().toISOString(),
     categories: MASS_DEFINITIONS_DATA.categories,
     rites: ritesWithMasstypes,
     definitions: exportDefinitions,

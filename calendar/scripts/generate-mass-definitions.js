@@ -85,7 +85,6 @@ try {
   fs.writeFileSync(outputPath, JSON.stringify(jsonData, null, 2), 'utf-8');
   
   console.log(\`✓ mass-definitions.json generated successfully at \${outputPath}\`);
-  console.log(\`  - Build date: \${jsonData._buildDate}\`);
   console.log(\`  - Categories: \${jsonData.categories.length}\`);
   console.log(\`  - Definitions: \${jsonData.definitions.length}\`);
   console.log(\`  - Rites: \${jsonData.rites.length}\`);
@@ -137,7 +136,6 @@ try {
       const fallbackData = {
         _generator: 'mass-definitions-export.ts (fallback)',
         _warning: 'This JSON was generated in fallback mode. TypeScript compilation failed.',
-        _buildDate: new Date().toISOString(),
         categories: [],
         rites: [],
         definitions: [],
