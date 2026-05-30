@@ -785,7 +785,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             $return = [
                 'id' => $this->id,
                 'nev' => !empty($this->names) ? $this->names[0] : '',
-                'frissitve' => date('Y-m-d H:i:s', strtotime($this->frissites)),
+                'frissitve' => $this->frissites ? date('Y-m-d H:i:s', strtotime($this->frissites)) : null,
                 'ismertnev' => !empty($this->alternative_names) ? $this->alternative_names[0] : '',
                 'orszag' => ( DB::table('orszagok')->where('id', $this->orszag)->value('nev') ?: "" ),
                 'varos' => $this->varos,
@@ -810,7 +810,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             'nev' => !empty($this->names) ? $this->names[0] : '',
             'ismertnev' => !empty($this->alternative_names) ? $this->alternative_names[0] : '',
             'alternative_names' => $this->alternative_names,
-            'frissitve' => date('Y-m-d H:i:s', strtotime($this->frissites)),            
+            'frissitve' => $this->frissites ? date('Y-m-d H:i:s', strtotime($this->frissites)) : null,            
             'orszag' => ( DB::table('orszagok')->where('id', $this->orszag)->value('nev') ?: "" ),
             'egyhazmegye' => ( DB::table('egyhazmegye')->where('id', $this->egyhazmegye)->value('nev') ?: "" ),
             'megye' => ( DB::table('megye')->where('id', $this->megye)->value('megyenev') ?: "" ),
@@ -1063,10 +1063,15 @@ class Church extends \Illuminate\Database\Eloquent\Model {
                 $jelzes.=" <img src=/img/ora.gif title='Feltöltött/módosított templom, áttekintésre vár!' align=absmiddle> ";
 
             if($this->ok == 'i' AND $this->miseaktiv == 1) {
-                $updatedTime = strtotime($this->frissites);
-                if($updatedTime < strtotime("-10 years")) {
+                // #174-B: frissites lehet NULL (új sémában a 0000-00-00
+                // helyett). strtotime(NULL) === false, ami a < strtotime()
+                // összehasonlításban truthy-vá válna, és minden NULL templomra
+                // hibásan "Több mint 10 éves" warningot adna ki. NULL = nincs
+                // adat, nem adunk warningot.
+                $updatedTime = $this->frissites ? strtotime($this->frissites) : null;
+                if($updatedTime !== null && $updatedTime < strtotime("-10 years")) {
                     $jelzes.=" <i class='fa fa-exclamation-triangle fa-lg red' title='Több mint 10 éves adatok!' > </i> ";
-                } elseif ($updatedTime < strtotime("-5 year")) {
+                } elseif ($updatedTime !== null && $updatedTime < strtotime("-5 year")) {
                     $jelzes.=" <i class='fa fa-exclamation fa-lg red' title='Több mint öt éves adatok!'> </i> ";
                 } 
             }
