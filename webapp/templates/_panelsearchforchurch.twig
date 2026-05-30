@@ -28,6 +28,29 @@
                 var boundaryDataFromUrl = window.boundaryDataFromUrl || [];
                 BoundaryAutocomplete.init('#keyword', '#panel-search-church-form', boundaryDataFromUrl);
             }
+
+            // #356: ha a felhasználó az eredmény-oldalról elnavigál (pl. egy
+            // templom-oldalra) és visszatér a keresőre, a beírt kulcsszó
+            // maradjon meg a sessionre. Ha az inputot a PHP backend már
+            // megtöltötte (eredmény-oldal sidebarja), azt nem írjuk felül.
+            try {
+                var keyInput = document.getElementById('keyword');
+                var form = document.getElementById('panel-search-church-form');
+                if (!keyInput || !form) return;
+
+                if (!keyInput.value) {
+                    var stored = sessionStorage.getItem('miserend.lastSearchKulcsszo');
+                    if (stored) {
+                        keyInput.value = stored;
+                    }
+                }
+
+                form.addEventListener('submit', function () {
+                    try { sessionStorage.setItem('miserend.lastSearchKulcsszo', keyInput.value || ''); } catch (_) {}
+                });
+            } catch (_) {
+                // sessionStorage privát/inkognitó-módban dobhat - csendben nyeljük el.
+            }
         });
     })();
     </script>
