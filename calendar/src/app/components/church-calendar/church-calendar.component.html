@@ -22,6 +22,21 @@
     </div>
   </div>
 }
+@if (missingEasterMassWarning || missingChristmasMassWarning) {
+  <div class="special-period-warning"
+       style="margin: 8px 0; padding: 10px 14px; border-left: 4px solid #f5a623; background: #fff7e6; color: #663c00; border-radius: 4px;">
+    <mat-icon style="vertical-align: middle; margin-right: 6px; color: #f5a623;">warning</mat-icon>
+    <strong>Figyelem:</strong>
+    @if (missingEasterMassWarning && missingChristmasMassWarning) {
+      ennek a templomnak nincs sem <em>húsvéti</em>, sem <em>karácsonyi</em> időszakú miséje, pedig a látható nézet érinti mindkettőt.
+    } @else if (missingEasterMassWarning) {
+      ennek a templomnak nincs <em>húsvéti</em> időszakú miséje, pedig a látható nézet érinti a húsvéti időszakot.
+    } @else {
+      ennek a templomnak nincs <em>karácsonyi</em> időszakú miséje, pedig a látható nézet érinti a karácsonyi időszakot.
+    }
+    <br/><small>Valószínű, hogy a miserend hiányos ezen ünnep(ek)re. Érdemes ellenőrizni a szerkesztőben.</small>
+  </div>
+}
 <full-calendar
   #calendar
   [options]="calendarOptions"
