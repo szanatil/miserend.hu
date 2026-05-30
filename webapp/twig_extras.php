@@ -102,14 +102,24 @@ function twig_phone_links($html) {
     // indexű elemek lesznek maguk a <a>...</a> blokkok.
     $parts = preg_split('#(<a\b[^>]*>.*?</a>)#is', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
     if ($parts === false) {
-        return $html;
+        // borazslo (#438 review): a return egy Twig\Markup objektum kell legyen,
+        // különben a Twig auto-escape downgrade-eli az output-ot stringgé. Lásd
+        // a hosszabb magyarázatot a függvény végén.
+        return new \Twig\Markup($html, 'UTF-8');
     }
 
-    // Magyar számformátumok: +36, 0036 vagy 06 országhívóval, utána 1-2 jegyű
-    // körzet/szolgáltató (zárójellel is megengedett), majd 6-9 jegy szóköz/-/./
-    // tagolóval. A környezet ne legyen számjegy, hogy ne kapjunk be hosszabb
-    // számsort (pl. tranzakcióazonosító).
-    $phoneRegex = '/(?<![\d\w])((?:\+36|0036|06)[\s\-\.\/]*\(?\d{1,2}\)?[\s\-\.\/]*\d{2,4}[\s\-\.\/]*\d{2,4}(?:[\s\-\.\/]*\d{1,4})?)(?![\d\w])/u';
+    // Két támogatott magyar formátum:
+    //   1. Országhívóval: +36 / 0036 / 06 + körzet/szolgáltató + 6-9 jegy
+    //   2. borazslo #438 review: zárójeles vidéki körzet, országhívó nélkül -
+    //      pl. "(62) 442-384" - sok régi adatban így van rögzítve. Itt fix
+    //      kötelező a zárójel, hogy random "1 234 567" típusú sorozatokra
+    //      ne találjunk be.
+    // A környezet ne legyen szám/szó-jelleg, nehogy hosszabb sorozatot vágjunk ketté.
+    $phoneRegex = '/(?<![\d\w])('
+        . '(?:\+36|0036|06)[\s\-\.\/]*\(?\d{1,2}\)?[\s\-\.\/]*\d{2,4}[\s\-\.\/]*\d{2,4}(?:[\s\-\.\/]*\d{1,4})?'
+        . '|'
+        . '\(\d{1,2}\)[\s\-\.\/]*\d{2,4}[\s\-\.\/]*\d{2,4}'
+        . ')(?![\d\w])/u';
 
     foreach ($parts as $i => $part) {
         if ($i % 2 === 1) {
@@ -122,22 +132,32 @@ function twig_phone_links($html) {
             if ($digits === null || $digits === '') {
                 return $display;
             }
-            // Csak akkor linkeljünk, ha legalább annyi jegy van mint egy érvényes
-            // magyar szám (országhívóval együtt 10 jegy: 36 + 8 vidéki / 36 + 9 mobil).
-            if (strlen($digits) < 10) {
-                return $display;
-            }
             // E.164 normalizálás a tel: linkhez.
             if (strpos($digits, '0036') === 0) {
                 $digits = substr($digits, 2);
             } elseif (strpos($digits, '06') === 0) {
                 $digits = '36' . substr($digits, 2);
+            } elseif (strpos($digits, '36') !== 0) {
+                // Országhívó nélküli formátum (pl. "(62) 442-384") - magyarnak
+                // tekintjük és elé tesszük a 36-ot.
+                $digits = '36' . $digits;
+            }
+            // Minimum hossz: 36 + 8 vidéki / 36 + 9 mobil = 10-11 jegy.
+            // Ennél kevesebbet ne linkeljünk, hogy pl. irányítószámra ne legyen
+            // téves találat (bár a regex maga is nehezen passzol arra).
+            if (strlen($digits) < 10) {
+                return $display;
             }
             $tel = '+' . $digits;
             return '<a href="tel:' . htmlspecialchars($tel, ENT_QUOTES, 'UTF-8') . '" class="phone-link" title="Hívás"><i class="fa fa-phone"></i> ' . $display . '</a>';
         }, $part);
     }
 
-    return implode('', $parts);
+    // borazslo #438 review: a |raw|nl2br|... lánc a Twig\Markup-ot megőrzi
+    // mindaddig, amíg minden közbenső szűrő ugyanezt visszaadja. Ha string-et
+    // adunk vissza, a Twig auto-escape-eli az output-ot, és <strong> stb.
+    // tagok &lt;strong&gt;-ként jelennek meg. Markup-ba csomagolással ez a
+    // downgrade nem történik meg, és nem kell trailing |raw a template-ben.
+    return new \Twig\Markup(implode('', $parts), 'UTF-8');
 }
 
