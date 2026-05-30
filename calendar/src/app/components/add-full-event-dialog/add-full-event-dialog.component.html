@@ -149,46 +149,52 @@
                  [matTimepicker]="timepicker"
                  [(ngModel)]="data.event.start"
                  (ngModelChange)="onStartTimeChange()"
+                 (ngAfterViewChecked)="onStartTimeChange()"
+                 (change)="onStartTimeChange()"
                  [ngModelOptions]="{updateOn: 'blur'}">
           <mat-timepicker #timepicker/>
           <mat-timepicker-toggle [for]="timepicker" matSuffix/>
         </mat-form-field>
       </div>
 
-    </mat-expansion-panel>
+   </mat-expansion-panel>
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title>{{'DURATION' | translate}}</mat-panel-title>
-        <mat-panel-description>
-          @if (data.event.duration.days) {
-            <span>{{ data.event.duration.days }} {{ 'DURATION_DAYS' | translate }}&nbsp;</span>
-          }
-          @if (data.event.duration.hours) {
-            <span>{{ data.event.duration.hours }} {{ 'DURATION_HOURS' | translate }}&nbsp;</span>
-          }
-          @if (data.event.duration.minutes) {
-            <span>{{ data.event.duration.minutes }} {{ 'DURATION_MINUTES' | translate }}</span>
-          }
-          <mat-icon>hourglass_bottom</mat-icon>
-        </mat-panel-description>
+         <mat-panel-description>
+           @if (data.event.duration.days) {
+             <span>{{ data.event.duration.days }} {{ 'DURATION_DAYS' | translate }}&nbsp;</span>
+           }
+           @if (data.event.duration.hours) {
+             <span>{{ data.event.duration.hours }} {{ 'DURATION_HOURS' | translate }}&nbsp;</span>
+           }
+           @if (data.event.duration.minutes) {
+             <span>{{ data.event.duration.minutes }} {{ 'DURATION_MINUTES' | translate }}</span>
+           }
+           <mat-icon>hourglass_bottom</mat-icon>
+           @if (data.event.start && (data.event.duration.days || data.event.duration.hours || data.event.duration.minutes)) {
+             <span class="duration-hint-separator">—</span>
+             <span class="duration-hint">{{ getFormattedDurationRange() }}</span>
+           }
+         </mat-panel-description>
       </mat-expansion-panel-header>
 
       <div class="duration-wrapper">
-        <mat-form-field>
-          <mat-label>{{ 'DURATION_DAYS' | translate | titlecase }}</mat-label>
-          <input matInput type="number" [(ngModel)]="data.event.duration.days" min="0" max="366">
-        </mat-form-field>
+         <mat-form-field>
+           <mat-label>{{ 'DURATION_DAYS' | translate | titlecase }}</mat-label>
+           <input matInput type="number" [(ngModel)]="data.event.duration.days" (ngModelChange)="onDurationChange()" min="0" max="366">
+         </mat-form-field>
 
-        <mat-form-field>
-          <mat-label>{{ 'DURATION_HOURS' | translate | titlecase }}</mat-label>
-          <input matInput type="number" [(ngModel)]="data.event.duration.hours" min="0" max="24">
-        </mat-form-field>
+         <mat-form-field>
+           <mat-label>{{ 'DURATION_HOURS' | translate | titlecase }}</mat-label>
+           <input matInput type="number" [(ngModel)]="data.event.duration.hours" (ngModelChange)="onDurationChange()" min="0" max="24">
+         </mat-form-field>
 
-        <mat-form-field>
-          <mat-label>{{ 'DURATION_MINUTES' | translate | titlecase }}</mat-label>
-          <input matInput type="number" [(ngModel)]="data.event.duration.minutes" min="0" max="59">
-        </mat-form-field>
-      </div>
+         <mat-form-field>
+           <mat-label>{{ 'DURATION_MINUTES' | translate | titlecase }}</mat-label>
+           <input matInput type="number" [(ngModel)]="data.event.duration.minutes" (ngModelChange)="onDurationChange()" min="0" max="59">
+         </mat-form-field>
+       </div>
 
     </mat-expansion-panel>
 
