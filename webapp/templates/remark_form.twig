@@ -4,7 +4,18 @@
 {% set pageDescription = "Javítások, változások bejelentése a templom adataival, miserenddel, kapcsolódó információkkal (szentségimádás, rózsafüzér, hittan, stb.) kapcsolatban." %}
 
  {% block content %}
-<div>  
+<div>
+    {# #314: ha kifejezetten a miserend (időpontok / új mise / módosítás) miatt
+       jött a felhasználó, a naptár-szerkesztő közvetlenebb és pontosabb csatorna
+       a free-text észrevételnél. #}
+    <div class="alert alert-info" role="alert" style="margin-bottom:1em">
+        <strong>Tipp:</strong> ha a <em>miserend</em> változott (új mise, módosított időpont, kimaradt alkalom),
+        akkor a <a href="/templom/{{ church.id }}/editschedule"><strong>naptár-szerkesztő</strong></a>
+        pontosabb és gyorsabb mint a szöveges észrevétel.
+        Ott a változtatás után „Beküldés"-re kattintva ugyanúgy javaslatként megy a karbantartóknak.
+        <br/><small>(Bejelentkezés szükséges. Ha nincs hozzáférésed, lent az észrevétel-formot használd nyugodtan.)</small>
+    </div>
+
     <form method=post action="/remark/add/{{ church.id }}">
         <input type=hidden name=tid value='{{ church.id }}'>
         {% if not user.loggedin %}
