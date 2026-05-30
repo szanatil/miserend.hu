@@ -9,6 +9,20 @@ class MapquestApi extends \ExternalApi\ExternalApi {
     public $name = 'mapquest';
     public $apiUrl = "http://open.mapquestapi.com/directions/v2/";
 
+    /**
+     * #129: ha a Mapquest free tier havi limitje elfogy, eddig minden hívás
+     * elment, csak utána kaptunk 403-at - feleslegesen pazaroltuk az
+     * erőforrást (CURL időt, hálózatot, kvótát).
+     *
+     * Most amint egyszer 403-at kaptunk, megjegyezzük (in-request statikusan
+     * + cross-request egy fájlban TTL-lel), és a következő hívás már a HTTP
+     * előtt visszatér -2-vel. Mivel a Mapquest kvóta tipikusan havonta áll
+     * vissza, 24 óra TTL bőven konzervatív - ha valamiért hamarabb feloldják,
+     * legrosszabb esetben fél nap késéssel próbálkozunk újra.
+     */
+    private const RATE_LIMIT_TTL_SECONDS = 86400; // 24h
+    private static $rateLimitHitMemo = null; // in-request memo
+
     function distance($pointFrom, $pointTo) {
 
         global $config;
@@ -17,20 +31,29 @@ class MapquestApi extends \ExternalApi\ExternalApi {
             throw new \Exception("Missing mapquest appkey.");
         }
 
+        // #129: ha a memózott rate-limit állapot mond hogy nem ér semmit
+        // próbálkozni, ne is kérjünk semmit.
+        if ($this->isRateLimited()) {
+            return -2;
+        }
+
         $this->query = "route?from=" . implode(',', $pointFrom) . "&to=" . implode(',', $pointTo) . "";
         $this->query .= "&outFormat=json&unit=k&routeType=shortest&narrativeType=none";
         $this->query .= "&doReverseGeocode=false";
-        
-        try {            
+
+        try {
             $this->runQuery();
         }
-        catch (\Exception $e) {   
+        catch (\Exception $e) {
             # Általában akkor kerül elő ez, ha a mapquestApin elfogyott a havi lekérdezés adagunk
-            // echo $this->responseCode // 403 = forbidden
-            //throw new \Exception($this->rawData);
+            # #129: 403 esetén megjegyezzük, hogy ne pazaroljuk a következő
+            # hívást sem. Egyéb hibára (pl. transient 5xx vagy network) nem.
+            if ($this->responseCode == 403) {
+                $this->markRateLimited();
+            }
             return -2; # ??
         }
- 
+
         $mapquest = $this->jsonData;
         if (isset($mapquest->route->routeError->errorCode)) {
             if ($mapquest->info->statuscode == 602)
@@ -40,6 +63,33 @@ class MapquestApi extends \ExternalApi\ExternalApi {
         }
         $d = $mapquest->route->distance * 1000;
         return $d;
+    }
+
+    private function isRateLimited(): bool {
+        // In-request memo: ugyanazon kérés további hívásai már ne is fájl-ozzanak.
+        if (self::$rateLimitHitMemo !== null) {
+            return self::$rateLimitHitMemo;
+        }
+
+        $path = $this->getRateLimitCachePath();
+        if (is_readable($path)) {
+            $hitAt = (int) @file_get_contents($path);
+            if ($hitAt > 0 && (time() - $hitAt) < self::RATE_LIMIT_TTL_SECONDS) {
+                self::$rateLimitHitMemo = true;
+                return true;
+            }
+        }
+        self::$rateLimitHitMemo = false;
+        return false;
+    }
+
+    private function markRateLimited(): void {
+        self::$rateLimitHitMemo = true;
+        @file_put_contents($this->getRateLimitCachePath(), (string) time());
+    }
+
+    private function getRateLimitCachePath(): string {
+        return sys_get_temp_dir() . '/miserend_mapquest_rate_limit_hit';
     }
 
     function buildQuery() {
