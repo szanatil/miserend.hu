@@ -58,6 +58,7 @@ import {DeletePeriodDialogComponent, DeletePeriodDialogData} from '../delete-per
 import {DeleteWarningDialogComponent} from '../delete-warning-dialog/delete-warning-dialog.component';
 import {MassTitleCategory} from '../../enum/mass-categories';
 import {MassTitleCategoryConfig} from '../../util/mass-title-category-config';
+import {CompressionResult, WeekCompressionUtil, WeekEvent} from '../../util/week-compression-util';
 
 export interface SimpleDialogData {
   dateTime: Date;
@@ -167,6 +168,20 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
   // Liturgical days data
   private liturgicalDays: {[date: string]: LiturgicalDay} = {};
+
+  // #358: heti nézet idősáv-tömörítés.
+  //
+  // borazslo issue-leírása: „A hét nézet nehezen fér el egy képernyőn, mert hát
+  // a reggeli misék és az esti misék között jó nagy a távolság. De nem lehet
+  // simán kiiktatni a közepét sem az éjszakát, mert van olyan hogy nagyszombat,
+  // és van olyan hogy valami extra."
+  //
+  // Felhasználói toggle (default: bekapcsolva). Csak `timeGridWeek` nézetben aktív.
+  // A `weekCompressionResult` a legutóbbi heti nézethez elvégzett analízist tárolja,
+  // hogy a footer-panel és a tooltip onnan tudjon olvasni.
+  public weekCompressionEnabled = true;
+  public weekCompressionResult: CompressionResult | null = null;
+  public currentViewType: string = '';
 
   constructor(
     private readonly eventService: EventService,
@@ -365,6 +380,9 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       ...this.calendarOptions,
       eventClick: (arg: any) => this.handleEventClick(arg),
       datesSet: (arg: any) => this.onDatesSet(arg),
+      // #358: az események csak a datesSet UTÁN érkeznek be, ezért minden
+      // event-set változásnál is újra-számoljuk a tömörítést.
+      eventsSet: () => this.onEventsSetForCompression(),
       // Render custom event content so we can append a language flag ant types in list views
       eventContent: (info: any) => this.renderEventContent(info),
       noEventsContent: () => this.renderNoEventsContent(),
@@ -1155,6 +1173,10 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     this.datesSet.emit(title);
     this.setCalendarsTitle(title);
 
+    // #358: a heti nézet idősáv-tömörítés újra-számolása minden dátum-váltáskor.
+    this.currentViewType = arg.view.type;
+    this.evaluateWeekCompression(arg.view);
+
     // Fetch liturgical days for the current view date range
     const start = arg.view.currentStart;
     const end = arg.view.currentEnd;
@@ -1208,6 +1230,125 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
     this.missingEasterMassWarning = viewIntersectsEaster && !churchHasEasterMass;
     this.missingChristmasMassWarning = viewIntersectsChristmas && !churchHasChristmasMass;
+  }
+
+  /**
+   * #358: a FullCalendar API-jából kiolvassuk a megjelenített eseményeket,
+   * a WeekCompressionUtil-lel kiszámoljuk az ajánlott slot-tartományt, majd
+   * alkalmazzuk vagy visszaállítjuk a default 00:00-24:00 ablakot.
+   *
+   * Csak `timeGridWeek` nézetben fut, és csak ha a felhasználói toggle aktív.
+   * Egyébként visszaáll a default tartomány (ne ragadjon be egy korábbi tömörítés).
+   */
+  private evaluateWeekCompression(view: any): void {
+    if (!this.calendarComponent) {
+      this.weekCompressionResult = null;
+      return;
+    }
+    const api = this.calendarComponent.getApi();
+
+    if (view.type !== 'timeGridWeek' || !this.weekCompressionEnabled) {
+      this.weekCompressionResult = null;
+      this.applySlotTimes(api, '00:00:00', '24:00:00');
+      return;
+    }
+
+    const weekEvents: WeekEvent[] = api.getEvents()
+      .filter(e => !!e.start && !!e.end)
+      .map(e => ({
+        start: e.start as Date,
+        end: e.end as Date,
+        title: e.title || '',
+        extendedProps: e.extendedProps as Record<string, any>,
+      }));
+
+    const result = WeekCompressionUtil.analyze({
+      weekStart: view.currentStart,
+      weekEnd: view.currentEnd,
+      events: weekEvents,
+    });
+
+    this.weekCompressionResult = result;
+
+    if (result.shouldCompress) {
+      this.applySlotTimes(api, result.slotMinTime, result.slotMaxTime);
+    } else {
+      this.applySlotTimes(api, '00:00:00', '24:00:00');
+    }
+  }
+
+  /** Csak akkor hív setOption-t, ha tényleg változott — különben felesleges re-render. */
+  private applySlotTimes(api: any, slotMin: string, slotMax: string): void {
+    try {
+      const currentMin = api.getOption('slotMinTime');
+      const currentMax = api.getOption('slotMaxTime');
+      if (currentMin !== slotMin) {
+        api.setOption('slotMinTime', slotMin);
+      }
+      if (currentMax !== slotMax) {
+        api.setOption('slotMaxTime', slotMax);
+      }
+    } catch (e) {
+      // API not ready / runtime error — biztonságos no-op
+    }
+  }
+
+  /**
+   * #358: az events:set callback-jéből hívva — újra-számolja a tömörítést
+   * az aktuális heti nézet eseményeivel. (A `datesSet` egyszer csak a nézet
+   * megnyitásakor fut, de az események később, async módon érkeznek.)
+   */
+  private onEventsSetForCompression(): void {
+    if (!this.calendarComponent || !this.calendarComponent.getApi) return;
+    const view = this.calendarComponent.getApi().view;
+    if (view) {
+      this.evaluateWeekCompression(view);
+    }
+  }
+
+  /**
+   * #358: a felhasználó által ki-/bekapcsolható tömörítés.
+   * Toggle után újraértékeljük az aktuális heti nézet alapján.
+   */
+  public toggleWeekCompression(): void {
+    this.weekCompressionEnabled = !this.weekCompressionEnabled;
+    if (this.calendarComponent && this.calendarComponent.getApi) {
+      const api = this.calendarComponent.getApi();
+      this.evaluateWeekCompression(api.view);
+    }
+  }
+
+  /** Footer-megjelenítéshez: „hétfő 12:00 – nagyszombati vigília". */
+  public formatOutOfRangeEvent(e: WeekEvent): string {
+    const day = new Intl.DateTimeFormat('hu-HU', {weekday: 'short', month: 'short', day: 'numeric'}).format(e.start);
+    const time = new Intl.DateTimeFormat('hu-HU', {hour: '2-digit', minute: '2-digit'}).format(e.start);
+    const title = e.title || '';
+    return `${day} ${time} – ${title}`.trim();
+  }
+
+  /** Tooltip a toggle-gombhoz: a diagnostics-ot emberi olvasásra fordítja. */
+  public getWeekCompressionTooltip(): string {
+    if (!this.weekCompressionEnabled) {
+      return 'Heti nézet idősáv-tömörítés: kikapcsolva (kattintsd bekapcsoláshoz)';
+    }
+    const r = this.weekCompressionResult;
+    if (!r) {
+      return 'Heti nézet idősáv-tömörítés: bekapcsolva';
+    }
+    if (r.shouldCompress) {
+      return `Tömörítve: ${r.slotMinTime.slice(0, 5)}–${r.slotMaxTime.slice(0, 5)} `
+        + `(üres sáv: ${r.diagnostics.gapStart}–${r.diagnostics.gapEnd}, ${r.diagnostics.gapSizeHours} ó). `
+        + `Kattintsd kikapcsoláshoz.`;
+    }
+    const reasonMap: Record<string, string> = {
+      'no-events': 'nincs esemény ezen a héten',
+      'too-few-events': 'túl kevés esemény a tömörítéshez',
+      'no-gap-detected': 'nincs felismerhető üres sáv (reggel-este)',
+      'gap-too-small': 'a felismert üres sáv túl kicsi',
+      'compressed': '',
+    };
+    return `Nincs tömörítés: ${reasonMap[r.diagnostics.reason] || r.diagnostics.reason}. `
+      + `Kattintsd kikapcsoláshoz.`;
   }
 
   private fetchLiturgicalDays(start: Date, end: Date): void {

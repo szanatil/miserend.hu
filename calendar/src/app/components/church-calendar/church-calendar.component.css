@@ -119,4 +119,55 @@
   background-color: #ffe6e6 !important;
 }
 
+/* #358: heti nézet tömörítés toggle gombja a fejlécben */
+.week-compression-toggle {
+  min-width: 40px;
+  padding: 0 8px;
+  margin-right: 6px;
+  vertical-align: middle;
+  color: #888;
+  transition: color 0.15s ease;
+}
+.week-compression-toggle.active {
+  color: #1976d2;
+}
+.week-compression-toggle:hover {
+  color: #1565c0;
+}
+.week-compression-toggle mat-icon {
+  vertical-align: middle;
+}
+
+/* #358: out-of-range események footer-panele a tömörített heti nézet alatt */
+.week-compression-footer {
+  margin: 8px 0 4px 0;
+  padding: 8px 12px;
+  background: #fffbe6;
+  border: 1px solid #ffe69c;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: #614700;
+}
+.week-compression-footer-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.week-compression-footer-header .info-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+}
+.week-compression-footer-list {
+  margin: 0;
+  padding-left: 24px;
+  list-style: disc;
+}
+.week-compression-footer-list li {
+  padding: 1px 0;
+}
+
 
