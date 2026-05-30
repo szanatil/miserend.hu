@@ -125,7 +125,7 @@ class SimpleFunctionsTest extends TestCase {
     }
 
     public function testTwigPhoneLinksWrapsPlusThirtySixFormat() {
-        $result = twig_phone_links('Hívható: +36 30 1234567 között.');
+        $result = (string)twig_phone_links('Hívható: +36 30 1234567 között.');
 
         $this->assertStringContainsString('<a href="tel:+36301234567"', $result);
         $this->assertStringContainsString('class="phone-link"', $result);
@@ -133,20 +133,37 @@ class SimpleFunctionsTest extends TestCase {
     }
 
     public function testTwigPhoneLinksWrapsZeroSixWithSpacesAndDashes() {
-        $result = twig_phone_links('Iroda: 06-30-123-4567');
+        $result = (string)twig_phone_links('Iroda: 06-30-123-4567');
 
         $this->assertStringContainsString('href="tel:+36301234567"', $result);
         $this->assertStringContainsString('>06-30-123-4567</a>', $result);
     }
 
     public function testTwigPhoneLinksWrapsCompactZeroSixNumber() {
-        $result = twig_phone_links('06301234567');
+        $result = (string)twig_phone_links('06301234567');
 
         $this->assertStringContainsString('href="tel:+36301234567"', $result);
     }
 
     public function testTwigPhoneLinksWrapsBudapestLandlineWithParens() {
-        $result = twig_phone_links('Plébánia: +36 (1) 234-5678');
+        $result = (string)twig_phone_links('Plébánia: +36 (1) 234-5678');
+
+        $this->assertStringContainsString('href="tel:+3612345678"', $result);
+    }
+
+    public function testTwigPhoneLinksWrapsParensAreaCodeWithoutCountryPrefix() {
+        // borazslo #438 review: a régi adatokban gyakran így van a vidéki szám:
+        // "(62) 442-384" - zárójeles körzet országhívó nélkül. Magyarnak vesszük
+        // és +36-tal prefixáljuk a tel: linket.
+        $result = (string)twig_phone_links('Tel: (62) 442-384');
+
+        $this->assertStringContainsString('href="tel:+3662442384"', $result);
+        $this->assertStringContainsString('>(62) 442-384</a>', $result);
+    }
+
+    public function testTwigPhoneLinksWrapsParensAreaCodeWithSpaceSeparator() {
+        // Másik gyakori formátum: "(1) 234 5678" - zárójeles körzet, szóköz tagolás.
+        $result = (string)twig_phone_links('Hivatal: (1) 234 5678');
 
         $this->assertStringContainsString('href="tel:+3612345678"', $result);
     }
@@ -155,7 +172,7 @@ class SimpleFunctionsTest extends TestCase {
         // No country prefix -> not a phone, just a date or post code
         $input = 'Mise: 2023-04-05, irányítószám: 1052';
 
-        $result = twig_phone_links($input);
+        $result = (string)twig_phone_links($input);
 
         $this->assertEquals($input, $result);
     }
@@ -163,7 +180,7 @@ class SimpleFunctionsTest extends TestCase {
     public function testTwigPhoneLinksDoesNotRewrapExistingAnchorTel() {
         $input = '<a href="tel:+36301234567">+36 30 1234567</a>';
 
-        $result = twig_phone_links($input);
+        $result = (string)twig_phone_links($input);
 
         $this->assertEquals($input, $result);
         // No nested <a>
@@ -173,11 +190,11 @@ class SimpleFunctionsTest extends TestCase {
     public function testTwigPhoneLinksLeavesPlainTextUntouched() {
         $input = 'A plébánia címe: Budapest, Fő utca 1.';
 
-        $this->assertEquals($input, twig_phone_links($input));
+        $this->assertEquals($input, (string)twig_phone_links($input));
     }
 
     public function testTwigPhoneLinksHandlesMultipleNumbersInOneString() {
-        $result = twig_phone_links("Iroda: +36 1 234 5678\nMobil: 06 30 1234567");
+        $result = (string)twig_phone_links("Iroda: +36 1 234 5678\nMobil: 06 30 1234567");
 
         $this->assertEquals(2, substr_count($result, '<a href="tel:'));
         $this->assertStringContainsString('tel:+3612345678', $result);
@@ -198,10 +215,27 @@ class SimpleFunctionsTest extends TestCase {
             public function __toString(): string { return 'Hívható: +36 30 1234567'; }
         };
 
-        $result = twig_phone_links($markupLike);
+        $result = (string)twig_phone_links($markupLike);
 
-        $this->assertIsString($result);
         $this->assertStringContainsString('href="tel:+36301234567"', $result);
+    }
+
+    public function testTwigPhoneLinksReturnsTwigMarkupSoTrailingRawIsNotNeeded() {
+        // borazslo #438 review: a "|raw|nl2br|phone_links" lánc akkor működik
+        // helyesen (nem encode-olja <strong>-et &lt;strong&gt;-vé), ha a
+        // phone_links is Twig\Markup-ot ad vissza. Így a template-ben nem kell
+        // trailing |raw.
+        $result = twig_phone_links('<strong>Phone:</strong> +36 30 1234567');
+
+        $this->assertInstanceOf(\Twig\Markup::class, $result);
+    }
+
+    public function testTwigPhoneLinksReturnsTwigMarkupEvenForUnmatchedInput() {
+        // Akkor is Markup legyen, ha nincs telefonszám a stringben - különben
+        // a template auto-escape-eli az output-ot.
+        $result = twig_phone_links('Csak sima HTML <em>kiemelés</em> nélkül szám.');
+
+        $this->assertInstanceOf(\Twig\Markup::class, $result);
     }
 
     public function testTwigHungarianDateFormatForDateInCurrentWeekIncludesTimeWhenRequested() {
