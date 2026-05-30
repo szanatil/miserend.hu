@@ -159,15 +159,33 @@
             <tr>
                 <td bgcolor=#efefef class=kiscim align=right>Weblapok:</td>
                 <td bgcolor=#efefef>
+                    {# #258: a régi `float:right` az ikonra: hosszú link-szöveg ráfolyt
+                       és klikkelhetetlenné tette. Most position:relative / absolute,
+                       padding-right hagy helyet az ikonnak. #}
+                    <style>
+                        #church-links .church-link {
+                            position: relative;
+                            padding-right: 1.8em;
+                            min-height: 1.4em;
+                            margin-bottom: 4px;
+                        }
+                        #church-links .church-link > i.church-link-delete,
+                        #church-links .church-link > i.church-link-add {
+                            position: absolute;
+                            right: 0.2em;
+                            top: 0.2em;
+                            cursor: pointer;
+                        }
+                    </style>
                     <div id="church-links" >
-                    {% if church.links %}                        
+                    {% if church.links %}
                         {% for link in church.links %}
                             <div class="church-link" data-link-id="{{ link.id }}">
-                                {{ link.html|raw }}<i style="float:right" title="Link törlése" class="church-link-delete {{ ICONS_DELETE }} red" data-link-id="{{ link.id }}"></i>
+                                {{ link.html|raw }}<i title="Link törlése" class="church-link-delete {{ ICONS_DELETE }} red" data-link-id="{{ link.id }}"></i>
                             </div>
                         {% endfor %}
                     {% endif %}
-                    <div class="church-link"><i style="float:right" title="Új link hozzáadása" class="church-link-add {{ ICONS_ADD }} green" ></i></div>
+                    <div class="church-link"><i title="Új link hozzáadása" class="church-link-add {{ ICONS_ADD }} green" ></i></div>
                     </div>
                 </td>
                 <td></td>
