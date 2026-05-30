@@ -93,14 +93,14 @@ class SimpleFunctionsTest extends TestCase {
 
         $this->assertStringContainsString('<a href="tel:+36301234567"', $result);
         $this->assertStringContainsString('class="phone-link"', $result);
-        $this->assertStringContainsString('>+36 30 1234567</a>', $result);
+        $this->assertStringContainsString('><i class="fa fa-phone"></i> +36 30 1234567</a>', $result);
     }
 
     public function testTwigPhoneLinksWrapsZeroSixWithSpacesAndDashes() {
         $result = (string)twig_phone_links('Iroda: 06-30-123-4567');
 
         $this->assertStringContainsString('href="tel:+36301234567"', $result);
-        $this->assertStringContainsString('>06-30-123-4567</a>', $result);
+        $this->assertStringContainsString('><i class="fa fa-phone"></i> 06-30-123-4567</a>', $result);
     }
 
     public function testTwigPhoneLinksWrapsCompactZeroSixNumber() {
@@ -122,7 +122,7 @@ class SimpleFunctionsTest extends TestCase {
         $result = (string)twig_phone_links('Tel: (62) 442-384');
 
         $this->assertStringContainsString('href="tel:+3662442384"', $result);
-        $this->assertStringContainsString('>(62) 442-384</a>', $result);
+        $this->assertStringContainsString('><i class="fa fa-phone"></i> (62) 442-384</a>', $result);
     }
 
     public function testTwigPhoneLinksWrapsParensAreaCodeWithSpaceSeparator() {
