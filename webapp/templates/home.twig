@@ -882,44 +882,102 @@
 		{% endif %}
     </div>
 	
-	<div id="nearby" style="display:none"></div>
+	{# #311: a geolokáció-alapú "közeli templomok" eddig automatikusan futott
+	   minden oldalbetöltéskor: a böngésző azonnal kérdezte a felhasználót
+	   (legtöbbször elutasították), és tagadás esetén némán elcsendesedett.
+	   Most explicit gombbal indul, és van hibaüzenet, ha nincs hozzáférés. #}
+	<div id="nearby" style="margin-top:12px">
+		<button id="nearby-trigger" class="btn btn-default" type="button">
+			<i class="fa fa-location-arrow"></i> Közeli templomok mutatása
+		</button>
+		<small class="text-muted" style="display:block;margin-top:4px">
+			A böngésződ pozíció-engedélyt fog kérni. Ezt csak a kérés idejére használjuk.
+		</small>
+		<div id="nearby-status" style="margin-top:8px"></div>
+		<div id="nearby-results"></div>
+	</div>
 	<script>
-		if (navigator.geolocation) {
-			
-			navigator.geolocation.getCurrentPosition(function(position) {
+		(function () {
+			var $trigger = $('#nearby-trigger');
+			var $status  = $('#nearby-status');
+			var $results = $('#nearby-results');
 
-				$.ajax({
-					url: '/api/v4/nearby',
-					type: "POST",
-					dataType: "json",
-					data: JSON.stringify( {'lat': position.coords.latitude, 'lon': position.coords.longitude } ),
-					contentType: "application/json",
-					 success: function(data) {
-						if(data.error == 0) {
-							$('#nearby').show();
-							$('#nearby').append('<h3>Közeli templomok</h3>');
-							if(data.templomok.length == 0) {
-								$('#nearby').append('<p><i>Nem találtunk közeli templomokat.</i></p>');
-							} else {
-								$('#nearby').append('<ul>');
-								for (let i = 0; i < data.templomok.length; i++) {
-									if(data.templomok[i].tavolsag < 1000) {
-										var distance = ( Math.round(data.templomok[i].tavolsag /100)*100 ) + " m";
-									} else {
-										var distance = ( Math.round(data.templomok[i].tavolsag / 100)/10 ) + " km";
-									}
-                                    // FIXME for Issue #257
-									$('#nearby > ul').append('<li><a href="/templom/' + data.templomok[i].id + '">' + data.templomok[i].nev + (data.templomok[i].ismertnev ? ' (' + data.templomok[i].ismertnev + ')' : '') + '</a>, ' + data.templomok[i].varos + ' - ' + distance + '</li>');
-									// console.log(data.templomok[i]);
-								}								
-								$('#nearby').append('</ul>');
+			function setStatus(msg, level) {
+				var cls = level === 'error' ? 'alert-warning' : (level === 'info' ? 'alert-info' : '');
+				$status.html(cls ? '<div class="alert ' + cls + '" role="alert">' + msg + '</div>' : msg);
+			}
+
+			$trigger.on('click', function () {
+				$results.empty();
+
+				if (!navigator.geolocation) {
+					setStatus('Sajnos a böngésződ nem támogatja a helyalapú keresést. Próbáld meg másik böngészővel, vagy keress településnévvel.', 'error');
+					return;
+				}
+
+				setStatus('Helymeghatározás folyamatban...', 'info');
+				$trigger.prop('disabled', true);
+
+				navigator.geolocation.getCurrentPosition(
+					function (position) {
+						$trigger.prop('disabled', false);
+						setStatus('Templomokat keresünk a környéken...', 'info');
+
+						$.ajax({
+							url: '/api/v4/nearby',
+							type: 'POST',
+							dataType: 'json',
+							data: JSON.stringify({'lat': position.coords.latitude, 'lon': position.coords.longitude}),
+							contentType: 'application/json',
+							success: function (data) {
+								setStatus('', null);
+								if (data.error != 0) {
+									setStatus('Hiba a keresőben: ' + (data.text || 'ismeretlen hiba'), 'error');
+									return;
+								}
+								if (!data.templomok || data.templomok.length === 0) {
+									$results.html('<p><i>Nem találtunk közeli templomokat.</i></p>');
+									return;
+								}
+								var html = '<h3>Közeli templomok</h3><ul>';
+								for (var i = 0; i < data.templomok.length; i++) {
+									var t = data.templomok[i];
+									var distance = t.tavolsag < 1000
+										? (Math.round(t.tavolsag / 100) * 100) + ' m'
+										: (Math.round(t.tavolsag / 100) / 10) + ' km';
+									// FIXME for Issue #257
+									html += '<li><a href="/templom/' + t.id + '">' + t.nev + (t.ismertnev ? ' (' + t.ismertnev + ')' : '') + '</a>, ' + t.varos + ' - ' + distance + '</li>';
+								}
+								html += '</ul>';
+								$results.html(html);
+							},
+							error: function () {
+								setStatus('A keresés szerverhibára futott. Próbáld meg újra később.', 'error');
 							}
+						});
+					},
+					function (err) {
+						$trigger.prop('disabled', false);
+						var msg;
+						switch (err.code) {
+							case err.PERMISSION_DENIED:
+								msg = 'Helymeghatározás letiltva. Engedélyezd a böngésződ beállításaiban, vagy keress településnévvel.';
+								break;
+							case err.POSITION_UNAVAILABLE:
+								msg = 'Nem sikerült meghatározni a helyzeted. Próbáld meg újra, vagy keress településnévvel.';
+								break;
+							case err.TIMEOUT:
+								msg = 'A helymeghatározás túl sokáig tartott. Próbáld meg újra.';
+								break;
+							default:
+								msg = 'Ismeretlen hiba a helymeghatározás során.';
 						}
-					}
-				}); 
-				
-			});  
-		}
+						setStatus(msg, 'error');
+					},
+					{enableHighAccuracy: false, timeout: 10000, maximumAge: 60000}
+				);
+			});
+		})();
 	</script>
 	
 	  <script src="/node_modules/jquery-ui/ui/i18n/datepicker-hu.js"></script>
