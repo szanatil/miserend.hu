@@ -1,17 +1,17 @@
 <?php
-namespace Html\Calendar;
+namespace Html\Ajax\Calendar;
 
 use ExternalApi\ElasticsearchApi;
 use Eloquent\CalMass;
 use Eloquent\CalModel;
-use Html\Calendar\Http\ChangeRequest;
+use Html\Ajax\Calendar\Http\ChangeRequest;
 use RRule\RRule;
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-class Masses extends \Html\Calendar\CalendarApi {
+class Masses extends \Html\Ajax\Calendar\CalendarApi {
 
     protected $elastic;
 

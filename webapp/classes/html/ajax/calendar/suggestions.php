@@ -1,6 +1,6 @@
 <?php
 
-namespace Html\Calendar;
+namespace Html\Ajax\Calendar;
 
 use Eloquent\CalMass;
 use Eloquent\CalSuggestion;
@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 header("Access-Control-Allow-Origin: *");
 
-class Suggestions extends \Html\Calendar\CalendarApi
+class Suggestions extends \Html\Ajax\Calendar\CalendarApi
 {
     private bool $modify;
 
