@@ -58,25 +58,25 @@ class CalPeriod extends CalModel
         $generated = [];
 
         $years = CalPeriodYear::whereIn('start_year', [$year, $year + 1])->get()->groupBy('start_year')->map->keyBy('period_id');
+        $allPeriods = CalPeriod::all()->keyBy('id');
 
-        // 1. Ha fix a periódus minden évben
-        $periodsWithMonthDays = CalPeriod::whereNotNull('start_month_day')->get();
+        // #304: a 4 kombinációs ágat (start_month_day vs start_period_id × end_month_day vs end_period_id)
+        // egyetlen, egységesített body kezeli. A start- és end-dátumokat self::resolveStartDate /
+        // resolveEndDate-tel oldjuk fel, így a (start_period_id + end_month_day) és a
+        // (start_month_day + end_period_id) kombinációk is jól működnek.
+        $linkedOrFixedPeriods = CalPeriod::where(function ($q) {
+            $q->whereNotNull('start_month_day')->orWhereNotNull('start_period_id');
+        })->get();
 
-        foreach ($periodsWithMonthDays as $period) {
-            try {
-                $startDate = Carbon::createFromFormat('Y-m-d', "$year-" . $period->start_month_day);
-            } catch (\Exception) {
-                throw new \Exception("Hibás start_month_day formátum: {$period->start_month_day}");
+        foreach ($linkedOrFixedPeriods as $period) {
+            $startDate = self::resolveStartDate($period, $year, $years, $allPeriods);
+            if (!$startDate) {
+                continue;
             }
 
-            if ($period->end_month_day) {
-                try {
-                    $endDate = Carbon::createFromFormat('Y-m-d', "$year-" . $period->end_month_day);
-                } catch (\Exception) {
-                    throw new \Exception("Hibás end_month_day formátum: {$period->end_month_day}");
-                }
-            } else {
-                $endDate = (clone $startDate)->addDay();
+            $endDate = self::resolveEndDate($period, $startDate, $year, $years, $allPeriods);
+            if (!$endDate) {
+                continue;
             }
 
             if ($endDate->equalTo($startDate) || $period->all_inclusive) {
@@ -95,7 +95,7 @@ class CalPeriod extends CalModel
             ];
         }
 
-        // 2. Ha nem fix minden évben, és nem másik időszaktól függenek
+        // Ha nem fix minden évben, és nem másik időszaktól függenek
         $periodsWithYearData = CalPeriod::whereNull('start_month_day')
             ->whereNull('start_period_id')
             ->whereNull('end_period_id')
@@ -145,91 +145,109 @@ class CalPeriod extends CalModel
             ];
         }
 
-        // 3. Ha másik időszakoktól függ
-        $linkedPeriods = CalPeriod::whereNotNull('start_period_id')
-            ->whereNotNull('end_period_id')
-            ->get();
-
-        $allPeriods = CalPeriod::all()->keyBy('id');
-
-        foreach ($linkedPeriods as $period) {
-            $startSource = $allPeriods[$period->start_period_id] ?? null;
-            $endSource = $allPeriods[$period->end_period_id] ?? null;
-
-            if (!$startSource || !$endSource) {
-                throw new \Exception("Hiányzó start/end period for CalPeriod {$period->id}");
-            }
-
-            // START
-            if ($startSource->start_month_day) {
-                $startDate = Carbon::createFromFormat('Y-m-d', "$year-" . $startSource->start_month_day);
-            } else {
-                $startYearData = $years[$year][$startSource->id] ?? null;
-                if (!$startYearData) {
-                    continue;
-                    //throw new \Exception("Hiányzó CalPeriodYear adat start_period ({$startSource->id})");
-                }
-                $startDate = Carbon::parse($startYearData->start_date);
-            }
-
-            //Ha nincs kezdő dátum, akkor kihagyjuk
-            if (!$startDate) {
-                continue;
-            }
-
-            // END
-            if ($endSource->start_month_day) {
-                //Ha a vég referencia fix dátummal rendelkezik, akkor az lesz a vég dátum
-                $endDate = Carbon::createFromFormat('Y-m-d', "$year-" . $endSource->start_month_day);
-
-                //Ha éven átívelő az időszak, akkor az end < start, ebben az esetben növeljük az évet
-                if ($endDate->lt($startDate)) {
-                    $endDate->addYear();
-                }
-            } else {
-                $endYearData = $years[$year][$endSource->id] ?? null;
-
-                if ($endYearData && $endYearData->start_date && !(Carbon::parse($endYearData->start_date))->lt($startDate)) {
-                    $endDate = Carbon::parse($endYearData->start_date);
-                } else {
-                    $nextYearData = $years[$year + 1][$endSource->id] ?? null;
-                    if (!$nextYearData || !$nextYearData->start_date) {
-                        continue;
-                    }
-                    $endDate = Carbon::parse($nextYearData->start_date);
-                }
-            }
-
-            //Ha nincs végdátum, akkor kihagyjuk
-            if (!$endDate) {
-                continue;
-            }
-
-            if ($period->all_inclusive) {
-                $endDate->addDay();
-            }
-
-            if ($endDate->equalTo($startDate)) {
-                $endDate->addDay();
-            }
-
-            $generated[] = [
-                'period_id' => $period->id,
-                'name' => $period->name,
-                'weight' => $period->weight,
-                'start_date' => $startDate->toDateString(),
-                'end_date' => $endDate->toDateString(),
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-                'color' => $period->color,
-            ];
-        }
-
         // Tömeges beszúrás
         if (!empty($generated)) {
             foreach (array_chunk($generated, 1000) as $chunk) {
                 CalGeneratedPeriod::insert($chunk);
             }
         }
+    }
+
+    /**
+     * Kiszámolja a start-dátumot egyetlen periódusra. A három forrás közül egyet használ:
+     *   - start_month_day (fix MM-DD az aktuális évben), VAGY
+     *   - start_period_id (egy másik periódus start-dátumából származtatva), VAGY
+     *   - null (a hívó CalPeriodYear-ágra esik).
+     * Visszatérési érték `null`, ha a kapcsolódó periódus év-adata hiányzik (kihagyás).
+     */
+    private static function resolveStartDate(CalPeriod $period, int $year, $years, $allPeriods): ?Carbon
+    {
+        if ($period->start_month_day) {
+            try {
+                return Carbon::createFromFormat('Y-m-d', "$year-" . $period->start_month_day);
+            } catch (\Exception) {
+                throw new \Exception("Hibás start_month_day formátum: {$period->start_month_day}");
+            }
+        }
+
+        if ($period->start_period_id) {
+            $startSource = $allPeriods[$period->start_period_id] ?? null;
+            if (!$startSource) {
+                throw new \Exception("Hiányzó start_period for CalPeriod {$period->id}");
+            }
+            return self::resolveReferencedDate($startSource, 'start', $year, $years);
+        }
+
+        return null;
+    }
+
+    /**
+     * Kiszámolja a end-dátumot egyetlen periódusra. Három forrás:
+     *   - end_month_day (fix MM-DD), VAGY
+     *   - end_period_id (másik periódus start-dátumából — ami a referált periódus kezdete a vég itt), VAGY
+     *   - null → addDay() a startDate-hez.
+     * Ha a számolt endDate < startDate (éven átívelő), addYear()-rel javítjuk.
+     * Visszatérés `null`, ha a kapcsolódó periódus év-adata hiányzik.
+     */
+    private static function resolveEndDate(CalPeriod $period, Carbon $startDate, int $year, $years, $allPeriods): ?Carbon
+    {
+        if ($period->end_month_day) {
+            try {
+                $endDate = Carbon::createFromFormat('Y-m-d', "$year-" . $period->end_month_day);
+            } catch (\Exception) {
+                throw new \Exception("Hibás end_month_day formátum: {$period->end_month_day}");
+            }
+            if ($endDate->lt($startDate)) {
+                $endDate->addYear();
+            }
+            return $endDate;
+        }
+
+        if ($period->end_period_id) {
+            $endSource = $allPeriods[$period->end_period_id] ?? null;
+            if (!$endSource) {
+                throw new \Exception("Hiányzó end_period for CalPeriod {$period->id}");
+            }
+            $endDate = self::resolveReferencedDate($endSource, 'end', $year, $years, $startDate);
+            if ($endDate && $endDate->lt($startDate)) {
+                $endDate->addYear();
+            }
+            return $endDate;
+        }
+
+        return (clone $startDate)->addDay();
+    }
+
+    /**
+     * Megoldja egy referált periódus dátumát. A referált periódus saját start_month_day-ja
+     * (vagy CalPeriodYear-startDate-ja) a forrás. Ha a referált periódusra az adott évre
+     * nincs adat, megpróbáljuk a következő évet. Visszatérés `null` ha sehol nincs adat.
+     *
+     * A `$which` jelzi hogy a referált periódus melyik dátumát akarjuk:
+     *   - 'start' → mindig a referált periódus start-dátumát
+     *   - 'end' → szintén a referált periódus start-dátumát (megfelel a régi viselkedésnek)
+     */
+    private static function resolveReferencedDate(CalPeriod $source, string $which, int $year, $years, ?Carbon $referenceStart = null): ?Carbon
+    {
+        if ($source->start_month_day) {
+            return Carbon::createFromFormat('Y-m-d', "$year-" . $source->start_month_day);
+        }
+
+        $yearData = $years[$year][$source->id] ?? null;
+        if ($which === 'end' && $referenceStart && $yearData && $yearData->start_date) {
+            $candidate = Carbon::parse($yearData->start_date);
+            if (!$candidate->lt($referenceStart)) {
+                return $candidate;
+            }
+        } elseif ($yearData && $yearData->start_date) {
+            return Carbon::parse($yearData->start_date);
+        }
+
+        $nextYearData = $years[$year + 1][$source->id] ?? null;
+        if ($nextYearData && $nextYearData->start_date) {
+            return Carbon::parse($nextYearData->start_date);
+        }
+
+        return null;
     }
 }
