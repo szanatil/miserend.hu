@@ -301,15 +301,13 @@ class Suggestions extends \Html\Calendar\CalendarApi
             }
 
             // #307: értesítjük az adminokat / egyházmegyei felelőst / templom-gazdákat.
-            // A küldés a tranzakción belül van — ha SMTP-error van, a teljes csomag
-            // visszagörgetődik. Ez tudatos: ha nem tudunk értesíteni, akkor a UI is
-            // jelezzen hibát, és a user újraküldheti, semmint hogy csendben elveszne
-            // az értesítés.
+            // A küldés a tranzakción belül van, de a try/catch elnyeli az SMTP- vagy
+            // template-hibákat (csak error_log-ba kerül) — a tranzakció EZÉRT NEM
+            // görgetődik vissza. A javaslat akkor is legitim, ha az értesítő email
+            // valamiért nem ment ki; a felhasználói flow nem akadhat el SMTP-fennakadáson.
             try {
                 $package->emails();
             } catch (\Throwable $emailError) {
-                // Az e-mail küldés hibáját logoljuk, de nem buktatjuk a beküldést —
-                // a javaslat ettől még legitim, az értesítés best-effort.
                 error_log("CalSuggestionPackage #{$package->id} email error: " . $emailError->getMessage());
             }
 
