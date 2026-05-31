@@ -1,0 +1,36 @@
+<a href="https://miserend.hu/templom/{{ church.id }}">{{ church.fullName }}</a><br/>
+
+{% if sender_email %}
+<i><a href="mailto:{{ sender_email }}" target="_blank">{{ sender_name }}</a>:</i><br/>
+{% elseif sender_name %}
+<i>{{ sender_name }}:</i><br/>
+{% endif %}
+
+{% if sender_message %}
+<p>{{ sender_message|striptags('<br><p>')|raw }}</p>
+{% endif %}
+
+<strong>Javasolt változások ({{ suggestions|length }} db):</strong>
+<ul style="padding-left: 20px; margin: 5px 0;">
+{% for s in suggestions %}
+    <li>
+        {% if s.mass_state == 'NEW' %}
+            <span style="color:#2a7;">ÚJ mise</span>
+        {% elseif s.mass_state == 'DELETED' %}
+            <span style="color:#c33;">TÖRÖLT mise</span> (mass_id: {{ s.mass_id }})
+        {% elseif s.mass_state == 'MODIFIED' %}
+            <span style="color:#37a;">MÓDOSÍTOTT mise</span> (mass_id: {{ s.mass_id }})
+        {% else %}
+            {{ s.mass_state }} (mass_id: {{ s.mass_id }})
+        {% endif %}
+        {% if s.changes %}
+            <br/>
+            <small style="color:#555;">
+                {% for k, v in s.changes %}
+                    {% if k != 'id' %}{{ k }}: {% if v is iterable %}{{ v|json_encode }}{% else %}{{ v }}{% endif %}{% if not loop.last %}, {% endif %}{% endif %}
+                {% endfor %}
+            </small>
+        {% endif %}
+    </li>
+{% endfor %}
+</ul>
