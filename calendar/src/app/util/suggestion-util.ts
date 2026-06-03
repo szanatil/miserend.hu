@@ -118,6 +118,15 @@ export class SuggestionUtil {
   }
 
 
+  /**
+   * #352: igaz, ha a modified mise minden mezője megegyezik az eredetivel.
+   * A getMassChanges-nek ugyanazt a logikáját használja, így a `generateSuggestions`
+   * is ugyanúgy fog viselkedni rá: a no-op modosítás nem kerül a javaslatok közé.
+   */
+  public static isMassUnchanged(original: Mass, modified: Mass): boolean {
+    return Object.keys(SuggestionUtil.getMassChanges(original, modified)).length === 0;
+  }
+
   private static getMassChanges(original: Mass, modified: Mass): any {
     const changes: any = {};
     for (const key in original) {
