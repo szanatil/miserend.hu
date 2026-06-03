@@ -74,6 +74,10 @@ export class AddFullEventDialogComponent {
   periodCtr = new FormControl<GeneratedPeriod | null>(this.data.event.period);
   filteredPeriods$: Observable<GeneratedPeriod[]> = of([]);
 
+  // #428: a felhasználó manuálisan állíthat be kivétel-időszakokat. A FormControl
+  // értéke periodId-kből álló tömb, ami a Mass.experiod-be megy mentéskor.
+  experiodCtr = new FormControl<number[]>(this.data.event.experiod ?? []);
+
   public singleEvent: boolean = this.data.event.renum === Renum.NONE;
   public specialPeriodType?: SpecialType | null = null;
 
@@ -161,6 +165,19 @@ export class AddFullEventDialogComponent {
 
       // Update multiday flag and warn if necessary
       this.maybeWarnIfNotMultiday(value);
+
+      // #428: ha az időszak megváltozott és az új időszak már az experiod listán van,
+      // távolítsuk el - egy mise nem lehet egyszerre a "tartozik" és "kivétel" listában is.
+      const currentExperiod = this.experiodCtr.value ?? [];
+      if (value?.periodId && currentExperiod.includes(value.periodId)) {
+        this.experiodCtr.setValue(currentExperiod.filter(id => id !== value.periodId));
+      }
+    });
+
+    // #428: a multi-select módosításait átvezetjük a dialog event-re, hogy
+    // mentéskor a MassUtil.createMass át tudja venni.
+    this.experiodCtr.valueChanges.subscribe(value => {
+      this.data.event.experiod = value && value.length > 0 ? value : null;
     });
     this.filteredPeriods$ = this.periodCtr.valueChanges.pipe(
       startWith(''),
@@ -392,6 +409,17 @@ export class AddFullEventDialogComponent {
 
   displayPeriod(period: GeneratedPeriod | null): string {
     return period ? period.name : '';
+  }
+
+  /**
+   * #428: a kivétel-időszak választó opciói. A pillanatnyilag kiválasztott
+   * mise-időszakot kihagyjuk - egy misét nem lehet kizárni a saját időszakából.
+   * (Periodonként egy bejegyzést tartunk: a getSelectableGeneratedPeriodsByDate
+   * már periodId szerint deduplikált.)
+   */
+  get experiodOptions(): GeneratedPeriod[] {
+    const currentPeriodId = this.periodCtr.value?.periodId;
+    return this.selectableGenPeriods.filter(p => p.periodId !== currentPeriodId);
   }
 
   // Filter out Easter-specific titles when in recurring mode and the selected period is NOT an Easter period

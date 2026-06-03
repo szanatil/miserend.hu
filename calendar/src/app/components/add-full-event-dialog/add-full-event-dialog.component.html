@@ -129,6 +129,21 @@
               </mat-form-field>
             }
           }
+
+          @if (periodCtr.value && experiodOptions.length > 0) {
+            <mat-form-field>
+              <mat-label>{{'EXPERIOD' | translate}}</mat-label>
+              <mat-select multiple [formControl]="experiodCtr">
+                @for (period of experiodOptions; track period.periodId) {
+                  <mat-option [value]="period.periodId">
+                    <span class="period-color-dot" [style.background-color]="period.color"></span>
+                    {{period.name}}
+                  </mat-option>
+                }
+              </mat-select>
+              <mat-hint>{{'EXPERIOD_HINT' | translate}}</mat-hint>
+            </mat-form-field>
+          }
         }
 
         @if (singleEvent) {

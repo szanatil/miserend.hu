@@ -50,6 +50,8 @@
 
   "RECURRENCE": "Ismétlődés",
   "PERIOD": "Időszak",
+  "EXPERIOD": "Kivétel időszakok",
+  "EXPERIOD_HINT": "A kiválasztott időszakokban ez a mise nem fog megjelenni.",
   "LANGUAGE": "Nyelv",
   "START_DATE": "Dátum",
   "START_TIME": "Időpont",

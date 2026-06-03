@@ -4,6 +4,12 @@ import { MassUtil } from './mass-util';
 import { MassTitleCategory } from '../enum/mass-categories';
 import { MASS_DEFINITIONS_DATA } from '../data/mass-definitions';
 import { Rite } from '../enum/rites';
+import {DialogEvent} from '../model/dialog-event';
+import {CalendarEvent} from '../model/calendar/calendar-event';
+import {Church} from '../model/church';
+import {LanguageCode} from '../enum/language-code';
+import {Renum} from '../enum/recurrence';
+import {Day} from '../enum/day';
 
 describe('MassUtil - Category Classification', () => {
   let translate: TranslateService;
@@ -329,5 +335,76 @@ describe('MassUtil - Category Classification', () => {
         done();
       });
     });
+  });
+});
+
+function makeChurch(): Church {
+  return {
+    id: 999,
+    rite: Rite.ROMAN_CATHOLIC,
+  } as Church;
+}
+
+function makeCalendarEvent(): CalendarEvent {
+  return {
+    title: 'Szentmise',
+    rrule: {
+      dtstart: '2026-03-01T07:00:00',
+      freq: 'weekly',
+    },
+  } as CalendarEvent;
+}
+
+function makeDialogEvent(overrides: Partial<DialogEvent> = {}): DialogEvent {
+  return {
+    period: null,
+    rite: Rite.ROMAN_CATHOLIC,
+    types: [],
+    title: 'Szentmise',
+    start: new Date('2026-03-01T07:00:00'),
+    duration: {hours: 1},
+    language: LanguageCode.HU,
+    renum: Renum.EVERY_WEEK,
+    selectedDays: [Day.SU],
+    comment: '',
+    editOne: false,
+    ...overrides,
+  };
+}
+
+describe('MassUtil.createMass (#428 experiod plumb-through)', () => {
+
+  it('passes dialogEvent.experiod through to the resulting Mass', () => {
+    const dialogEvent = makeDialogEvent({experiod: [11, 12, 13]});
+
+    const mass = MassUtil.createMass(makeCalendarEvent(), dialogEvent, makeChurch(), 1);
+
+    expect(mass.experiod).toEqual([11, 12, 13]);
+  });
+
+  it('does not set experiod on the Mass when dialogEvent has none', () => {
+    const dialogEvent = makeDialogEvent({experiod: null});
+
+    const mass = MassUtil.createMass(makeCalendarEvent(), dialogEvent, makeChurch(), 1);
+
+    expect(mass.experiod).toBeUndefined();
+  });
+
+  it('does not set experiod when dialogEvent.experiod is an empty array', () => {
+    const dialogEvent = makeDialogEvent({experiod: []});
+
+    const mass = MassUtil.createMass(makeCalendarEvent(), dialogEvent, makeChurch(), 1);
+
+    expect(mass.experiod).toBeUndefined();
+  });
+
+  it('clones the experiod array so later mutations on the dialog do not leak into the Mass', () => {
+    const original = [11];
+    const dialogEvent = makeDialogEvent({experiod: original});
+
+    const mass = MassUtil.createMass(makeCalendarEvent(), dialogEvent, makeChurch(), 1);
+    original.push(99);
+
+    expect(mass.experiod).toEqual([11]);
   });
 });

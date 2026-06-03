@@ -62,6 +62,10 @@ export class MassUtil {
       ...(calendarEvent.duration && {duration: calendarEvent.duration}),
       ...(calendarEvent.rrule && {rrule: calendarEvent.rrule}),
       ...(calendarEvent.exdate && {exdate: calendarEvent.exdate}),
+      // #428: a felhasználó által manuálisan kiválasztott "kivétel időszakok" is
+      // kerüljenek bele. Az exclude*PeriodMasses* utáni auto-logika ezt extendálni
+      // fogja, nem felülírja, így a két forrás konfliktusmentesen él együtt.
+      ...(dialogEvent.experiod && dialogEvent.experiod.length > 0 && {experiod: [...dialogEvent.experiod]}),
       lang: dialogEvent.language,
       comment: dialogEvent.comment
     };
