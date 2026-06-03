@@ -12,6 +12,12 @@ docker-compose  -f docker/compose.yml  -f docker/compose.test.yml up
 
 Máris elérhető a http://localhost:8000 címen a miserend alkalmazás. Az `admin` felhasználóval be is lehet lépni az alapérelmezett jelszóval: `miserend`.
 
+## 🤝 Közreműködés
+
+Kapcsolódj be a fejlesztésbe! A fork → branch → PR folyamat, a teszt-konvenciók és a komponensenkénti (PHP / Angular) részletek itt:
+
+📖 **[CONTRIBUTING.md](CONTRIBUTING.md)**
+
 
 # ⚙️ Fejlesztői környezet telepítése
 
@@ -112,35 +118,17 @@ A http://localhost:8000 címen érhető el. Az admin / miserend az első felhasz
 
 ## Naptár frontend (Angular)
 
-A naptárnézet és naptár szerkesztő felület egy különállóm Angular alap projekt, mely a `miserend` konténerban van szintén.
-
-A `calendar` könyvtárban található Angular alkalmazás forrása.
+A naptárnézet és naptár szerkesztő felület egy különálló Angular alap projekt, mely a `miserend` konténerben van szintén. A forrása a `calendar/` könyvtárban.
 
 ### 📆 Naptárnézet
+
 - Első alkalommal le kell generálni az időszakokat:
 - Admin joggal, az `/periodyeareditor` felületen
 - A minta adatok idővel elévülhetnek, fontos az aktualizálásuk!
 
-### Naptárnézet fejlesztése
-Amennyiben a naptár alkalmazáson dolgozunk, az npm build után a `docker/miserend/calendar_deploy.py` szkript futtatásával lehet az alkalmazásba integrálni.
+### Naptár fejlesztése, build / deploy, tesztek
 
-
-A `/calendar` könyvtárban az alábbi parancsokat futtassuk:
-
-Ha még nem volt, akkor:
-
-```sh
-npm install
-```
-
-```sh
-ng build --configuration=localProd
-npm run start:integrated
-```
-
-- Ezzel egyrészt elérjük, hogy fejlesztői legyen a naptár
-- Másrészt elérjük, hogy ha valamit módosítunk, az szinte egyből érvényre jusson
-- Ilyenkor egy python script a `/calendar` mappában buildeli az Angularos projektet, majd a megfelelő helyre átmásolja a legenerált fájlokat
+A részletek (build / `start:integrated` / Karma teszt / CI workflow / `xdescribe` konvenció) a [CONTRIBUTING.md Angular fejezetében](CONTRIBUTING.md#-angular-naptár-calendar) találhatók.
 
 
 # 📅 RRULE Definícióik dokumentációja
@@ -221,101 +209,7 @@ docker exec miserend composer install|require|update
 
 ## 🧪 Tesztelés
 
-A projekt PHPUnit alapú unit teszteket használ a kód minőségének biztosítására és a regressziók elkerülésére.
-
-### Unit tesztek futtatása
-
-**Gyors futtatás (minden teszt):**
-```sh
-bash scripts/docker-test.sh
-```
-
-**Csak egy testsuite futtatása:**
-```sh
-bash scripts/docker-test.sh --testsuite api
-bash scripts/docker-test.sh --testsuite simple
-```
-
-**Code coverage generálása:**
-```sh
-bash scripts/docker-coverage.sh
-```
-
-A coverage report HTML formátumban a `webapp/tests/coverage/html/index.html` fájlban érhető el.
-
-### Teszt struktúra
-
-A tesztek a `webapp/tests/` könyvtárban találhatók, és a futtatott PHPUnit suite-ok szerint vannak csoportosítva:
-
-```
-webapp/tests/
-├── bootstrap.php              # Test környezet inicializálása
-├── functional-bootstrap.php   # Funkcionális tesztek bootstrapja
-├── phpunit.xml                # PHPUnit konfiguráció
-├── phpunit.functional.xml     # Funkcionális PHPUnit konfiguráció
-├── Unit/                      # Egységtesztek
-│   ├── SimpleFunctionsTest.php
-│   └── UtilityFunctionsTest.php
-├── Api/                       # API tesztek
-│   ├── ApiEndpointsTest.php
-│   ├── ApiTest.php
-│   └── LoginTest.php
-├── Request/                   # Request helper tesztek
-│   └── RequestTest.php
-├── Rules/                     # Szabálykezelő tesztek
-│   ├── SimplerruleTest.php
-│   └── DSTSimplerruleTest.php
-├── Integration/               # Integrációs tesztek
-│   └── UserTest.php
-└── Functional/                # Böngészős funkcionális tesztek
-    └── HomepageLogoTest.php
-```
-
-### Fontos tudnivalók
-
-- **Test naming convention**: A test fájlok neve megegyezik a tesztelt osztály nevével + `Test.php` végződés
-- **Test methods**: Minden teszt metódus `test` prefixszel kezdődik, pl. `testValidateVersionMainAcceptsVersion1()`
-- **Docker izolált környezet**: A tesztek Docker konténerben futnak, így nem befolyásolják a fejlesztői környezetet
-- **Coverage driver**: PCOV extension biztosítja a code coverage-t
-
-### Új tesztek írása
-
-1. **Hozz létre egy új test fájlt** a megfelelő helyen (pl. `webapp/tests/Api/FavoritesTest.php`)
-2. **Extend PHPUnit TestCase**: `class FavoritesTest extends TestCase`
-3. **Írj teszteket** a kritikus funkcionalitáshoz
-4. **Futtasd a teszteket** a fenti parancsokkal
-5. **Ellenőrizd a coverage-t** hogy minden fontos ág le legyen fedve
-
-**Példa teszt:**
-```php
-<?php
-
-use PHPUnit\Framework\TestCase;
-use Api\Favorites;
-
-class FavoritesTest extends TestCase {
-    
-    public function testAddFavoriteAcceptsValidChurchId() {
-        $favorites = new Favorites([]);
-        
-        // Test implementation
-        $this->assertTrue(true);
-    }
-}
-```
-
-### Mit érdemes tesztelni?
-
-**Prioritás szerint:**
-1. **API validáció és autentikáció** - kritikus biztonsági funkciók
-2. **Pure functions** - nincs side effect, könnyen tesztelhető
-3. **Üzleti logika** - komplex számítások, döntési fák
-4. **Edge case-ek** - határértékek, hibakezelés
-
-**Mit NEM kell tesztelni:**
-- Framework/library kód (már tesztelt)
-- Triviális getter/setter metódusok
-- UI/template renderelés (inkább E2E tesztek)
+A projekt PHPUnit (PHP) és Karma + Jasmine (Angular) teszteket használ. A futtatási parancsok, struktúra és konvenciók (köztük az Angular `xdescribe`-konvenció) a [CONTRIBUTING.md tesztelési fejezeteiben](CONTRIBUTING.md#-php-rész-webapp) találhatók.
 
 ## 🌳 Branching stratégia
 

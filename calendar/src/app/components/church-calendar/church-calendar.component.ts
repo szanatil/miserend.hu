@@ -896,6 +896,16 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
           const calendarEvent: CalendarEvent = MassUtil.createEventByType(this.dialogEvent, newMassId, specialPeriodType, this.translateService);
           const mass: Mass = MassUtil.createMass(calendarEvent, this.dialogEvent, this.currentChurch!, newMassId);
 
+          // #352: ha a felhasználó csak rányomott egy meglévő mise módosítására és semmit nem
+          // változtatott, ne tegyük változási javaslattá - nem küldünk fantom javaslatot, és
+          // nem futtatjuk feleslegesen az exclusion oldalhatásokat sem.
+          if (this.selectedMassId) {
+            const original = this.changes.get(this.selectedMassId) ?? this.masses.get(this.selectedMassId);
+            if (original && SuggestionUtil.isMassUnchanged(original, mass)) {
+              return;
+            }
+          }
+
           const recentlyExclusionSourcePeriodIds: number[] = this.excludeNewMassFromLowerPeriodMasses(periodId, periodWeight);
 
           const recentlyExcludedPeriodIds = this.excludeHigherPeriodMassesFromNewMass(mass, periodId, periodWeight);

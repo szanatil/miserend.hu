@@ -121,7 +121,8 @@ export class AddFullEventDialogComponent {
       //
       // Ha nincs egyezés (új templom, vagy soha nem volt mise ilyen időszakra),
       // marad a régi viselkedés: [0]. elem.
-      if (!this.data.event.period && generatedPeriods.length > 0) {
+      // Do NOT set default period for single events
+      if (!this.data.event.period && !this.singleEvent && generatedPeriods.length > 0) {
         const existingPeriodIds = new Set(this.data.existingPeriodIds ?? []);
         const matched = existingPeriodIds.size > 0
           ? generatedPeriods.find(p => existingPeriodIds.has(p.periodId))
@@ -259,6 +260,9 @@ export class AddFullEventDialogComponent {
   onRecurrenceModChange() {
     if (this.singleEvent) {
       this.data.event.renum = Renum.NONE;
+      // Clear period for single events - they should not have a period
+      this.data.event.period = null;
+      this.periodCtr.setValue(null);
     } else {
       this.data.event.renum = Renum.EVERY_WEEK;
     }

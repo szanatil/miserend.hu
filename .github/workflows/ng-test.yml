@@ -1,0 +1,39 @@
+name: Angular tests
+
+on:
+  pull_request:
+    paths:
+      - 'calendar/**'
+      - '.github/workflows/ng-test.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'calendar/**'
+      - '.github/workflows/ng-test.yml'
+  workflow_dispatch:
+
+jobs:
+  ng-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: calendar
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: calendar/package-lock.json
+
+      - name: npm ci
+        run: npm ci
+
+      - name: ng test (ChromeHeadlessCI)
+        env:
+          # A GitHub Actions ubuntu-latest runner-en a Chromium ide települ.
+          CHROME_BIN: /usr/bin/google-chrome
+        run: npx ng test --watch=false --browsers=ChromeHeadlessCI

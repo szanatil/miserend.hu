@@ -84,3 +84,34 @@ describe('SuggestionUtil.generateSuggestions', () => {
     expect(result[0].periodId).toBe(3);
   });
 });
+
+describe('SuggestionUtil.isMassUnchanged (#352)', () => {
+
+  it('returns true for two identical masses', () => {
+    const a = makeMass({id: 5, title: 'Szentmise', startDate: '2026-03-01T07:00:00'});
+    const b = makeMass({id: 5, title: 'Szentmise', startDate: '2026-03-01T07:00:00'});
+
+    expect(SuggestionUtil.isMassUnchanged(a, b)).toBe(true);
+  });
+
+  it('returns false when a scalar field differs (startDate)', () => {
+    const original = makeMass({id: 5, startDate: '2026-03-01T07:00:00'});
+    const modified = makeMass({id: 5, startDate: '2026-03-01T08:00:00'});
+
+    expect(SuggestionUtil.isMassUnchanged(original, modified)).toBe(false);
+  });
+
+  it('returns false when the modified mass adds a new field', () => {
+    const original = makeMass({id: 5});
+    const modified = makeMass({id: 5, comment: 'új megjegyzés'});
+
+    expect(SuggestionUtil.isMassUnchanged(original, modified)).toBe(false);
+  });
+
+  it('returns false when an optional field becomes null', () => {
+    const original = makeMass({id: 5, comment: 'régi'});
+    const modified = makeMass({id: 5, comment: null});
+
+    expect(SuggestionUtil.isMassUnchanged(original, modified)).toBe(false);
+  });
+});
