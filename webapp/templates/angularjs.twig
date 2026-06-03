@@ -2,7 +2,42 @@
 
 {#calendar-app#}
 <mcal class="calendar-app">
-    <app-root></app-root>
+    <app-root>
+        {# #425: ha a böngészőben egyáltalán nem fut JS, ide nem ír semmit az Angular sem,
+           és a látogató csak azt látja, hogy "üres" a miserend. Ezzel legalább kap egy
+           jelzést. Modern böngészőben az Angular felülírja az <app-root> tartalmát. #}
+        <noscript>
+            <div class="alert alert-warning" role="alert" style="margin:8px 0">
+                A miserend naptár megjelenítéséhez JavaScript szükséges. Kérjük, engedélyezze a böngészőjében, majd töltse újra az oldalt.
+            </div>
+        </noscript>
+    </app-root>
+    {# #425: a polyfills és a main modulként (`type="module"`) töltődnek, így régi
+       böngésző (pl. IE11, vagy a 2018 előtti Edge/Firefox/Safari) szótlanul kihagyja
+       őket - a látogató pedig egy üres widget-helyet lát. A `nomodule` script viszont
+       épp ezekben a régi böngészőkben fut le, így be tudunk írni egy figyelmeztetést
+       oda, ahol a naptár lett volna. #}
+    <script nomodule>
+        (function () {
+            function showBrowserWarning() {
+                var appRoot = document.querySelector('mcal app-root');
+                if (!appRoot) return;
+                appRoot.innerHTML =
+                    '<div class="alert alert-warning" role="alert" style="margin:8px 0">' +
+                    '<strong>A miserend naptár ebben a böngészőben nem jelenik meg.</strong><br>' +
+                    'Sajnos az ön böngészője túl régi, és nem támogatja a JavaScript modulokat, ' +
+                    'amik a naptárhoz kellenek. Kérjük, frissítse a böngészőjét a Chrome, ' +
+                    'Firefox, Safari vagy Edge legújabb verziójára - utána a miserend is ' +
+                    'megjelenik majd.' +
+                    '</div>';
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', showBrowserWarning);
+            } else {
+                showBrowserWarning();
+            }
+        })();
+    </script>
     <script src="/js/mcal/{{ polyfills }}" type="module"></script>
     <script src="/js/mcal/{{ main }}" type="module"></script>
 </mcal>
