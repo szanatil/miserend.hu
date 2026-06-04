@@ -423,5 +423,35 @@ class ApiEndpointsTest extends TestCase {
         ];
     }
 
+    /**
+     * #94: a koordináta nélküli templomok (templomok.lat/lon DEFAULT 0.0/0.0,
+     * a Guineai-öböl) NEM jelenhetnek meg a nearby-keresésben — korábban ezeket
+     * a usertől ~5000+ km-re írta ki, mert csak az üres stringet szűrtük, a 0.0-t
+     * nem. Egy budapesti koordinátára indított keresés egyetlen találatának sem
+     * lehet abszurd (3000 km feletti) távolsága.
+     */
+    public function testApiNearbyExcludesZeroCoordinates(): void {
+        $response = $this->apiRequest('/api/v4/nearby', [
+            'lat' => 47.497913,
+            'lon' => 19.040236,
+            'limit' => 20,
+        ]);
+
+        $this->assertArrayHasKey('templomok', $response);
+        $this->assertIsArray($response['templomok']);
+
+        // 3000 km méteres küszöb: Magyarország legtávolabbi temploma is jóval
+        // ezalatt van, így bármi efölött a 0,0-bug szellem-találata lenne.
+        $absurdDistanceMeters = 3_000_000;
+        foreach ($response['templomok'] as $templom) {
+            $this->assertArrayHasKey('tavolsag', $templom);
+            $this->assertLessThan(
+                $absurdDistanceMeters,
+                $templom['tavolsag'],
+                "#94 regresszió: '{$templom['nev']}' (id={$templom['id']}) abszurd távolságra "
+                . "({$templom['tavolsag']} m) — valószínűleg 0,0 koordinátán ül."
+            );
+        }
+    }
 
 }
