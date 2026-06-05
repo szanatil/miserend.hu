@@ -80,10 +80,16 @@ jobs:
           fi
           echo "✓ Host key added to known_hosts"
           
-          # Test SSH connection
+          # Test SSH connection with verbose output
           echo "Testing SSH connection to $DEPLOY_USER@$DEPLOY_HOST..."
-          if ! ssh -i ~/.ssh/deploy_key -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "$DEPLOY_USER@$DEPLOY_HOST" "echo 'SSH connection successful'" 2>&1; then
-            echo "❌ ERROR: SSH authentication failed"
+          SSH_LOG=$(ssh -vvv -i ~/.ssh/deploy_key -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "$DEPLOY_USER@$DEPLOY_HOST" "echo 'SSH connection successful'" 2>&1)
+          SSH_EXIT=$?
+          
+          if [ $SSH_EXIT -ne 0 ]; then
+            echo "❌ ERROR: SSH authentication failed (exit code: $SSH_EXIT)"
+            echo "=== SSH Debug Output ==="
+            echo "$SSH_LOG" | grep -E "(authentication|Offering|Authentications|Permission|publickey|key|authorized)" || echo "$SSH_LOG"
+            echo "========================"
             exit 1
           fi
           echo "✓ SSH connection successful"
