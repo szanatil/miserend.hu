@@ -37,6 +37,6 @@ jobs:
           context: docker/php-base
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:8.2
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:8.4
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache

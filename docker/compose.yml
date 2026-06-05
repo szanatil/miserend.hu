@@ -58,7 +58,7 @@ services:
           - elasticsearch
   miserend:
     container_name: miserend
-    image: ghcr.io/szentjozsefhackathon/miserend.hu:v2026.05.17
+    image: ghcr.io/szentjozsefhackathon/miserend.hu:v2026.6.5
     volumes: 
        - tmp:/miserend/webapp/fajlok/tmp
        - ./miserend/apache/ports.conf:/etc/apache2/ports.conf
