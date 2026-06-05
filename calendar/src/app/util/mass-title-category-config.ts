@@ -70,10 +70,16 @@ export class MassTitleCategoryConfig {
       const values = new Set<string>();
       
       for (const titleKey of titleKeys) {
-        const translated = translate.instant(titleKey);
+        // Try with MASS_TITLE. prefix first
+        let translated = translate.instant('MASS_TITLE.' + titleKey);
+        
+        // If that didn't work, try without prefix
+        if (translated === 'MASS_TITLE.' + titleKey) {
+          translated = translate.instant(titleKey);
+        }
         
         // Csak akkor adjuk hozzá, ha sikerült lefordítani (nem az i18n key marad meg)
-        if (translated && translated !== titleKey) {
+        if (translated && translated !== titleKey && translated !== 'MASS_TITLE.' + titleKey) {
           values.add(translated);
         }
       }
