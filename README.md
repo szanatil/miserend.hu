@@ -165,7 +165,7 @@ Egyes beállításokat, pl. portokat, az `.env.example` fájl tartalmának átm�
 Az alkamazásból helyben is lehet container image-t készíteni, ehhez a következő parancsot kell lefuttatni:
 
 ```sh
-docker build -t miserend:latest -f docker/miserend/Dockerfile
+docker build -t miserend:latest -f docker/miserend/Dockerfile .
 ```
 
 Ha ki szeretnéd próbálni, hogyan működne a valóságban, akkor a [dev composer](docker/compose.dev.yml) fájlban írd ät a `miserend` service `image` attribútumát `localhost/miserend:latest`-re. 
@@ -209,7 +209,9 @@ docker exec miserend composer install|require|update
 
 ## 🧪 Tesztelés
 
-A projekt PHPUnit (PHP) és Karma + Jasmine (Angular) teszteket használ. A futtatási parancsok, struktúra és konvenciók (köztük az Angular `xdescribe`-konvenció) a [CONTRIBUTING.md tesztelési fejezeteiben](CONTRIBUTING.md#-php-rész-webapp) találhatók.
+A projekt háromféle tesztet használ: **ng-test** (Angular), **PHPUnit** (PHP unit/integration), és **Panther** (funkcionális/E2E). A GitHub Actions automatikusan futtatja őket, a részletes dokumentáció:
+
+📖 **[tests/README.md](webapp/tests/README.md)** — Teszt típusok, futtatás, és új tesztek írása
 
 ## 🌳 Branching stratégia
 

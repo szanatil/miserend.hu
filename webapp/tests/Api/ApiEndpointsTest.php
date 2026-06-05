@@ -423,5 +423,59 @@ class ApiEndpointsTest extends TestCase {
         ];
     }
 
+    /**
+     * #94: a koordináta nélküli templomok (templomok.lat/lon DEFAULT 0.0/0.0,
+     * a Guineai-öböl) NEM jelenhetnek meg a nearby-keresésben — a 0,0 „unknown
+     * location", nem valódi hely.
+     *
+     * A bugot a 0,0 KÖZELÉBE indított lekérdezés triggereli: ott a 0,0-templom a
+     * legközelebbi, így a top-N-be kerül. (Budapestről nézve a ~5000 km-es szellem
+     * az ORDER BY distance ASC LIMIT N miatt a lista végére esik, nem buknék ki —
+     * ezért kell direkt a 0,0 közelébe kérdezni.) A javítás (üres ÉS 0,0 kizárása)
+     * előtt a 0,0-templom itt megjelent; utána nem.
+     */
+    public function testApiNearbyExcludesZeroCoordinates(): void {
+        // A Guineai-öböl közelébe kérdezünk, ahol a 0,0-koordinátájú rekord lenne
+        // a legközelebbi találat, ha nem szűrnénk ki.
+        $response = $this->apiRequest('/api/v4/nearby', [
+            'lat' => 1.0,
+            'lon' => 1.0,
+            'limit' => 10,
+        ]);
+
+        $this->assertArrayHasKey('templomok', $response);
+        $this->assertIsArray($response['templomok']);
+
+        foreach ($response['templomok'] as $templom) {
+            $lat = isset($templom['lat']) ? (float) $templom['lat'] : null;
+            $lon = isset($templom['lon']) ? (float) $templom['lon'] : null;
+            $this->assertFalse(
+                $lat === 0.0 && $lon === 0.0,
+                "#94 regresszió: 0,0 koordinátájú templom megjelent a nearby-ben: "
+                . "'{$templom['nev']}' (id={$templom['id']})."
+            );
+        }
+    }
+
+    /**
+     * #94 (a tényleges hiba): a kliens GPS-fix nélkül (0,0)-t küld. Korábban erre
+     * a nearby `error:0`-val ~5000+ km-es magyar templomokat adott vissza, mintha
+     * érvényes találat lenne (ez volt a 2018-as „5000km+" bejelentés). A javítás
+     * után a (0,0) user-input hibát ad, nem szemét listát.
+     */
+    public function testApiNearbyRejectsZeroUserLocation(): void {
+        $response = $this->apiRequest('/api/v4/nearby', [
+            'lat' => 0.0,
+            'lon' => 0.0,
+            'limit' => 5,
+        ]);
+
+        $this->assertArrayHasKey('error', $response);
+        $this->assertEquals(1, $response['error'], '#94: a (0,0) user-helyzetre hibát kell adni.');
+        $this->assertEmpty(
+            $response['templomok'] ?? [],
+            '#94: a (0,0) user-helyzetre nem szabad templomokat (5000 km-es szemét) visszaadni.'
+        );
+    }
 
 }

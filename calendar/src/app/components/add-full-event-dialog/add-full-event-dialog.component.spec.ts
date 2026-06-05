@@ -24,9 +24,15 @@ function makeGeneratedPeriod(overrides: Partial<GeneratedPeriod> = {}): Generate
   };
 }
 
+// #450: a komponens a `renum === Renum.NONE` alapján dönti el, hogy egyszeri
+// alkalomról van-e szó (`singleEvent`). Egyszeri alkalomhoz NEM rendelünk
+// alapértelmezett időszakot (ez volt a #450 bug). Ezért a #308 default-period
+// teszteknek ismétlődő misét (EVERY_WEEK) kell használniuk — különben a
+// singleEvent-ág kihagyja a period-választást és null marad.
 function makeDialogData(
   periodOverride: GeneratedPeriod | null = null,
   existingPeriodIds: number[] = [],
+  renum: Renum = Renum.EVERY_WEEK,
 ) {
   return {
     title: 'ADD_NEW_MASS',
@@ -39,7 +45,7 @@ function makeDialogData(
       start: new Date('2026-03-15T10:00:00'),
       duration: {hours: 1},
       language: LanguageCode.HU,
-      renum: Renum.NONE,
+      renum,
       selectedDays: [Day.SU],
       comment: '',
       editOne: false,
@@ -160,7 +166,8 @@ describe('AddFullEventDialogComponent (#308 default period)', () => {
   it('handles missing existingPeriodIds (undefined) like an empty list — fallback to [0]', async () => {
     const p10 = makeGeneratedPeriod({id: 1, periodId: 10, name: 'Iskolaidő'});
 
-    // DialogData without existingPeriodIds key at all (legacy callers / safety net)
+    // DialogData without existingPeriodIds key at all (legacy callers / safety net).
+    // #450: ismétlődő mise (EVERY_WEEK), hogy a default-period ág lefusson.
     const data = {
       title: 'ADD_NEW_MASS',
       event: {
@@ -171,7 +178,7 @@ describe('AddFullEventDialogComponent (#308 default period)', () => {
         start: new Date('2026-03-15T10:00:00'),
         duration: {hours: 1},
         language: LanguageCode.HU,
-        renum: Renum.NONE,
+        renum: Renum.EVERY_WEEK,
         selectedDays: [Day.SU],
         comment: '',
         editOne: false,
@@ -181,5 +188,196 @@ describe('AddFullEventDialogComponent (#308 default period)', () => {
     await setup([p10], data as any);
 
     expect(component.periodCtr.value).toEqual(p10);
+  });
+});
+
+describe('AddFullEventDialogComponent (#450 egyszeri alkalom nem kap időszakot)', () => {
+  let component: AddFullEventDialogComponent;
+  let fixture: ComponentFixture<AddFullEventDialogComponent>;
+  let periodServiceMock: { getSelectableGeneratedPeriodsByDate: jasmine.Spy; getPeriodById: jasmine.Spy; getSpecialPeriodType: jasmine.Spy };
+
+  async function setup(periods: GeneratedPeriod[], data: any) {
+    periodServiceMock = {
+      getSelectableGeneratedPeriodsByDate: jasmine.createSpy().and.returnValue(of(periods)),
+      getPeriodById: jasmine.createSpy().and.returnValue(null),
+      getSpecialPeriodType: jasmine.createSpy().and.returnValue(null),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [AddFullEventDialogComponent, TranslateModule.forRoot()],
+      providers: [
+        {provide: MAT_DIALOG_DATA, useValue: data},
+        {provide: MatDialogRef, useValue: {close: jasmine.createSpy()}},
+        {provide: PeriodService, useValue: periodServiceMock},
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(AddFullEventDialogComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  }
+
+  // #450: egyszeri alkalomnál (renum === NONE) NEM szabad alapértelmezett
+  // időszakot rendelni — ez okozta, hogy az időszak első napjára került az esemény.
+  it('does NOT assign a default period for a single event (renum NONE), even if periods exist', async () => {
+    const evkozi = makeGeneratedPeriod({id: 1, periodId: 10, name: 'Iskolaidő'});
+
+    await setup([evkozi], makeDialogData(null, [10], Renum.NONE));
+
+    expect(component.singleEvent).toBeTrue();
+    expect(component.periodCtr.value).toBeNull();
+    expect(component.data.event.period).toBeFalsy();
+  });
+
+  // #450: ha a felhasználó ismétlődőről egyszerire vált (onRecurrenceModChange),
+  // a korábban beállított időszakot ki kell üríteni.
+  it('clears the period when switching from recurring to single (onRecurrenceModChange)', async () => {
+    const evkozi = makeGeneratedPeriod({id: 1, periodId: 10, name: 'Iskolaidő'});
+
+    // Ismétlődőként indul → kap default period-ot.
+    await setup([evkozi], makeDialogData(null, [10], Renum.EVERY_WEEK));
+    expect(component.periodCtr.value).toEqual(evkozi);
+
+    // A felhasználó egyszerire vált.
+    component.singleEvent = true;
+    component.onRecurrenceModChange();
+
+    expect(component.data.event.period).toBeNull();
+    expect(component.periodCtr.value).toBeNull();
+  });
+});
+
+describe('AddFullEventDialogComponent (#453 havi-n.-napja nap visszatöltése)', () => {
+  let component: AddFullEventDialogComponent;
+  let fixture: ComponentFixture<AddFullEventDialogComponent>;
+
+  // #453: létező mise szerkesztéskor a selectedDays a mentett byweekday TÖMBJÉBŐL
+  // jön. A teszt-data ezt szimulálja egy adott renum + selectedDays párral.
+  function dataWith(renum: Renum, selectedDays: any) {
+    return {
+      title: 'EDIT_MASS',
+      existingPeriodIds: [],
+      event: {
+        period: null,
+        rite: Rite.ROMAN_CATHOLIC,
+        types: [],
+        title: 'Szentmise',
+        start: new Date('2026-03-15T10:00:00'),
+        duration: {hours: 1},
+        language: LanguageCode.HU,
+        renum,
+        selectedDays,
+        comment: '',
+        editOne: false,
+      },
+    };
+  }
+
+  async function setup(data: any) {
+    const periodServiceMock = {
+      getSelectableGeneratedPeriodsByDate: jasmine.createSpy().and.returnValue(of([])),
+      getPeriodById: jasmine.createSpy().and.returnValue(null),
+      getSpecialPeriodType: jasmine.createSpy().and.returnValue(null),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [AddFullEventDialogComponent, TranslateModule.forRoot()],
+      providers: [
+        {provide: MAT_DIALOG_DATA, useValue: data},
+        {provide: MatDialogRef, useValue: {close: jasmine.createSpy()}},
+        {provide: PeriodService, useValue: periodServiceMock},
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(AddFullEventDialogComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  }
+
+  // #453: havi n. napja (FOURTH_WEEK) — a byweekday tömbből (['MO']) a single-day
+  // mat-select EGYETLEN 'MO'-ra normalizálódik, így a mező nem marad üresen.
+  it('normalizes selectedDays from array to single value for a monthly nth-weekday recurrence', async () => {
+    await setup(dataWith(Renum.FOURTH_WEEK, [Day.MO]));
+
+    expect(Array.isArray(component.selectedDays)).toBeFalse();
+    expect(component.selectedDays).toBe(Day.MO);
+  });
+
+  // #453 regresszió-védelem: heti (több napos) misénél a tömb ÉRINTETLEN marad
+  // — a normalizálás nem dobhat el napokat.
+  it('keeps the array intact for a weekly multi-day recurrence', async () => {
+    await setup(dataWith(Renum.EVERY_WEEK, [Day.MO, Day.WE]));
+
+    expect(Array.isArray(component.selectedDays)).toBeTrue();
+    expect(component.selectedDays).toEqual([Day.MO, Day.WE]);
+  });
+});
+
+describe('AddFullEventDialogComponent (#458 szerkesztéskor nincs dátum-alapú default időszak)', () => {
+  let component: AddFullEventDialogComponent;
+  let fixture: ComponentFixture<AddFullEventDialogComponent>;
+
+  function editData(title: string) {
+    return {
+      title,
+      existingPeriodIds: [],
+      event: {
+        period: null,                 // a hívó nem oldotta fel (generatedPeriods$-ban épp nincs)
+        rite: Rite.ROMAN_CATHOLIC,
+        types: [],
+        title: 'Szentmise',
+        start: new Date('2026-01-01T08:00:00'),
+        duration: {hours: 1},
+        language: LanguageCode.HU,
+        renum: Renum.EVERY_WEEK,       // ismétlődő → NEM singleEvent
+        selectedDays: [Day.TU, Day.TH],
+        comment: '',
+        editOne: false,
+      },
+    };
+  }
+
+  async function setup(periods: GeneratedPeriod[], data: any) {
+    const periodServiceMock = {
+      getSelectableGeneratedPeriodsByDate: jasmine.createSpy().and.returnValue(of(periods)),
+      getPeriodById: jasmine.createSpy().and.returnValue(null),
+      getSpecialPeriodType: jasmine.createSpy().and.returnValue(null),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [AddFullEventDialogComponent, TranslateModule.forRoot()],
+      providers: [
+        {provide: MAT_DIALOG_DATA, useValue: data},
+        {provide: MatDialogRef, useValue: {close: jasmine.createSpy()}},
+        {provide: PeriodService, useValue: periodServiceMock},
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(AddFullEventDialogComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  }
+
+  // #458: létező mise szerkesztésekor (EDIT_MASS) NEM szabad dátum-alapú default
+  // időszakot találgatni, ha a period nincs feloldva — különben pl. a „Téli idő"
+  // jelenik meg egy egész-éves mise helyett.
+  it('does NOT auto-pick a date-based period when editing an existing mass (EDIT_MASS)', async () => {
+    const teli = makeGeneratedPeriod({id: 7, periodId: 7, name: 'Téli időszak', weight: 5});
+    const evesEv = makeGeneratedPeriod({id: 10, periodId: 10, name: 'Egész évben', weight: 1});
+
+    await setup([teli, evesEv], editData('EDIT_MASS'));
+
+    expect(component.periodCtr.value).toBeNull();
+    expect(component.data.event.period).toBeFalsy();
+  });
+
+  // Kontroll: ÚJ mise létrehozásakor (ADD_NEW_MASS) az auto-default továbbra is fut
+  // — a #458 fix nem rontja el a #308 viselkedést.
+  it('still auto-picks a default period when creating a NEW mass (ADD_NEW_MASS)', async () => {
+    const teli = makeGeneratedPeriod({id: 7, periodId: 7, name: 'Téli időszak', weight: 5});
+
+    await setup([teli], editData('ADD_NEW_MASS'));
+
+    expect(component.periodCtr.value).toEqual(teli);
   });
 });

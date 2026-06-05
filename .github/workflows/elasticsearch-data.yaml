@@ -1,12 +1,10 @@
-name: 🐳 Build & publish elasticsearch data
+name: 🐳 Weekly Build & publish elasticsearch data
 
 on:
+  schedule:
+    # Every Monday at 02:00 UTC (04:00 CET/CEST)
+    - cron: '0 2 * * 1'
   workflow_dispatch:
-    inputs:
-      image_tag:
-        description: "Image tag to publish (e.g. 2026.2.8, ci, test)"
-        required: true
-        default: "dev"
 
 env:
   REGISTRY: ghcr.io
@@ -21,14 +19,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download elasticsearch data snapshot
+      - name: Set image tag to current date
+        id: tag
         run: |
-          curl -fsSL https://nc.lxs.cloud/s/WPL4tyQjWXbp6Qa/download -o elasticsearch_data.tar.gz
+          TAG=$(date +%Y.%m.%d)
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
+          echo "Building image with tag: $TAG"
 
-      - name: Verify checksum
+      - name: Export elasticsearch data from production
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
-          echo "f7af916e615dbf744d20534f40e10d2772e258e4febadb45f963ef36af9db994  elasticsearch_data.tar.gz" \
-            | sha256sum -c -
+           mkdir -p ~/.ssh
+           printf '%s' "$DEPLOY_KEY" > ~/.ssh/deploy_key
+           chmod 600 ~/.ssh/deploy_key
+           ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+           
+           # Copy elasticsearch data directory from production server and compress
+           ssh -i ~/.ssh/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" \
+             "docker exec elasticsearch tar czf - -C /usr/share/elasticsearch/data ." > elasticsearch_data.tar.gz
+           
+           # Verify file exists and has content
+           if [ -f elasticsearch_data.tar.gz ] && [ -s elasticsearch_data.tar.gz ]; then
+             echo "✓ Data export successful ($(du -h elasticsearch_data.tar.gz | cut -f1))"
+           else
+             echo "✗ Error: Data export failed or is empty"
+             exit 1
+           fi
+
+      - uses: docker/setup-buildx-action@v3
 
       - uses: docker/login-action@v3
         with:
@@ -36,21 +57,32 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve image tag
-        id: tag
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "TAG=${{ inputs.image_tag }}" >> $GITHUB_OUTPUT
-          else
-            echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          fi
-
       - name: Build & push image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: docker/elasticsearch/Dockerfile
           push: true
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ github.repository_owner }}/miserend-elasticsearch-data:${{ steps.tag.outputs.TAG }}
+            ghcr.io/${{ github.repository_owner }}/miserend-elasticsearch-data:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: elasticsearch-data-${{ steps.tag.outputs.TAG }}
+          name: Elasticsearch Data ${{ steps.tag.outputs.TAG }}
+          body: |
+            ## Weekly Elasticsearch Data Snapshot
+            
+            **Build Date:** ${{ steps.tag.outputs.TAG }}
+            **Image:** `ghcr.io/${{ github.repository_owner }}/miserend-elasticsearch-data:${{ steps.tag.outputs.TAG }}`
+            
+            This image is automatically built from the production Elasticsearch instance every Monday at 02:00 UTC.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

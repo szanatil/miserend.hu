@@ -15,7 +15,7 @@ RUN npm ci
 COPY calendar/ .
 RUN npm run build
 
-FROM ghcr.io/szentjozsefhackathon/miserend.hu/php-base:8.2
+FROM ghcr.io/szentjozsefhackathon/miserend.hu/php-base:8.4
 
 WORKDIR /miserend
 
