@@ -103,6 +103,16 @@ export class AddFullEventDialogComponent {
     readonly translateService: TranslateService,
     readonly cdr: ChangeDetectorRef,
   ) {
+    // #453: létező mise szerkesztésekor a selectedDays a mentett rrule.byweekday
+    // TÖMBJÉBŐL jön (pl. ['MO']). A havi-n.-napja (FIRST_WEEK..FIFTH_WEEK,
+    // LAST_DAY_OF_MONTH) és minden single-day renum template-je viszont EGYETLEN
+    // Day-t vár (mat-select multiple nélkül) — egy tömb ott nem talál egyezést,
+    // ezért üresen maradt az „Ezen a napon" mező újranyitáskor. Init-kor a
+    // betöltött renum multiDays-e szerint normalizáljuk: single-day esetén
+    // tömb→első elem; multi-day esetén a tömböt érintetlenül hagyjuk (nem
+    // veszítünk napokat, mint az onRenumChange transition-logikája tenné).
+    this.normalizeSelectedDaysForLoadedRenum();
+
     const hasPeriodId = !!(this.data.event.period && (this.data.event.period as any).periodId);
 
     // A választható időszakokat furcsa sorrendben jelenítjük meg direkt.
@@ -235,6 +245,29 @@ export class AddFullEventDialogComponent {
 
   onNoClick(): void {
     this.dialogRef.close();
+  }
+
+  /**
+   * #453: a betöltött renum multiDays-e szerint hozza összhangba a selectedDays
+   * alakját (tömb vs. egyetlen Day), ADATVESZTÉS NÉLKÜL. Az onRenumChange a
+   * felhasználói VÁLTÁSKOR szándékosan egyetlen napra redukál — ez init-kor
+   * hibás lenne (egy meglévő heti több-napos misénél eldobná a napokat), ezért
+   * külön, óvatos normalizáló az induló állapothoz.
+   */
+  private normalizeSelectedDaysForLoadedRenum(): void {
+    const renum = this.data.event.renum;
+    if (ScriptUtil.isNull(renum) || ScriptUtil.isNull(recurrences[renum])) {
+      return;
+    }
+    const multiDays = recurrences[renum].multiDays;
+
+    if (!multiDays && Array.isArray(this.selectedDays)) {
+      // single-day renum (pl. havi n. napja): tömb → első elem (vagy üres).
+      this.selectedDays = this.selectedDays.length > 0 ? this.selectedDays[0] : [];
+    } else if (multiDays && !Array.isArray(this.selectedDays) && ScriptUtil.isNotNull(this.selectedDays)) {
+      // multi-day renum, de egyetlen érték jött: csomagoljuk tömbbe.
+      this.selectedDays = [this.selectedDays];
+    }
   }
 
   onRenumChange() {

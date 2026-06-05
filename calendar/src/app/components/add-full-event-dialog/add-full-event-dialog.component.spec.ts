@@ -246,3 +246,69 @@ describe('AddFullEventDialogComponent (#450 egyszeri alkalom nem kap időszakot)
     expect(component.periodCtr.value).toBeNull();
   });
 });
+
+describe('AddFullEventDialogComponent (#453 havi-n.-napja nap visszatöltése)', () => {
+  let component: AddFullEventDialogComponent;
+  let fixture: ComponentFixture<AddFullEventDialogComponent>;
+
+  // #453: létező mise szerkesztéskor a selectedDays a mentett byweekday TÖMBJÉBŐL
+  // jön. A teszt-data ezt szimulálja egy adott renum + selectedDays párral.
+  function dataWith(renum: Renum, selectedDays: any) {
+    return {
+      title: 'EDIT_MASS',
+      existingPeriodIds: [],
+      event: {
+        period: null,
+        rite: Rite.ROMAN_CATHOLIC,
+        types: [],
+        title: 'Szentmise',
+        start: new Date('2026-03-15T10:00:00'),
+        duration: {hours: 1},
+        language: LanguageCode.HU,
+        renum,
+        selectedDays,
+        comment: '',
+        editOne: false,
+      },
+    };
+  }
+
+  async function setup(data: any) {
+    const periodServiceMock = {
+      getSelectableGeneratedPeriodsByDate: jasmine.createSpy().and.returnValue(of([])),
+      getPeriodById: jasmine.createSpy().and.returnValue(null),
+      getSpecialPeriodType: jasmine.createSpy().and.returnValue(null),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [AddFullEventDialogComponent, TranslateModule.forRoot()],
+      providers: [
+        {provide: MAT_DIALOG_DATA, useValue: data},
+        {provide: MatDialogRef, useValue: {close: jasmine.createSpy()}},
+        {provide: PeriodService, useValue: periodServiceMock},
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(AddFullEventDialogComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  }
+
+  // #453: havi n. napja (FOURTH_WEEK) — a byweekday tömbből (['MO']) a single-day
+  // mat-select EGYETLEN 'MO'-ra normalizálódik, így a mező nem marad üresen.
+  it('normalizes selectedDays from array to single value for a monthly nth-weekday recurrence', async () => {
+    await setup(dataWith(Renum.FOURTH_WEEK, [Day.MO]));
+
+    expect(Array.isArray(component.selectedDays)).toBeFalse();
+    expect(component.selectedDays).toBe(Day.MO);
+  });
+
+  // #453 regresszió-védelem: heti (több napos) misénél a tömb ÉRINTETLEN marad
+  // — a normalizálás nem dobhat el napokat.
+  it('keeps the array intact for a weekly multi-day recurrence', async () => {
+    await setup(dataWith(Renum.EVERY_WEEK, [Day.MO, Day.WE]));
+
+    expect(Array.isArray(component.selectedDays)).toBeTrue();
+    expect(component.selectedDays).toEqual([Day.MO, Day.WE]);
+  });
+});
