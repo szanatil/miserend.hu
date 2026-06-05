@@ -49,8 +49,8 @@ INSERT INTO `cal_periods` (`id`, `name`, `weight`, `start_month_day`, `end_month
 (39, 'Úrnapja', 15, NULL, NULL, NULL, NULL, NULL, 0, '2026-01-01', '2026-01-01', 1, NULL, NULL),
 (40, 'Mindenszentek', 15, '11-01', '11-01', NULL, NULL, NULL, 0, '2026-01-01', '2026-01-01', 1, NULL, NULL),
 (41, 'Nagyboldogasszony', 15, '08-15', '08-15', NULL, NULL, NULL, 0, '2026-01-01', '2026-01-01', 1, NULL, NULL),
-(42, 'Vízkereszt', 15, '01-06', '01-06', NULL, NULL, NULL, 0, '2026-01-01', '2026-01-01', 1, NULL, NULL);
-(43, 'Nyár', '12', '06-01', '08-31', NULL, NULL, NULL, '1', '2026-05-30', '2026-05-30', '1', '#ebc273', NULL);
+(42, 'Vízkereszt', 15, '01-06', '01-06', NULL, NULL, NULL, 0, '2026-01-01', '2026-01-01', 1, NULL, NULL),
+(43, 'Nyár', 12, '06-01', '08-31', NULL, NULL, NULL, 1, '2026-05-30', '2026-05-30', 1, '#ebc273', NULL);
 SET FOREIGN_KEY_CHECKS=1;
 
 UNLOCK TABLES;
