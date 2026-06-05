@@ -209,7 +209,9 @@ docker exec miserend composer install|require|update
 
 ## 🧪 Tesztelés
 
-A projekt PHPUnit (PHP) és Karma + Jasmine (Angular) teszteket használ. A futtatási parancsok, struktúra és konvenciók (köztük az Angular `xdescribe`-konvenció) a [CONTRIBUTING.md tesztelési fejezeteiben](CONTRIBUTING.md#-php-rész-webapp) találhatók.
+A projekt háromféle tesztet használ: **ng-test** (Angular), **PHPUnit** (PHP unit/integration), és **Panther** (funkcionális/E2E). A GitHub Actions automatikusan futtatja őket, a részletes dokumentáció:
+
+📖 **[tests/README.md](webapp/tests/README.md)** — Teszt típusok, futtatás, és új tesztek írása
 
 ## 🌳 Branching stratégia
 
