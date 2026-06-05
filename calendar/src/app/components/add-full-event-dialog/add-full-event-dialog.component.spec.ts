@@ -312,3 +312,72 @@ describe('AddFullEventDialogComponent (#453 havi-n.-napja nap visszatöltése)',
     expect(component.selectedDays).toEqual([Day.MO, Day.WE]);
   });
 });
+
+describe('AddFullEventDialogComponent (#458 szerkesztéskor nincs dátum-alapú default időszak)', () => {
+  let component: AddFullEventDialogComponent;
+  let fixture: ComponentFixture<AddFullEventDialogComponent>;
+
+  function editData(title: string) {
+    return {
+      title,
+      existingPeriodIds: [],
+      event: {
+        period: null,                 // a hívó nem oldotta fel (generatedPeriods$-ban épp nincs)
+        rite: Rite.ROMAN_CATHOLIC,
+        types: [],
+        title: 'Szentmise',
+        start: new Date('2026-01-01T08:00:00'),
+        duration: {hours: 1},
+        language: LanguageCode.HU,
+        renum: Renum.EVERY_WEEK,       // ismétlődő → NEM singleEvent
+        selectedDays: [Day.TU, Day.TH],
+        comment: '',
+        editOne: false,
+      },
+    };
+  }
+
+  async function setup(periods: GeneratedPeriod[], data: any) {
+    const periodServiceMock = {
+      getSelectableGeneratedPeriodsByDate: jasmine.createSpy().and.returnValue(of(periods)),
+      getPeriodById: jasmine.createSpy().and.returnValue(null),
+      getSpecialPeriodType: jasmine.createSpy().and.returnValue(null),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [AddFullEventDialogComponent, TranslateModule.forRoot()],
+      providers: [
+        {provide: MAT_DIALOG_DATA, useValue: data},
+        {provide: MatDialogRef, useValue: {close: jasmine.createSpy()}},
+        {provide: PeriodService, useValue: periodServiceMock},
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(AddFullEventDialogComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  }
+
+  // #458: létező mise szerkesztésekor (EDIT_MASS) NEM szabad dátum-alapú default
+  // időszakot találgatni, ha a period nincs feloldva — különben pl. a „Téli idő"
+  // jelenik meg egy egész-éves mise helyett.
+  it('does NOT auto-pick a date-based period when editing an existing mass (EDIT_MASS)', async () => {
+    const teli = makeGeneratedPeriod({id: 7, periodId: 7, name: 'Téli időszak', weight: 5});
+    const evesEv = makeGeneratedPeriod({id: 10, periodId: 10, name: 'Egész évben', weight: 1});
+
+    await setup([teli, evesEv], editData('EDIT_MASS'));
+
+    expect(component.periodCtr.value).toBeNull();
+    expect(component.data.event.period).toBeFalsy();
+  });
+
+  // Kontroll: ÚJ mise létrehozásakor (ADD_NEW_MASS) az auto-default továbbra is fut
+  // — a #458 fix nem rontja el a #308 viselkedést.
+  it('still auto-picks a default period when creating a NEW mass (ADD_NEW_MASS)', async () => {
+    const teli = makeGeneratedPeriod({id: 7, periodId: 7, name: 'Téli időszak', weight: 5});
+
+    await setup([teli], editData('ADD_NEW_MASS'));
+
+    expect(component.periodCtr.value).toEqual(teli);
+  });
+});

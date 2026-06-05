@@ -132,7 +132,16 @@ export class AddFullEventDialogComponent {
       // Ha nincs egyezés (új templom, vagy soha nem volt mise ilyen időszakra),
       // marad a régi viselkedés: [0]. elem.
       // Do NOT set default period for single events
-      if (!this.data.event.period && !this.singleEvent && generatedPeriods.length > 0) {
+      //
+      // #458: az auto-default CSAK ÚJ mise létrehozásakor fusson. Létező mise
+      // szerkesztésekor (EDIT_MASS) a periódust a hívó (church-calendar) a mise
+      // tárolt periodId-jából állítja be; ha az valamiért nem oldódik fel
+      // (a generatedPeriods$-ban épp nincs meg a megfelelő évi példány), AKKOR
+      // SEM szabad dátum-alapú defaultot (pl. „Téli időszak") találgatni egy
+      // létező misére — inkább maradjon üres, hogy a hiba látszódjon, ne pedig
+      // hibás időszakot mentsünk. (Ez ugyanaz a hibafajta mint a #450.)
+      const isEditingExisting = this.data.title === 'EDIT_MASS';
+      if (!this.data.event.period && !this.singleEvent && !isEditingExisting && generatedPeriods.length > 0) {
         const existingPeriodIds = new Set(this.data.existingPeriodIds ?? []);
         const matched = existingPeriodIds.size > 0
           ? generatedPeriods.find(p => existingPeriodIds.has(p.periodId))
