@@ -28,12 +28,12 @@ export class PeriodService {
   private initPeriods() {
 
     this.http.get<PeriodsWrapper>(`${environment.apiUrl}periods`).subscribe({
-      next: (periodsWrapper) => {
+      next: (periodsWrapper: PeriodsWrapper) => {
         console.log('[PeriodService] Periódusok sikeresen betöltve');
         this.periods$.next(periodsWrapper.periods);
         this.generatedPeriods$.next(DateTimeUtil.adjustEndDates(periodsWrapper.generatedPeriods));
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('[PeriodService] Hiba a periódusok betöltésekor:', error);
         this.snackBarService.error('Nem sikerült a periódusokat betölteni. Kérjük, frissítse az oldalt.');
         this.periods$.next([]);

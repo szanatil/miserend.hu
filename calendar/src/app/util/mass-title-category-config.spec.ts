@@ -13,6 +13,32 @@ describe('MassTitleCategoryConfig', () => {
     }).compileComponents();
 
     translate = TestBed.inject(TranslateService);
+    
+    // Mock Hungarian translations for testing
+    const mockTranslations = {
+      'MASS_TITLE': {
+        'HOLY_MASS': 'Szentmise',
+        'LITURGY_OF_THE_WORD': 'Igeliturgia',
+        'ADORATION': 'Szentségimádás',
+        'CONFESSION': 'Gyóntatás',
+        'BREVIARY': 'Zsolozsma',
+        'LITANY': 'Litánia',
+        'ROSARY': 'Rózsafüzér',
+        'DIVINE_LITURGY': 'Szent Liturgia',
+        'LITURGY_OF_THE_PRESANCTIFIED_GIFTS': 'Előszenteltek liturgiája',
+        'MATINS': 'Utrenye',
+        'VESPRES': 'Vecsernye',
+        'MASS_OF_THE_LORD_S_SUPPER': 'Az utolsó vacsora emlékmiséje',
+        'GOOD_FRIDAY_LITURGY': 'Nagypénteki szertartás',
+        'EASTER_VIGIL': 'Húsvét vigíliája',
+        'TRADITIONAL_LATIN_MASS': 'Régi rítusú szentmise',
+        'TRADITIONAL_MASS_OF_THE_LORD_S_SUPPER': 'Az utolsó vacsora emlékmiséje (régi rítusú)',
+        'TRADITIONAL_GOOD_FRIDAY_LITURGY': 'Nagypénteki szertartás (régi rítusú)',
+        'TRADITIONAL_EASTER_VIGIL': 'Húsvét vigíliája (régi rítusú)'
+      }
+    };
+    
+    translate.setTranslation('hu', mockTranslations);
     translate.setDefaultLang('hu');
     translate.use('hu');
   });
