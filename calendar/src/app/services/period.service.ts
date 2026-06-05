@@ -167,19 +167,40 @@ export class PeriodService {
     const normalizeDate = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const targetDate = normalizeDate(localDate);
 
-    const generatedPeriods = this.generatedPeriods$
-      .getValue()
-      .filter(p => {
-        const start = normalizeDate(new Date(p.startDate));
-        const end = normalizeDate(new Date(p.endDate));
-        return (
-          p.periodId === periodId &&
-          start <= targetDate &&
-          end >= targetDate //Egy napos eseményeknél ha csak sima ">" akkor nem talál semmit
-        );
-      });
+    const all = this.generatedPeriods$.getValue();
 
-    return generatedPeriods.length > 0 ? generatedPeriods[0] : null;
+    const generatedPeriods = all.filter(p => {
+      const start = normalizeDate(new Date(p.startDate));
+      const end = normalizeDate(new Date(p.endDate));
+      return (
+        p.periodId === periodId &&
+        start <= targetDate &&
+        end >= targetDate //Egy napos eseményeknél ha csak sima ">" akkor nem talál semmit
+      );
+    });
+
+    if (generatedPeriods.length > 0) {
+      return generatedPeriods[0];
+    }
+
+    // #458: ha az adott DÁTUMRA nincs találat (pl. a generatedPeriods$-ban épp nincs
+    // betöltve a periodId megfelelő évi példánya), létező mise szerkesztésekor akkor
+    // is a mise VALÓDI periódusát kell visszaadni — nem null-t. A null ugyanis a
+    // dialógusban vagy hibás dátum-alapú defaulthoz (Téli időszak), vagy blokkolt
+    // mentéshez vezetett. A mentés a periodId-t tárolja, így bármelyik azonos
+    // periodId-jú példány helyes; a legközelebbi kezdetűt választjuk a targetDate-hez.
+    const samePeriodId = all.filter(p => p.periodId === periodId);
+    if (samePeriodId.length > 0) {
+      return samePeriodId
+        .slice()
+        .sort((a, b) => {
+          const da = Math.abs(normalizeDate(new Date(a.startDate)).getTime() - targetDate.getTime());
+          const db = Math.abs(normalizeDate(new Date(b.startDate)).getTime() - targetDate.getTime());
+          return da - db;
+        })[0];
+    }
+
+    return null;
   }
 
   public saveData(periodYears: PeriodYear[]): Observable<any> {
