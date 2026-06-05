@@ -39,7 +39,7 @@ jobs:
           context: .
           file: docker/miserend/Dockerfile.github
           push: true
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
@@ -52,7 +52,7 @@ jobs:
           context: .
           file: docker/miserend/Dockerfile.coverage
           push: true
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           build-args: |
             BASE_TAG=${{ steps.tag.outputs.TAG }}
           tags: |
