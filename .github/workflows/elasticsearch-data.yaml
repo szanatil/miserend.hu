@@ -32,80 +32,22 @@ jobs:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
-          mkdir -p ~/.ssh
-          
-          # Debug: Validate secrets are set
-          echo "Checking secret configuration..."
-          if [ -z "$DEPLOY_KEY" ]; then
-            echo "❌ ERROR: DEPLOY_KEY secret is empty or not set"
-            exit 1
-          fi
-          if [ -z "$DEPLOY_HOST" ]; then
-            echo "❌ ERROR: DEPLOY_HOST secret is empty or not set"
-            exit 1
-          fi
-          if [ -z "$DEPLOY_USER" ]; then
-            echo "❌ ERROR: DEPLOY_USER secret is empty or not set"
-            exit 1
-          fi
-          echo "✓ All secrets are configured"
-          
-          # Create key file with proper handling
-          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          
-          # Debug: Validate key file
-          echo "Validating deploy key file..."
-          if [ ! -s ~/.ssh/deploy_key ]; then
-            echo "❌ ERROR: deploy_key file is empty"
-            exit 1
-          fi
-          
-          KEY_SIZE=$(wc -c < ~/.ssh/deploy_key)
-          echo "✓ Key file created (${KEY_SIZE} bytes)"
-          
-          # Validate key format
-          if ! head -1 ~/.ssh/deploy_key | grep -q "BEGIN.*PRIVATE KEY"; then
-            echo "❌ ERROR: Key file doesn't start with 'BEGIN PRIVATE KEY' marker"
-            head -1 ~/.ssh/deploy_key
-            exit 1
-          fi
-          echo "✓ Key file format is valid"
-          
-          # Add host key with debug output
-          echo "Adding host key for $DEPLOY_HOST..."
-          if ! ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>&1; then
-            echo "❌ ERROR: ssh-keyscan failed"
-            exit 1
-          fi
-          echo "✓ Host key added to known_hosts"
-          
-          # Test SSH connection with verbose output
-          echo "Testing SSH connection to $DEPLOY_USER@$DEPLOY_HOST..."
-          SSH_LOG=$(ssh -vvv -i ~/.ssh/deploy_key -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "$DEPLOY_USER@$DEPLOY_HOST" "echo 'SSH connection successful'" 2>&1)
-          SSH_EXIT=$?
-          
-          if [ $SSH_EXIT -ne 0 ]; then
-            echo "❌ ERROR: SSH authentication failed (exit code: $SSH_EXIT)"
-            echo "=== SSH Debug Output ==="
-            echo "$SSH_LOG" | grep -E "(authentication|Offering|Authentications|Permission|publickey|key|authorized)" || echo "$SSH_LOG"
-            echo "========================"
-            exit 1
-          fi
-          echo "✓ SSH connection successful"
-          
-          # Copy elasticsearch data directory from production server and compress
-          echo "Exporting Elasticsearch data..."
-          ssh -i ~/.ssh/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" \
-            "docker exec elasticsearch tar czf - -C /usr/share/elasticsearch/data ." > elasticsearch_data.tar.gz
-          
-          # Verify file exists and has content
-          if [ -f elasticsearch_data.tar.gz ] && [ -s elasticsearch_data.tar.gz ]; then
-            echo "✓ Data export successful ($(du -h elasticsearch_data.tar.gz | cut -f1))"
-          else
-            echo "✗ Error: Data export failed or is empty"
-            exit 1
-          fi
+           mkdir -p ~/.ssh
+           printf '%s' "$DEPLOY_KEY" > ~/.ssh/deploy_key
+           chmod 600 ~/.ssh/deploy_key
+           ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+           
+           # Copy elasticsearch data directory from production server and compress
+           ssh -i ~/.ssh/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" \
+             "docker exec elasticsearch tar czf - -C /usr/share/elasticsearch/data ." > elasticsearch_data.tar.gz
+           
+           # Verify file exists and has content
+           if [ -f elasticsearch_data.tar.gz ] && [ -s elasticsearch_data.tar.gz ]; then
+             echo "✓ Data export successful ($(du -h elasticsearch_data.tar.gz | cut -f1))"
+           else
+             echo "✗ Error: Data export failed or is empty"
+             exit 1
+           fi
 
       - uses: docker/setup-buildx-action@v3
 
