@@ -17,8 +17,8 @@ INSERT INTO `cal_periods` (`id`, `name`, `weight`, `start_month_day`, `end_month
 (4, 'Őszi óraátállítás', 11, NULL, NULL, NULL, NULL, NULL, 0, '2025-06-30', '2025-06-30', 0, '#8E24AA', NULL),
 (5, 'Első tanítási nap', 11, NULL, NULL, NULL, NULL, NULL, 0, '2025-06-30', '2025-06-30', 0, '#FDD835', NULL),
 (6, 'Utolsó tanítási nap', 11, NULL, NULL, NULL, NULL, NULL, 0, '2025-06-30', '2025-06-30', 0, '#FB8C00', NULL),
-(7, 'Tél', 4, NULL, NULL, 4, 3, 0, 1, '2025-06-30', '2025-06-30', 1, '#6EC6FF', NULL),
-(8, 'Nyár', 5, NULL, NULL, 3, 4, 0, 1, '2025-06-30', '2025-06-30', 1, '#FFD480', NULL),
+(7, 'Téli időszámítás', 4, NULL, NULL, 4, 3, 0, 1, '2025-06-30', '2025-06-30', 1, '#6EC6FF', NULL),
+(8, 'Nyári időszámítás', 5, NULL, NULL, 3, 4, 0, 1, '2025-06-30', '2025-06-30', 1, '#FFD480', NULL),
 (10, 'Egész évben', 1, NULL, NULL, 1, 2, 1, 1, '2025-06-30', '2025-06-30', 1, '#807e7e', NULL),
 (13, 'Nyári szünet', 3, NULL, NULL, 6, 5, 0, 1, '2025-10-11', '2025-10-11', 1, '#FFCC66', NULL),
 (14, 'Advent I. vasárnapja', 15, NULL, NULL, NULL, NULL, NULL, 0, '2025-11-15', '2025-11-15', 0, NULL, NULL),
@@ -50,7 +50,7 @@ INSERT INTO `cal_periods` (`id`, `name`, `weight`, `start_month_day`, `end_month
 (40, 'Mindenszentek', 15, '11-01', '11-01', NULL, NULL, NULL, 0, '2026-01-01', '2026-01-01', 1, NULL, NULL),
 (41, 'Nagyboldogasszony', 15, '08-15', '08-15', NULL, NULL, NULL, 0, '2026-01-01', '2026-01-01', 1, NULL, NULL),
 (42, 'Vízkereszt', 15, '01-06', '01-06', NULL, NULL, NULL, 0, '2026-01-01', '2026-01-01', 1, NULL, NULL);
-
+(43, 'Nyár', '12', '06-01', '08-31', NULL, NULL, NULL, '1', '2026-05-30', '2026-05-30', '1', '#ebc273', NULL);
 SET FOREIGN_KEY_CHECKS=1;
 
 UNLOCK TABLES;
