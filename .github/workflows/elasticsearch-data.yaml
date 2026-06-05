@@ -33,11 +33,63 @@ jobs:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
           mkdir -p ~/.ssh
+          
+          # Debug: Validate secrets are set
+          echo "Checking secret configuration..."
+          if [ -z "$DEPLOY_KEY" ]; then
+            echo "❌ ERROR: DEPLOY_KEY secret is empty or not set"
+            exit 1
+          fi
+          if [ -z "$DEPLOY_HOST" ]; then
+            echo "❌ ERROR: DEPLOY_HOST secret is empty or not set"
+            exit 1
+          fi
+          if [ -z "$DEPLOY_USER" ]; then
+            echo "❌ ERROR: DEPLOY_USER secret is empty or not set"
+            exit 1
+          fi
+          echo "✓ All secrets are configured"
+          
+          # Create key file with proper handling
           echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          
+          # Debug: Validate key file
+          echo "Validating deploy key file..."
+          if [ ! -s ~/.ssh/deploy_key ]; then
+            echo "❌ ERROR: deploy_key file is empty"
+            exit 1
+          fi
+          
+          KEY_SIZE=$(wc -c < ~/.ssh/deploy_key)
+          echo "✓ Key file created (${KEY_SIZE} bytes)"
+          
+          # Validate key format
+          if ! head -1 ~/.ssh/deploy_key | grep -q "BEGIN.*PRIVATE KEY"; then
+            echo "❌ ERROR: Key file doesn't start with 'BEGIN PRIVATE KEY' marker"
+            head -1 ~/.ssh/deploy_key
+            exit 1
+          fi
+          echo "✓ Key file format is valid"
+          
+          # Add host key with debug output
+          echo "Adding host key for $DEPLOY_HOST..."
+          if ! ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>&1; then
+            echo "❌ ERROR: ssh-keyscan failed"
+            exit 1
+          fi
+          echo "✓ Host key added to known_hosts"
+          
+          # Test SSH connection
+          echo "Testing SSH connection to $DEPLOY_USER@$DEPLOY_HOST..."
+          if ! ssh -i ~/.ssh/deploy_key -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "$DEPLOY_USER@$DEPLOY_HOST" "echo 'SSH connection successful'" 2>&1; then
+            echo "❌ ERROR: SSH authentication failed"
+            exit 1
+          fi
+          echo "✓ SSH connection successful"
           
           # Copy elasticsearch data directory from production server and compress
+          echo "Exporting Elasticsearch data..."
           ssh -i ~/.ssh/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" \
             "docker exec elasticsearch tar czf - -C /usr/share/elasticsearch/data ." > elasticsearch_data.tar.gz
           
