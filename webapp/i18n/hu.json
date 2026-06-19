@@ -132,21 +132,22 @@
   "SILENT": "Csendes",
 
   "LANGUAGES": {
-    "hu": "magyar",
     "en": "angol",
     "fr": "francia",
-    "tl": "tagalog/filippínó",
     "gr": "görög",
     "hr": "horvát",
     "va": "latin",
     "pl": "lengyel",
+    "hu": "magyar",
     "de": "német",
     "it": "olasz",
+    "ru": "orosz",
     "pt": "portugál",
     "ro": "román",
     "es": "spanyol",
     "sk": "szlovák",
     "si": "szlovén",
+    "tl": "tagalog/filippínó",
     "ua": "ukrán"
   },
 
