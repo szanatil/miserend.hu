@@ -1,0 +1,25 @@
+{% extends "layout_simple.twig" %}
+
+{% set pageTitle = 'Naprakész - Miserend' %}
+{% set title = 'Köszönjük!' %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 40px auto;">
+    <div class="alert alert-success">
+        <strong>Köszönjük, hogy ellenőrizted és mindent rendben találtál!</strong><br>
+        Frissítettük a miserendek dátumát a következő templomokhoz:
+    </div>
+
+    <ul class="list-group" style="margin-bottom: 24px;">
+        {% for church in churches %}
+            <li class="list-group-item">
+                <a href="/templom/{{ church.id }}">
+                    {{ church.ismertnev ?: church.nev }}{% if church.varos %}, {{ church.varos }}{% endif %}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <a href="/" class="btn btn-primary">Vissza a főoldalra</a>
+</div>
+{% endblock %}

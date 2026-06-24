@@ -712,19 +712,42 @@ class User {
 		// printr($users2notify);		
 		// $tmp = new stdClass(); $tmp->uid = 1595; $users2notify = [ $tmp ];
 				
-		foreach($users2notify as $user2notify) {					
+		foreach($users2notify as $user2notify) {
 			$user = new User($user2notify->uid);
 			$user->getResponsabilities();
-			
+
 			foreach($user->responsible['church'] as $key => $churchID) {
 				$user->responsible['church'][$churchID] = \Eloquent\Church::find($churchID);
 				unset($user->responsible['church'][$key]);
 			}
-		
-			
+
+			$batchId = bin2hex(random_bytes(16));
+			$churchTokens = [];
+			foreach ($user->responsible['church'] as $churchID => $church) {
+				$token = bin2hex(random_bytes(32));
+				\Eloquent\ChurchUpdateToken::create([
+					'token'          => $token,
+					'uid'            => $user->uid,
+					'church_id'      => $churchID,
+					'email_batch_id' => $batchId,
+					'expires_at'     => date('Y-m-d H:i:s', strtotime('+3 weeks')),
+				]);
+				$churchTokens[$churchID] = $token;
+			}
+			$allToken = bin2hex(random_bytes(32));
+			\Eloquent\ChurchUpdateToken::create([
+				'token'          => $allToken,
+				'uid'            => $user->uid,
+				'church_id'      => null,
+				'email_batch_id' => $batchId,
+				'expires_at'     => date('Y-m-d H:i:s', strtotime('+3 weeks')),
+			]);
+			$user->churchTokens = $churchTokens;
+			$user->allToken     = $allToken;
+
 			$email = new \Eloquent\Email();
 			$email->to = $user->email;
-			$email->render('user_pleaseupdate',$user);			
+			$email->render('user_pleaseupdate',$user);
 			// $email->addToQueue();
 			$email->send();
 					
