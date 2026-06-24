@@ -1,4 +1,5 @@
 export enum LanguageCode {
+  CU = 'cu',  // ószláv
   EN = 'en',  // angol
   FR = 'fr',  // francia
   GR = 'gr',  // görög
@@ -11,6 +12,7 @@ export enum LanguageCode {
   RU = 'ru',  // orosz
   PT = 'pt',  // portugál
   RO = 'ro',  // román
+  RUE = 'rue',  // ruszin
   ES = 'es',  // spanyol
   SK = 'sk',  // szlovák
   SI = 'si',  // szlovén

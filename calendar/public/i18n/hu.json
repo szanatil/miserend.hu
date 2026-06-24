@@ -132,6 +132,7 @@
   "SILENT": "Csendes",
 
   "LANGUAGES": {
+    "cu": "ószláv",
     "en": "angol",
     "fr": "francia",
     "gr": "görög",
@@ -144,6 +145,7 @@
     "ru": "orosz",
     "pt": "portugál",
     "ro": "román",
+    "rue": "ruszin",
     "es": "spanyol",
     "sk": "szlovák",
     "si": "szlovén",
