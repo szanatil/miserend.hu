@@ -46,7 +46,8 @@ class EditOsm extends \Html\Html {
 			//return;
 		}
 
-		
+		$this->readingAccessOnly = false;
+
 		// Letöltjük a legfrissebb saját OSM adatait
 		$this->loadOSMDataWithOSM();
 	
@@ -327,7 +328,19 @@ class EditOsm extends \Html\Html {
 				# https://wiki.openstreetmap.org/wiki/How_to_map_for_the_needs_of_people_with_disabilities
 				'disabled:description' => [
 					'title' => 'További leírás bármilyen akadálymentesség kapcsán'
+				],
+				'diet:gluten_free' =>[
+					'title' => 'Csökkentett gluténtartalmú szentáldozás lehetősége',
+					'options' => array(
+						'' => 'Nincs információ.',
+						'yes' => 'Legalább ünnepnapokon lehetséges. Lehet, hogy külön sorban vagy az áldozás elején/végén.',
+						'limited' => 'Lehetséges, de külön szólni kell. Sőt egyes helyeken vinni is kell ostyát.',
+						'no' => 'Nem lehetséges.'
+					),
+					'disabled' => true,
+					'help' => 'Ezt a mezőt a részletesebb (ünnepnapokat és hétköznapokat külön kezelő) beállítások alapján töltjük ki.'
 				]
+		
 			]
 		];
 		

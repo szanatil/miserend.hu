@@ -145,7 +145,14 @@
 				.autocomplete({
 					delay: 0,
 					minLength: 0,
-					source: options[id]
+					source: options[id],
+					select: function(event, ui) {
+						// Ha a mező disabled, ne töltse ki az értéket
+						if ($(this).prop('disabled')) {
+							event.preventDefault();
+							return false;
+						}
+					}
 				});
 				
 			// Add button after the input
@@ -156,9 +163,9 @@
 			
 			
 			button.click(function() {
-                    // Trigger the autocomplete search
+	                   // Trigger the autocomplete search - mindig nyissa ki a legördülőt
 					$('#' + id.replace(/:/g, '\\:') ).autocomplete("search", "");
-                });
+	               });
 			
 			
 			
