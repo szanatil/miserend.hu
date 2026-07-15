@@ -786,6 +786,21 @@ CREATE TABLE IF NOT EXISTS `templomok_full` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `church_update_tokens`
+--
+
+CREATE TABLE IF NOT EXISTS `church_update_tokens` (
+  `token` varchar(64) NOT NULL,
+  `uid` int(11) NOT NULL,
+  `church_id` int(11) DEFAULT NULL,
+  `email_batch_id` varchar(64) NOT NULL,
+  `expires_at` timestamp NOT NULL,
+  `used_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`token`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
 -- Table structure for table `tokens`
 --
 
