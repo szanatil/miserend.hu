@@ -119,6 +119,12 @@ class OSM {
                 $changed = true;
             }
 
+            // Ensure name is set - use boundary type as default if no name is provided
+            if(empty($boundary->name)) {
+                $boundary->name = $boundary->boundary ?: 'Unnamed Boundary';
+                $changed = true;
+            }
+
             $changed ? $boundary->save() : false;
 
             $return[] = $boundary->id;
