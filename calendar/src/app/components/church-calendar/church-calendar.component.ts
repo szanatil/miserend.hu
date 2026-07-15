@@ -39,7 +39,7 @@ import {ScriptUtil} from '../../util/script-util';
 import {SpinnerService} from '../../services/spinner.service';
 import {CalendarUtil} from '../../util/calendar-util';
 import {MatSnackBarService} from '../../services/mat-snack-bar.service';
-import {filter, Observable} from 'rxjs';
+import {filter, Observable, take} from 'rxjs';
 import {MatFormField, MatInput, MatLabel} from '@angular/material/input';
 import {FormControl, FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {UserService} from '../../services/user.service';
@@ -231,23 +231,36 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
   private loadEventsIntoCalendar(): Promise<CalendarEvent[]> {
     return new Promise(resolve => {
       this.periodService.generatedPeriods$
-        .pipe(filter(periods => periods.length > 0))
-        .subscribe(periods => {
-          const events = MassUtil.createCalendarEvents(
-            Array.from(this.masses.values()),
-            periods,
-            this.changedMasses,
-            this.deletedMasses,
-            this.deletedDates,
-            this.translateService
-          );
-          
-          // Add sensor events to the calendar
-          const sensorCalendarEvents = this.convertSensorEventsToCalendarEvents();
-          events.push(...sensorCalendarEvents);
-          
-          resolve(events);
-        });
+        .pipe(
+          filter(periods => periods.length > 0),
+          take(1) // Unsubscribe after first emission to prevent memory leaks
+        )
+        .subscribe(
+          periods => {
+            const events = MassUtil.createCalendarEvents(
+              Array.from(this.masses.values()),
+              periods,
+              this.changedMasses,
+              this.deletedMasses,
+              this.deletedDates,
+              this.translateService
+            );
+            
+            // Add sensor events to the calendar
+            const sensorCalendarEvents = this.convertSensorEventsToCalendarEvents();
+            events.push(...sensorCalendarEvents);
+            
+            resolve(events);
+          },
+          error => {
+            console.error('[Church Calendar] generatedPeriods$ error:', error);
+          }
+        );
+      
+      // Safety timeout: if subscription doesn't resolve within 10 seconds, resolve with empty array
+      setTimeout(() => {
+        resolve([]);
+      }, 10000);
     });
   }
 
@@ -1067,6 +1080,14 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
         this.loadingEvents = false;
         this.loadedEvents = true;
         if (events && events.length > 0) this.everHadEvents = true;
+        
+        // Force calendar re-render to update noEventsContent when events are empty
+        // This is critical when API returns empty masses: [] - without this, the loading message gets stuck
+        try {
+          this.calendarComponent.getApi().render();
+        } catch (e) {
+          // calendar not initialized yet - ignore
+        }
 
         // rebuild the editable mass list when in edit/admin context
         if (this.showMassListInEdit) {
