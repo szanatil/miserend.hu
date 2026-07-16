@@ -54,6 +54,16 @@ class MapquestApi extends \ExternalApi\ExternalApi {
             return -2; # ??
         }
 
+        # #129: FONTOS - a base runQuery() éles környezetben NEM dob kivételt
+        # (csak isTesting módban), hanem elnyeli és false-szal tér vissza; a
+        # responseCode-ot viszont a curl után beállítja. Ezért a 403-at a hívás
+        # UTÁN is detektálni kell, különben a fenti catch sosem fut le prod-on és
+        # a rate-limit jelzés soha nem íródna ki.
+        if ($this->responseCode == 403) {
+            $this->markRateLimited();
+            return -2;
+        }
+
         $mapquest = $this->jsonData;
         if (isset($mapquest->route->routeError->errorCode)) {
             if ($mapquest->info->statuscode == 602)
@@ -89,7 +99,11 @@ class MapquestApi extends \ExternalApi\ExternalApi {
     }
 
     private function getRateLimitCachePath(): string {
-        return sys_get_temp_dir() . '/miserend_mapquest_rate_limit_hit';
+        global $config;
+        // #129: appkey-hash namespace, hogy több install / több key ugyanazon a
+        // hoston ne szennyezze egymás rate-limit állapotát.
+        $keyHash = substr(md5($config['mapquest']['appkey'] ?? 'default'), 0, 12);
+        return sys_get_temp_dir() . '/miserend_mapquest_rate_limit_' . $keyHash;
     }
 
     function buildQuery() {
