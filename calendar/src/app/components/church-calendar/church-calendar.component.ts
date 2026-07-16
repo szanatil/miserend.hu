@@ -181,6 +181,11 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
   // hogy a footer-panel és a tooltip onnan tudjon olvasni.
   public weekCompressionEnabled = true;
   public weekCompressionResult: CompressionResult | null = null;
+  // #358: a middle-collapse-hoz - a slotLaneClassNames hook ebből dönti el, mely
+  // slot-lane-t jelölje meg (fc-empty-slot). minute-of-day (slot-kezdet) halmaz.
+  public collapsedSlotMinutes = new Set<number>();
+  // Aláírás a felesleges re-render elkerülésére (slotMin|slotMax|collapsed).
+  private lastCompressionSignature = '';
   public currentViewType: string = '';
 
   constructor(
@@ -383,6 +388,16 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       // #358: az események csak a datesSet UTÁN érkeznek be, ezért minden
       // event-set változásnál is újra-számoljuk a tömörítést.
       eventsSet: () => this.onEventsSetForCompression(),
+      // #358: a KÖZÉPSŐ üres slotok megjelölése. A lane-td MINDEN sorban renderel
+      // (a :30-as axis-cellával ellentétben, ami class-generator nélküli bare td),
+      // ezért a slotLaneClassNames a megbízható horog. A getHours/getMinutes
+      // ugyanaz a kinyerés mint a util occupancy-jében -> a megjelölt lane-ek
+      // bizonyíthatóan pont az esemény-mentesek, timezone-biztosan.
+      slotLaneClassNames: (arg: any) =>
+        (this.weekCompressionEnabled
+          && this.currentViewType === 'timeGridWeek'
+          && this.collapsedSlotMinutes.has(arg.date.getHours() * 60 + arg.date.getMinutes()))
+          ? ['fc-empty-slot'] : [],
       // Render custom event content so we can append a language flag ant types in list views
       eventContent: (info: any) => this.renderEventContent(info),
       noEventsContent: () => this.renderNoEventsContent(),
@@ -1243,13 +1258,15 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
   private evaluateWeekCompression(view: any): void {
     if (!this.calendarComponent) {
       this.weekCompressionResult = null;
+      this.collapsedSlotMinutes = new Set<number>();
       return;
     }
     const api = this.calendarComponent.getApi();
 
     if (view.type !== 'timeGridWeek' || !this.weekCompressionEnabled) {
       this.weekCompressionResult = null;
-      this.applySlotTimes(api, '00:00:00', '24:00:00');
+      this.collapsedSlotMinutes = new Set<number>();
+      this.applyCompression(api, '00:00:00', '24:00:00', [], false);
       return;
     }
 
@@ -1266,27 +1283,46 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       weekStart: view.currentStart,
       weekEnd: view.currentEnd,
       events: weekEvents,
+      options: {slotDurationMinutes: 30},
     });
 
     this.weekCompressionResult = result;
 
     if (result.shouldCompress) {
-      this.applySlotTimes(api, result.slotMinTime, result.slotMaxTime);
+      this.collapsedSlotMinutes = new Set<number>(result.collapsedSlotMinutes);
+      this.applyCompression(api, result.slotMinTime, result.slotMaxTime, result.collapsedSlotMinutes, true);
     } else {
-      this.applySlotTimes(api, '00:00:00', '24:00:00');
+      this.collapsedSlotMinutes = new Set<number>();
+      this.applyCompression(api, '00:00:00', '24:00:00', [], false);
     }
   }
 
-  /** Csak akkor hív setOption-t, ha tényleg változott — különben felesleges re-render. */
-  private applySlotTimes(api: any, slotMin: string, slotMax: string): void {
+  /**
+   * #358: slotMin/Max + height + a collapsed-lane újrarajzolás egy helyen.
+   * A slotLaneClassNames csak re-render-kor fut újra: a setOption(slotMinTime/
+   * height) a szokásos úton kikényszeríti; ha viszont CSAK a collapsed-halmaz
+   * változott (a slotMin/Max ugyanaz), explicit api.render() kell — az aláírás
+   * alapján pontosan egyszer, hogy ne rendereljünk kétszer.
+   */
+  private applyCompression(api: any, slotMin: string, slotMax: string, collapsed: number[], compress: boolean): void {
     try {
-      const currentMin = api.getOption('slotMinTime');
-      const currentMax = api.getOption('slotMaxTime');
-      if (currentMin !== slotMin) {
-        api.setOption('slotMinTime', slotMin);
-      }
-      if (currentMax !== slotMax) {
-        api.setOption('slotMaxTime', slotMax);
+      let optionChanged = false;
+      if (api.getOption('slotMinTime') !== slotMin) { api.setOption('slotMinTime', slotMin); optionChanged = true; }
+      if (api.getOption('slotMaxTime') !== slotMax) { api.setOption('slotMaxTime', slotMax); optionChanged = true; }
+      // height:'auto' a tömörített nézetnél (különben ~340px üres sáv alul); egyébként
+      // a default 600px scroller. expandRows-t NEM állítunk (false marad, különben
+      // vissza-nyújtaná az összehúzott sorokat).
+      const targetHeight = compress ? 'auto' : '600px';
+      if (api.getOption('height') !== targetHeight) { api.setOption('height', targetHeight); optionChanged = true; }
+
+      const sig = slotMin + '|' + slotMax + '|' + collapsed.join(',');
+      if (sig !== this.lastCompressionSignature) {
+        this.lastCompressionSignature = sig;
+        // ha egy setOption már re-render-t váltott, ne rendereljünk kétszer;
+        // ha csak a collapsed-halmaz változott, itt kényszerítjük ki.
+        if (!optionChanged) {
+          api.render();
+        }
       }
     } catch (e) {
       // API not ready / runtime error — biztonságos no-op
@@ -1318,14 +1354,6 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     }
   }
 
-  /** Footer-megjelenítéshez: „hétfő 12:00 – nagyszombati vigília". */
-  public formatOutOfRangeEvent(e: WeekEvent): string {
-    const day = new Intl.DateTimeFormat('hu-HU', {weekday: 'short', month: 'short', day: 'numeric'}).format(e.start);
-    const time = new Intl.DateTimeFormat('hu-HU', {hour: '2-digit', minute: '2-digit'}).format(e.start);
-    const title = e.title || '';
-    return `${day} ${time} – ${title}`.trim();
-  }
-
   /** Tooltip a toggle-gombhoz: a diagnostics-ot emberi olvasásra fordítja. */
   public getWeekCompressionTooltip(): string {
     if (!this.weekCompressionEnabled) {
@@ -1336,8 +1364,8 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       return 'Heti nézet idősáv-tömörítés: bekapcsolva';
     }
     if (r.shouldCompress) {
-      return `Tömörítve: ${r.slotMinTime.slice(0, 5)}–${r.slotMaxTime.slice(0, 5)} `
-        + `(üres sáv: ${r.diagnostics.gapStart}–${r.diagnostics.gapEnd}, ${r.diagnostics.gapSizeHours} ó). `
+      return `Tömörítve: ${r.slotMinTime.slice(0, 5)}–${r.slotMaxTime.slice(0, 5)}, `
+        + `a középső üres sáv (${r.diagnostics.gapStart}–${r.diagnostics.gapEnd}, ${r.diagnostics.gapSizeHours} ó) összehúzva. `
         + `Kattintsd kikapcsoláshoz.`;
     }
     const reasonMap: Record<string, string> = {

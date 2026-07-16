@@ -138,36 +138,25 @@
   vertical-align: middle;
 }
 
-/* #358: out-of-range események footer-panele a tömörített heti nézet alatt */
-.week-compression-footer {
-  margin: 8px 0 4px 0;
-  padding: 8px 12px;
-  background: #fffbe6;
-  border: 1px solid #ffe69c;
-  border-radius: 4px;
-  font-size: 0.9em;
-  color: #614700;
+/* #358: a KÖZÉPSŐ üres slotok VALÓDI összehúzása (törött időtengely).
+ * A slotLaneClassNames a lane-td-re teszi az `fc-empty-slot` osztályt, de a :30-as
+ * axis-cellát semmilyen hook nem tudja tagelni (class-generator nélküli bare td),
+ * ezért az EGÉSZ <tr>-t húzzuk össze egy :has() sor-szelektorral, ami a
+ * megbízhatóan tagelt lane-ről kulcsol - így MINDKÉT cella (a lane és a :30 axis)
+ * 0 magasságú lesz. A FullCalendar a mért geometriából pozicionál (nem lineáris
+ * idő->px képletből), ezért az üres sorok zsugorítására magától felhúzza az esti
+ * sávot a reggeli alá. A foglalt slotok (pl. nagyszombat 15:00) nem kapják meg az
+ * osztályt, így köréjük törik a tengely, a helyükön maradnak. */
+::ng-deep .fc-timegrid-slots tr:has(> td.fc-timegrid-slot-lane.fc-empty-slot) > td {
+  height: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-top: 1px dashed #c9c9c9 !important; /* a "törés" varrat */
 }
-.week-compression-footer-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-.week-compression-footer-header .info-icon {
-  font-size: 18px;
-  width: 18px;
-  height: 18px;
-  vertical-align: middle;
-}
-.week-compression-footer-list {
-  margin: 0;
-  padding-left: 24px;
-  list-style: disc;
-}
-.week-compression-footer-list li {
-  padding: 1px 0;
+/* A collapsed slotok idő-feliratát is rejtsük (belt-and-suspenders). */
+::ng-deep .fc-timegrid-slots tr:has(> td.fc-timegrid-slot-lane.fc-empty-slot) .fc-timegrid-slot-label-cushion,
+::ng-deep .fc-timegrid-slots tr:has(> td.fc-timegrid-slot-lane.fc-empty-slot) .fc-timegrid-axis-cushion {
+  display: none !important;
 }
 
 

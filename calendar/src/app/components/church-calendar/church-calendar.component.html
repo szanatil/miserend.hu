@@ -55,25 +55,9 @@
   [events]="eventsPromise | async"
 ></full-calendar>
 
-<!-- #358: heti nézet tömörítése — out-of-range események footer-panele.
-     Csak akkor jelenik meg, ha tényleg van mit megemlíteni (nagyszombat,
-     extra alkalom a középső sávban, stb.). Így senkitől nem veszünk el adatot. -->
-@if (currentViewType === 'timeGridWeek'
-      && weekCompressionEnabled
-      && weekCompressionResult?.shouldCompress
-      && (weekCompressionResult?.outOfRangeEvents?.length ?? 0) > 0) {
-  <div class="week-compression-footer" role="region" aria-label="Egyéb alkalmak ezen a héten">
-    <div class="week-compression-footer-header">
-      <mat-icon class="info-icon">info</mat-icon>
-      <span>Egyéb alkalmak ezen a héten (a tömörített idősávon kívül):</span>
-    </div>
-    <ul class="week-compression-footer-list">
-      @for (e of weekCompressionResult!.outOfRangeEvents; track e.start.getTime() + (e.title || '')) {
-        <li>{{ formatOutOfRangeEvent(e) }}</li>
-      }
-    </ul>
-  </div>
-}
+<!-- #358: a középső üres sáv mostantól a rácsban VALÓDIAN össze van húzva
+     (törött időtengely), ezért a korábbi out-of-range footer-panel megszűnt -
+     a középső alkalmak (pl. nagyszombat) a helyükön, a rácsban jelennek meg. -->
 
 <!-- Kategória szűrés komponens -->
 @if (showFilterComponent) {

@@ -16,14 +16,14 @@ const WEEK_END = new Date(2026, 2, 16);   // Mon 2026-03-16 (exclusive)
 
 describe('WeekCompressionUtil.analyze', () => {
 
-  it('no-events: nem tömörít, üres out-of-range', () => {
+  it('no-events: nem tömörít, üres collapsed-halmaz', () => {
     const result = WeekCompressionUtil.analyze({
       weekStart: WEEK_START, weekEnd: WEEK_END, events: [],
     });
     expect(result.shouldCompress).toBe(false);
     expect(result.diagnostics.reason).toBe('no-events');
     expect(result.diagnostics.totalEvents).toBe(0);
-    expect(result.outOfRangeEvents).toEqual([]);
+    expect(result.collapsedSlotMinutes).toEqual([]);
   });
 
   it('too-few-events: 2 esemény még nem éri el a threshold-ot, nem tömörít', () => {
@@ -74,27 +74,88 @@ describe('WeekCompressionUtil.analyze', () => {
     expect(result.diagnostics.gapSizeHours).toBe(9.5);
   });
 
-  it('out-of-range: gap-en belüli esemény (nagyszombati vigília) bekerül a footer-listába', () => {
+  it('collapse: a középső üres slotok collapsed, a reggeli/esti foglaltak NEM', () => {
     const result = WeekCompressionUtil.analyze({
       weekStart: WEEK_START, weekEnd: WEEK_END,
       events: [
-        ev(0, 7, 0, 8, 0),    // hétfő reggel
-        ev(0, 18, 0, 19, 0),  // hétfő este
-        ev(2, 7, 30, 8, 30),  // szerda reggel
-        ev(4, 18, 30, 19, 30),// péntek este
-        // Szombat 12:00 — TÉNYLEGESEN a gap-ben van (morningLatest=8:30, eveningEarliest=18:00).
-        // 12:00 < 14:00 (eveningStartHour), tehát nem minősül esti eseménynek, így a
-        // gap-detektálást nem zavarja meg, de az ablakon kívülre esik.
+        ev(0, 8, 0, 9, 0),    // 08:00-09:00 → slot 480,510
+        ev(2, 8, 30, 9, 30),  // 08:30-09:30 → slot 510,540
+        ev(4, 18, 0, 19, 0),  // 18:00-19:00 → slot 1080,1110
+      ],
+    });
+    expect(result.shouldCompress).toBe(true);
+    const collapsed = new Set(result.collapsedSlotMinutes);
+    // reggeli/esti foglalt slotok NEM collapsed
+    expect(collapsed.has(480)).toBe(false);   // 08:00
+    expect(collapsed.has(510)).toBe(false);   // 08:30
+    expect(collapsed.has(1080)).toBe(false);  // 18:00
+    // a középső üres sáv IGEN collapsed
+    expect(collapsed.has(600)).toBe(true);    // 10:00
+    expect(collapsed.has(720)).toBe(true);    // 12:00
+    expect(collapsed.has(900)).toBe(true);    // 15:00
+    // a collapsed slotok mind a [slotMin=480, slotMax=1140) ablakon belül vannak
+    for (const s of result.collapsedSlotMinutes) {
+      expect(s).toBeGreaterThanOrEqual(480);
+      expect(s).toBeLessThan(1140);
+    }
+  });
+
+  it('nagyszombat: egy KÖZÉPSŐ mise slotjai NEM collapsed-ek (körülötte törik a tengely)', () => {
+    const result = WeekCompressionUtil.analyze({
+      weekStart: WEEK_START, weekEnd: WEEK_END,
+      events: [
+        ev(0, 7, 0, 8, 0),     // hétfő reggel
+        ev(0, 18, 0, 19, 0),   // hétfő este
+        ev(2, 7, 30, 8, 30),   // szerda reggel
+        ev(4, 18, 30, 19, 30), // péntek este
+        // Szombat 12:00-13:00 — a gap KÖZEPÉN. 12:00 < 14:00 (eveningStartHour),
+        // ezért nem esti eseménynek számít, a gap-detektálást nem zavarja meg.
         ev(5, 12, 0, 13, 0, 'nagyszombati vigília'),
       ],
     });
     expect(result.shouldCompress).toBe(true);
-    // A nagyszombati vigília a gap (08:30 - 18:00) közepében van → out-of-range.
-    const titles = result.outOfRangeEvents.map(e => e.title);
-    expect(titles).toContain('nagyszombati vigília');
+    const collapsed = new Set(result.collapsedSlotMinutes);
+    // A nagyszombat 12:00-13:00 slotjai FOGLALTAK → NEM collapsed (a helyükön maradnak)
+    expect(collapsed.has(720)).toBe(false);  // 12:00
+    expect(collapsed.has(750)).toBe(false);  // 12:30
+    // A körülötte lévő üres slotok IGEN collapsed → a tengely TÖRIK a mise körül
+    expect(collapsed.has(690)).toBe(true);   // 11:30
+    expect(collapsed.has(780)).toBe(true);   // 13:00
   });
 
-  it('out-of-range: kora-hajnali esemény ami a slotMinTime ELŐTT van', () => {
+  it('spanned: egy 45 perces mise MINDKÉT átfedett slotja foglalt (egyik sem collapsed)', () => {
+    const result = WeekCompressionUtil.analyze({
+      weekStart: WEEK_START, weekEnd: WEEK_END,
+      events: [
+        ev(0, 7, 0, 8, 0),      // reggel
+        ev(1, 10, 0, 10, 45),   // 10:00-10:45 → átfedi a 600 ÉS 630 slotot
+        ev(2, 18, 0, 19, 0),    // este
+      ],
+    });
+    expect(result.shouldCompress).toBe(true);
+    const collapsed = new Set(result.collapsedSlotMinutes);
+    expect(collapsed.has(600)).toBe(false);  // 10:00 - foglalt
+    expect(collapsed.has(630)).toBe(false);  // 10:30 - a 45 perces mise átlóg ide
+    expect(collapsed.has(660)).toBe(true);   // 11:00 - már üres
+  });
+
+  it('midnight-cross: az éjfélen átnyúló esemény a nap végi slotot foglalja', () => {
+    const result = WeekCompressionUtil.analyze({
+      weekStart: WEEK_START, weekEnd: WEEK_END,
+      events: [
+        ev(0, 6, 0, 7, 0),        // reggel (globális min)
+        ev(2, 9, 0, 10, 0),
+        // 23:30-00:30 másnapra átnyúló (pl. éjféli mise) → a 23:30 slot foglalt
+        ev(4, 23, 30, 0, 30, 'éjféli mise'),
+      ],
+    });
+    expect(result.shouldCompress).toBe(true);
+    const collapsed = new Set(result.collapsedSlotMinutes);
+    expect(collapsed.has(1410)).toBe(false); // 23:30 - foglalt
+    expect(collapsed.has(720)).toBe(true);   // 12:00 - üres középső
+  });
+
+  it('slotMin/Max: kora-hajnali esemény + padding → slot-igazított slotMinTime', () => {
     const result = WeekCompressionUtil.analyze({
       weekStart: WEEK_START, weekEnd: WEEK_END,
       events: [

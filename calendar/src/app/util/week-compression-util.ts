@@ -1,14 +1,20 @@
 /**
- * #358: a heti naptár-nézet idősáv-tömörítése.
+ * #358: a heti naptár-nézet idősáv-tömörítése — VALÓDI törött időtengely.
  *
  * borazslo issue-leírása: „A hét nézet nehezen fér el egy képernyőn, mert hát
  * a reggeli misék és az esti misék között jó nagy a távolság. De nem lehet
  * simán kiiktatni a közepét sem az éjszakát, mert van olyan hogy nagyszombat,
  * és van olyan hogy valami extra."
  *
- * Ez a util tisztán számolja a tömörítési határokat a heti nézet eseményeiből,
- * és felsorolja azokat az eseményeket, amik a tömörített ablakból kiesnek
- * (így a UI footer-panelben mégis megjeleníthetők, sehol nem veszik el adat).
+ * Két, egymást kiegészítő eszköz:
+ *  1. `slotMinTime`/`slotMaxTime` — a nap ELEJÉN (első mise előtt) és VÉGÉN
+ *     (utolsó mise után) lévő üres sávot levágja (a FullCalendar ki sem rajzolja).
+ *  2. `collapsedSlotMinutes` — a KÖZÉPSŐ üres slotok (reggel↔este közti holt idő)
+ *     minute-of-day listája. A UI ezeket CSS-sel 0 magasságúra húzza, így az este
+ *     felcsúszik a reggel alá — de EGY foglalt slot (pl. Nagyszombat 15:00) SOSEM
+ *     kerül a listába, ezért az köré „törik" a tengely, és a helyén marad.
+ *
+ * Tisztán számoló pure-function, semmi side-effect.
  */
 
 export interface CompressionInput {
@@ -40,22 +46,24 @@ export interface CompressionOptions {
   minEventsThreshold?: number;
   /** Hozzáad puffer-órákat a `slotMinTime` előtt és a `slotMaxTime` után. Default: 0. */
   paddingHours?: number;
+  /** A naptár slot-felbontása percben (a FullCalendar `slotDuration`-jével EGYEZZEN). Default: 30. */
+  slotDurationMinutes?: number;
 }
 
 export interface CompressionResult {
   /** Aktívan kell-e tömöríteni. Ha false, a default slotMinTime/slotMaxTime maradjon. */
   shouldCompress: boolean;
-  /** Az ajánlott `slotMinTime` ('HH:MM:SS'). */
+  /** Az ajánlott `slotMinTime` ('HH:MM:SS'). Slot-határra igazítva. */
   slotMinTime: string;
-  /** Az ajánlott `slotMaxTime` ('HH:MM:SS'). */
+  /** Az ajánlott `slotMaxTime` ('HH:MM:SS'). Slot-határra igazítva. */
   slotMaxTime: string;
   /**
-   * Azok az események, amik a (slotMinTime, slotMaxTime) ablakon KÍVÜL esnek
-   * — vagy mert előbb vannak, vagy utóbb, vagy mert a kiesett gap-ben vannak.
-   * A UI ezeket egy footer-panelben tudja megmutatni „Egyéb alkalmak ezen a héten"
-   * címen.
+   * #358: azoknak a KÖZÉPSŐ üres slotoknak a minute-of-day értékei (slot-kezdet),
+   * amiket a UI-nak 0 magasságúra kell húznia. A [slotMin, slotMax) ablakon belül
+   * minden slot-kezdet, amit EGYETLEN esemény sem fed le. A foglalt slotok (bármely
+   * mise, akár egy középső Nagyszombat) kimaradnak — köréjük „törik" a tengely.
    */
-  outOfRangeEvents: WeekEvent[];
+  collapsedSlotMinutes: number[];
   /** Diagnosztika a megjelenítéshez (tooltip). */
   diagnostics: CompressionDiagnostics;
 }
@@ -74,6 +82,8 @@ export interface CompressionDiagnostics {
   gapEnd?: string;
   /** A felismert gap mérete órában — csak ha compressed. */
   gapSizeHours?: number;
+  /** Hány középső slotot húzunk össze — csak ha compressed. */
+  collapsedSlotCount?: number;
 }
 
 export class WeekCompressionUtil {
@@ -84,6 +94,7 @@ export class WeekCompressionUtil {
     minGapHours: 3,
     minEventsThreshold: 3,
     paddingHours: 0,
+    slotDurationMinutes: 30,
   };
 
   /**
@@ -91,6 +102,7 @@ export class WeekCompressionUtil {
    */
   static analyze(input: CompressionInput): CompressionResult {
     const opts: Required<CompressionOptions> = {...WeekCompressionUtil.DEFAULTS, ...(input.options ?? {})};
+    const slot = opts.slotDurationMinutes > 0 ? opts.slotDurationMinutes : 30;
 
     // 1. Szűrjük a heti nézet idősávjába tartozó eseményeket.
     const weekEvents = (input.events ?? []).filter(e =>
@@ -103,10 +115,10 @@ export class WeekCompressionUtil {
 
     // 2. Korai kilépés: nincs vagy túl kevés esemény.
     if (totalEvents === 0) {
-      return WeekCompressionUtil.noCompressResult(totalEvents, 'no-events', []);
+      return WeekCompressionUtil.noCompressResult(totalEvents, 'no-events');
     }
     if (totalEvents < opts.minEventsThreshold) {
-      return WeekCompressionUtil.noCompressResult(totalEvents, 'too-few-events', []);
+      return WeekCompressionUtil.noCompressResult(totalEvents, 'too-few-events');
     }
 
     // 3. Számoljuk a globális min/max órát az események alapján.
@@ -141,41 +153,53 @@ export class WeekCompressionUtil {
     const hasEvening = eveningEarliestMin < 24 * 60;
 
     if (!hasMorning || !hasEvening) {
-      return WeekCompressionUtil.noCompressResult(totalEvents, 'no-gap-detected', []);
+      return WeekCompressionUtil.noCompressResult(totalEvents, 'no-gap-detected');
     }
 
     const gapMinutes = eveningEarliestMin - morningLatestMin;
     if (gapMinutes < opts.minGapHours * 60) {
-      return WeekCompressionUtil.noCompressResult(totalEvents, 'gap-too-small', []);
+      return WeekCompressionUtil.noCompressResult(totalEvents, 'gap-too-small');
     }
 
-    // 5. Tömörítés. A slotMin/Max a globális min/max + opcionális padding.
+    // 5. Head/tail trim: a slotMin/Max a globális min/max + opcionális padding,
+    //    SLOT-HATÁRRA igazítva (lefelé a min, felfelé a max), hogy a slot-kezdetek
+    //    egybeessenek a FullCalendar slat-jaival (különben a collapse elcsúszna).
     const padMin = Math.max(0, opts.paddingHours) * 60;
-    const slotMinMin = Math.max(0, globalMinMin - padMin);
-    const slotMaxMin = Math.min(24 * 60, globalMaxMin + padMin);
+    const slotMinMin = Math.max(0, Math.floor((globalMinMin - padMin) / slot) * slot);
+    const slotMaxMin = Math.min(24 * 60, Math.ceil((globalMaxMin + padMin) / slot) * slot);
 
-    // 6. Out-of-range események: a tömörítési ablakon kívülre eső események.
-    //    Egy esemény out-of-range ha:
-    //    - a vége korábban van mint slotMinMin, VAGY
-    //    - a kezdete később mint slotMaxMin, VAGY
-    //    - teljesen a gap-en belül van (morningLatestMin .. eveningEarliestMin)
-    const outOfRange: WeekEvent[] = [];
+    // 6. Occupancy: minden slot-kezdet, amit LEGALÁBB egy esemény lefed.
+    //    Egy [from,to) intervallum MINDEN átfedett slotját megjelöljük (nem csak
+    //    a kezdőt), különben egy 45/90 perces mise „átlógna" egy összehúzott slotba.
+    const occupied = new Set<number>();
+    const markRange = (fromMin: number, toMin: number) => {
+      const first = Math.floor(fromMin / slot) * slot;
+      const lastExclusive = Math.ceil(toMin / slot) * slot;
+      for (let s = first; s < lastExclusive; s += slot) {
+        occupied.add(s);
+      }
+    };
     for (const e of weekEvents) {
       const startMin = e.start.getHours() * 60 + e.start.getMinutes();
       const endMin = e.end.getHours() * 60 + e.end.getMinutes();
-      const cappedEnd = endMin > 0 && endMin < startMin ? 24 * 60 : endMin;
+      if (endMin > startMin) {
+        markRange(startMin, endMin);
+      } else if (endMin === startMin) {
+        // nulla hosszú esemény: a kezdetet tartalmazó egyetlen slot
+        markRange(startMin, startMin + 1);
+      } else {
+        // éjfél-átlógás: [startMin, 1440) + [0, endMin)
+        markRange(startMin, 24 * 60);
+        markRange(0, endMin);
+      }
+    }
 
-      const beforeWindow = cappedEnd <= slotMinMin;
-      const afterWindow = startMin >= slotMaxMin;
-      // gap-event: teljesen a kiesett középső ablakban (a gap szigorúan a morningLatestMin
-      // utántól az eveningEarliestMin előtt). Az események amik a gap-be esnek
-      // megjelennek a slot-tartományban (mert a slot magában foglalja a gap-et),
-      // de UI-szinten szeretnénk ŐKET is megemlíteni a footerben.
-      const inGap = startMin >= morningLatestMin && cappedEnd <= eveningEarliestMin
-                    && (startMin > morningLatestMin || cappedEnd < eveningEarliestMin);
-
-      if (beforeWindow || afterWindow || inGap) {
-        outOfRange.push(e);
+    // 7. Collapsed slotok: a [slotMin, slotMax) ablakon belül minden slot-kezdet,
+    //    amit egyetlen esemény sem fed le.
+    const collapsedSlotMinutes: number[] = [];
+    for (let s = slotMinMin; s < slotMaxMin; s += slot) {
+      if (!occupied.has(s)) {
+        collapsedSlotMinutes.push(s);
       }
     }
 
@@ -183,13 +207,14 @@ export class WeekCompressionUtil {
       shouldCompress: true,
       slotMinTime: WeekCompressionUtil.minutesToTimeString(slotMinMin),
       slotMaxTime: WeekCompressionUtil.minutesToTimeString(slotMaxMin),
-      outOfRangeEvents: outOfRange,
+      collapsedSlotMinutes,
       diagnostics: {
         totalEvents,
         reason: 'compressed',
         gapStart: WeekCompressionUtil.minutesToTimeString(morningLatestMin).slice(0, 5),
         gapEnd: WeekCompressionUtil.minutesToTimeString(eveningEarliestMin).slice(0, 5),
         gapSizeHours: Math.round(gapMinutes / 60 * 10) / 10,
+        collapsedSlotCount: collapsedSlotMinutes.length,
       },
     };
   }
@@ -197,13 +222,12 @@ export class WeekCompressionUtil {
   private static noCompressResult(
     totalEvents: number,
     reason: CompressionDiagnostics['reason'],
-    outOfRangeEvents: WeekEvent[],
   ): CompressionResult {
     return {
       shouldCompress: false,
       slotMinTime: '00:00:00',
       slotMaxTime: '24:00:00',
-      outOfRangeEvents,
+      collapsedSlotMinutes: [],
       diagnostics: {totalEvents, reason},
     };
   }
