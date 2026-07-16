@@ -245,6 +245,11 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 			$bulkData[] = json_encode($church);
 		}
 		
+		// Skip bulk insert if no data to insert
+		if(empty($bulkData)) {
+			return;
+		}
+		
 		if(!$elastic->putBulk($bulkData)) {
 			
 			$errors = [];
@@ -257,6 +262,25 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 		       throw new \Exception("Could not update churches!\n" . implode("\n", $errors));
 		}
    
+	}
+	
+	/*
+	 * Delete specific churches from elasticsearch index
+	 */
+	static function deleteChurches(array $tids = []) {
+		if(empty($tids)) {
+			return;
+		}
+		
+		$elastic = new \ExternalApi\ElasticsearchApi();
+		$elastic->curl_setopt(CURLOPT_CUSTOMREQUEST, "POST");
+		$elastic->buildQuery('churches/_delete_by_query', json_encode([
+			"conflicts" => "proceed",
+			"query" => [
+				"terms" => ["id" => array_map('strval', $tids)]
+			]
+		]));
+		$elastic->run();
 	}
 	
 	/*

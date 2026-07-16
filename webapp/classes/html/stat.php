@@ -11,7 +11,6 @@ class Stat extends Html {
     public $s2;
     public $s5;
     public $magyar;
-    public $osmtags;
 
     public function __construct() {
         parent::__construct();
@@ -218,46 +217,7 @@ class Stat extends Html {
 		$this->magyar = $results;
 		
 		
-		/* OSM tag variácók */
-		$attributes = DB::table('attributes')
-			->select('attributes.*','templomok.osmtype', 'templomok.osmid')
-			->join('templomok','templomok.id', '=', 'attributes.church_id')
-			->where('fromOSM',1)
-			->orderBy('key')
-			->orderBy('value')
-			->orderBy('church_id')
-			->get();
-			
-		$osmtags = [];
-		foreach($attributes as $item) {
-			if(!isset($osmtags[$item->key])) {
-				$osmtags[$item->key] = [
-					'count' => 0,
-					'dist' => 0,
-					'name' => $item->key,
-					'overpassturbo' => "http://overpass-turbo.eu/?Q=". urlencode('	[out:json][timeout:25];nwr["url:miserend"]["'.$item->key.'"];out geom;')."&R",
-					'values' => []
-				];
-			}
-	
-			$osmtags[$item->key]['count']++;
-			
-			if(!array_key_exists($item->value, $osmtags[$item->key]['values']) ) {
-				$osmtags[$item->key]['values'][$item->value] = [
-					'value' =>  $item->value,
-					'overpassturbo' => "http://overpass-turbo.eu/?Q=". urlencode('	[out:json][timeout:25];nwr["url:miserend"]["'.$item->key.'"="'.$item->value.'"];out geom;')."&R",
-					'churches' => []
-					
-				];
-				$osmtags[$item->key]['dist']++;
-			}
-			$osmtags[$item->key]['values'][$item->value]['churches'][] = $item;	
-				
-			
-		}
-		//printr($osmtags);
 		
-		$this->osmtags = $osmtags;
 				
 		/* nearBy.log  */
 		$this->stats['nearbylog'] = [];
