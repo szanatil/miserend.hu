@@ -496,7 +496,7 @@ class EditOsm extends \Html\Html {
 		$this->form['other'] = [		
 			'title' => 'Egyéb',
 			'inputs' => [		
-				'payment:credit_card' =>[
+				'payment:credit_cards' =>[
 					'title' => 'Bankkártyás adományozási lehetőség',
 					'options' => array(
 						'' => 'Nincs információ.',

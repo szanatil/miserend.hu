@@ -129,9 +129,10 @@ class OSM {
      */
 
     function checkUrlMiserend() {
+        
         $overpass = new \ExternalApi\OverpassApi();
         $overpass->downloadUrlMiserend();
-                
+        
          if (!$overpass->jsonData->elements) {
             throw new Exception("Missing Json Elements from OverpassApi Query");
         }
@@ -140,6 +141,7 @@ class OSM {
             $c++;
             if($c > 10000) exit;
             preg_match('/miserend\.hu\/\?{0,1}templom(\/|=)([0-9]{1,5})/i', $element->tags->{'url:miserend'}, $match);
+           
             if(!isset($match[2])) {
                 /*
                  * TODO: Van url:miserend, de az értéke vacak. 
@@ -148,8 +150,10 @@ class OSM {
                
             } else {
                 $church = \Eloquent\Church::find($match[2]);
+                
                 if($church)
                     $this->saveOSM2Church($church,$element);
+
             }                                    
         }
     }

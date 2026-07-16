@@ -245,6 +245,11 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 			$bulkData[] = json_encode($church);
 		}
 		
+		// Skip bulk insert if no data to insert
+		if(empty($bulkData)) {
+			return;
+		}
+		
 		if(!$elastic->putBulk($bulkData)) {
 			
 			$errors = [];
@@ -260,11 +265,31 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 	}
 	
 	/*
+	 * Delete specific churches from elasticsearch index
+	 */
+	static function deleteChurches(array $tids = []) {
+		if(empty($tids)) {
+			return;
+		}
+		
+		$elastic = new \ExternalApi\ElasticsearchApi();
+		$elastic->curl_setopt(CURLOPT_CUSTOMREQUEST, "POST");
+		$elastic->buildQuery('churches/_delete_by_query', json_encode([
+			"conflicts" => "proceed",
+			"query" => [
+				"terms" => ["id" => array_map('strval', $tids)]
+			]
+		]));
+		$elastic->run();
+	}
+	
+	/*
 	 * Frissíti az összes elasticsearch mise indexet az adatbázisból
 	 * Ehhez legenerálja az összes miseidőpontot is
 	 * !! TODO: Iszonyú overkill mindig mindent frissíteni. Optimalizálni kellene!!
 	 */
-	static function updateMasses($years = [], $tids = []) {
+	static function updateMasses($years = [], $tids = [], ?callable $logger = null) {
+		$log = $logger ?? function($msg) {};
 		$startTime = time();
 		set_time_limit(3000); // Hosszabb idő kellhet a frissítéshez
 
@@ -273,46 +298,46 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 		}
 		if( empty($tids)) {
 			$tids = \Eloquent\Church::where('ok', 'i')->limit(8000)->pluck('id')->toArray();
-		} 
+		}
 
 		$chunksize = 100;
 		if (is_array($tids) && count($tids) > $chunksize) {
 			foreach (array_chunk($tids,  $chunksize) as $chunk) {
-				static::updateMasses($years, $chunk);
+				static::updateMasses($years, $chunk, $logger);
 			}
 			return;
 		}
 
 		$elastic = new \ExternalApi\ElasticsearchApi();
-		$elastic->deleteMasses($tids); //Sajnos egyszerre törlük több templomét, de ha aztán a legenárálás elhasal valamelyiknél, akkor elvesztettünk csomót.				
+		$elastic->deleteMasses($tids); //Sajnos egyszerre törlük több templomét, de ha aztán a legenárálás elhasal valamelyiknél, akkor elvesztettünk csomót.
 
-		$churchTimezones = [];		
+		$churchTimezones = [];
 		$churches = \Eloquent\Church::whereIn('id', $tids)->get()->keyBy('id');
 		foreach($churches as $church_id => $church) {
 			$churches[$church_id] = $church->toElasticArray();
 		}
-		echo  "Talált templomok száma: " . count($churches)."<br>\n";
+		$log("Talált templomok száma: " . count($churches));
 
 		$allMasses = \Eloquent\CalMass::whereIn('church_id', $tids)->get()->all();
 		foreach ($churches as $id => $church) {
-			$churchTimezones[$id] = $church->time_zone ?? 'Europe/Budapest';			
+			$churchTimezones[$id] = $church->time_zone ?? 'Europe/Budapest';
 		}
 
 		$debug = [];
 		$debug[] = "Talált misék száma: " . count($allMasses);
 		
-		echo "Talált misék száma: " . count($allMasses)."<br>\n";
+		$log("Talált misék száma: " . count($allMasses));
 		
 		$massPeriods = \Eloquent\CalMass::generateMassPeriodInstancesForYears($allMasses, $churchTimezones, $years);
-		echo "Egyedi periódusokkal felpumpálva már ". count($massPeriods). " a szám.<br>\n";
+		$log("Egyedi periódusokkal felpumpálva már ". count($massPeriods). " a szám.");
 		
 		$countAllMasses = 0;
 		foreach($massPeriods as $k => $mass) {
 			$bulkInsert = [];
 
-            $rrule = new \SimpleRRule($mass['rrule']);
-            $occs = $rrule->getOccurrences();
-			echo "Talált időpontok száma: " . count($occs)."<br>\n";
+	           $rrule = new \SimpleRRule($mass['rrule']);
+	           $occs = $rrule->getOccurrences();
+			$log("Talált időpontok száma: " . count($occs));
 			//printr($occs); exit;
 			foreach($occs as $occ) {
 				$bulkInsert[] = [
@@ -358,9 +383,9 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 			}
 		}
 
-		echo "Nos hát szépen minden napra szét bontva így lett nekünk már ".$countAllMasses." misénk.<br/>";
+		$log("Nos hát szépen minden napra szét bontva így lett nekünk már ".$countAllMasses." misénk.");
 
-		echo "Elkészült a frissítés " . (time() - $startTime) . " másodperc alatt azaz ".round((time() - $startTime)/60,2)." perc alatt.<br>\n";
+		$log("Elkészült a frissítés " . (time() - $startTime) . " másodperc alatt azaz ".round((time() - $startTime)/60,2)." perc alatt.");
 		return $debug;
 	}
 

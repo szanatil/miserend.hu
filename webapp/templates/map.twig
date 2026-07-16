@@ -13,6 +13,6 @@
                 }
             </style>
           
-            {% include '_map_leaflet.twig' %}           
+            {% include '_map_leaflet.twig' with {'enableAutoGeoLocation': true} %}
         {% endblock %}        
     

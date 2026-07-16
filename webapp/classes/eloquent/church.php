@@ -1087,6 +1087,13 @@ class Church extends \Illuminate\Database\Eloquent\Model {
 
         // Miután már elmentettük, akkor
         // Elasticsearch frissítése
-        ElasticsearchApi::updateChurches([$this->id]);
+        // Option B: Only index churches with ok='i' status
+        // Option A (with safety): If ok != 'i', delete from Elasticsearch
+        if($this->ok === 'i') {
+            ElasticsearchApi::updateChurches([$this->id]);
+        } else {
+            // Ha a templom nem engedélyezett (ok != 'i'), akkor töröljük az Elasticsearchből
+            ElasticsearchApi::deleteChurches([$this->id]);
+        }
     }
 }

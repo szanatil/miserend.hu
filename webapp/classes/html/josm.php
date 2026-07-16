@@ -12,6 +12,7 @@ class Josm extends Html {
     public $churchesWNoOsm;
     public $churchesWBadOsm;
     public $churchesWBad;
+    public $osmtags;
 
     public function __construct($path) {
 
@@ -27,7 +28,8 @@ class Josm extends Html {
 
         $this->setTitle('OSM összeköttetés');
         $this->template = 'josm.twig';        
-        
+
+        // Behúzzuk az adatot, hogy lássuk mikor futott le utoljára
         $this->cron = \Eloquent\Cron::where('class','\OSM')
                 ->where('function','checkUrlMiserend')->first();
               
@@ -80,7 +82,48 @@ class Josm extends Html {
         $this->churchesWBad = \Eloquent\Church::where('ok','i')
                 ->whereNotIn('id',$goodIDs)
                 ->get();
+			
+    
+        /* OSM tag variácók */
+		$attributes = DB::table('attributes')
+			->select('attributes.*','templomok.osmtype', 'templomok.osmid')
+			->join('templomok','templomok.id', '=', 'attributes.church_id')
+			->where('fromOSM',1)
+			->orderBy('key')
+			->orderBy('value')
+			->orderBy('church_id')
+			->get();
+			
+		$osmtags = [];
+		foreach($attributes as $item) {
+			if(!isset($osmtags[$item->key])) {
+				$osmtags[$item->key] = [
+					'count' => 0,
+					'dist' => 0,
+					'name' => $item->key,
+					'overpassturbo' => "http://overpass-turbo.eu/?Q=". urlencode('	[out:json][timeout:25];nwr["url:miserend"]["'.$item->key.'"];out geom;')."&R",
+					'values' => []
+				];
+			}
+	
+			$osmtags[$item->key]['count']++;
+			
+			if(!array_key_exists($item->value, $osmtags[$item->key]['values']) ) {
+				$osmtags[$item->key]['values'][$item->value] = [
+					'value' =>  $item->value,
+					'overpassturbo' => "http://overpass-turbo.eu/?Q=". urlencode('	[out:json][timeout:25];nwr["url:miserend"]["'.$item->key.'"="'.$item->value.'"];out geom;')."&R",
+					'churches' => []
+					
+				];
+				$osmtags[$item->key]['dist']++;
+			}
+			$osmtags[$item->key]['values'][$item->value]['churches'][] = $item;	
 				
+			
+		}
+		//printr($osmtags);
+		
+		$this->osmtags = $osmtags;
 				
 		
                
