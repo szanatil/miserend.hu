@@ -23,8 +23,16 @@ class Diocese {
     }
 
     public function getById($id) {
+        if($id == 0) {
+            $this->id = 0;
+            $this->name = '';
+            $this->shortname = '';
+            $this->ok = 'n';
+            return;
+        }
         $this->id = $id;
 
+        
         $diocese = DB::table("egyhazmegye")->select("*")
                 ->where("id", "=", $this->id)
                 ->limit(1)

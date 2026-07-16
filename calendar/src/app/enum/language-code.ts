@@ -1,18 +1,21 @@
 export enum LanguageCode {
-  HU = 'hu',
-  EN = 'en',
-  TL = 'tl',
-  FR = 'fr',
-  GR = 'gr',
-  HR = 'hr',
-  VA = 'va',
-  PL = 'pl',
-  DE = 'de',
-  IT = 'it',
-  PT = 'pt',
-  RO = 'ro',
-  ES = 'es',
-  SK = 'sk',
-  SI = 'si',
-  UA = 'ua'
+  CU = 'cu',  // ószláv
+  EN = 'en',  // angol
+  FR = 'fr',  // francia
+  GR = 'gr',  // görög
+  HR = 'hr',  // horvát
+  VA = 'va',  // latin
+  PL = 'pl',  // lengyel
+  HU = 'hu',  // magyar
+  DE = 'de',  // német
+  IT = 'it',  // olasz
+  RU = 'ru',  // orosz
+  PT = 'pt',  // portugál
+  RO = 'ro',  // román
+  RUE = 'rue',  // ruszin
+  ES = 'es',  // spanyol
+  SK = 'sk',  // szlovák
+  SI = 'si',  // szlovén
+  TL = 'tl',  // tagalog/filippínó
+  UA = 'ua',  // ukrán
 }
