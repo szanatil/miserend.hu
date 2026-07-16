@@ -145,7 +145,14 @@
 				.autocomplete({
 					delay: 0,
 					minLength: 0,
-					source: options[id]
+					source: options[id],
+					select: function(event, ui) {
+						// Ha a mező disabled, ne töltse ki az értéket
+						if ($(this).prop('disabled')) {
+							event.preventDefault();
+							return false;
+						}
+					}
 				});
 				
 			// Add button after the input
@@ -156,9 +163,9 @@
 			
 			
 			button.click(function() {
-                    // Trigger the autocomplete search
+	                   // Trigger the autocomplete search - mindig nyissa ki a legördülőt
 					$('#' + id.replace(/:/g, '\\:') ).autocomplete("search", "");
-                });
+	               });
 			
 			
 			
@@ -175,23 +182,40 @@
 
 {% block section_religious_administration %}
 	<p>A misézőhely egyházigazgatási területi beosztását megpróbáljuk térkép alapján beállítani. Az alábbi részekhez így csak akkor kell hozzányúlni, hogy ha nem sikerült megtalálnunk az egyházmegyét, espereskerületet, plébániát. Vagy ha valamiért nem a területileg illetékes egyházmegyéhez/espereskerülethez tartozik a misézőhely például a Katonai Ordinariátus egyféle enklévájaként.</p>
-	A következő területi beosztást találtuk meg:
-	<ul>
-	{% for adm in administration[ osmtags.denomination ~ '_administration'] %}
-		<li><strong>{{ adm.name }}</strong></li>
-	{% endfor %}
-	</ul>
+	<div class="card">
+		<div class="card-body">
+			{% if administration[ osmtags.denomination ~ '_administration']|length > 0 %}				
+				A következő területi beosztást találtunk meg:
+				<ul>
+				{% for adm in administration[ osmtags.denomination ~ '_administration'] %}
+					<li>
+					<a href="/collection/{{ adm.osm.type }}:{{ adm.osm.id }}"><strong>{{ adm.name }}</strong></a> <span class="badge" style="background-color: {{ adm.color }};">{{ adm.type }}</span></li>
+				{% endfor %}
+				</ul>
+			{% else %}
+				Területi elhelyezkedés alapján nem találtunk adatot
+			{% endif %}
+		</div>
+	</div><br/>
 {% endblock %}
 
 
 {% block section_location %}
 	<p>Itt kifejezetten a templomnak az adataira vagyunk kíváncsiak (és nem pl. a helyi plébániáéra).</p>
-	A területi elhelyezkedése alapján azért megtaláltunk már így is némi információt:
-	<ul>
-	{% for adm in administration[ 'administration'] %}
-		<li><strong>{{ adm.name }}</strong></li>
-	{% endfor %}
-	</ul>
+	<div class="card">
+		<div class="card-body">
+			{% if administration[ 'administration']|length > 0 %}				
+				A területi elhelyezkedése alapján azért megtaláltunk már így is némi információt:
+				<ul>
+				{% for adm in administration[ 'administration'] %}
+					<li><a href="/collection/{{ adm.osm.type }}:{{ adm.osm.id }}"><strong>{{ adm['name:hu'] ?? adm.name }}</strong></a> <span class="badge" style="background-color: {{ adm.color }};">{{ adm.type }}</span></li>
+				{% endfor %}
+				</ul>
+			{% else %}
+				Területi elhelyezkedés alapján nem találtunk adatot
+			{% endif %}
+		</div>
+	</div><br/>
 
 {% endblock %}
 

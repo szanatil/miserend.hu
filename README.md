@@ -7,7 +7,7 @@ Csak [git](gttps://git-scm.com) és [Docker](https://docs.docker.com/engine/inst
 ```sh
 git clone https://github.com/borazslo/miserend.hu/
 cd miserend.hu
-docker-compose  -f docker/compose.yml  -f docker/compose.test.yml up
+docker-compose  -f docker/compose.yml  -f docker/compose.dev.yml up
 ```
 
 Máris elérhető a http://localhost:8000 címen a miserend alkalmazás. Az `admin` felhasználóval be is lehet lépni az alapérelmezett jelszóval: `miserend`.

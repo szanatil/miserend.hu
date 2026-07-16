@@ -66,8 +66,19 @@ export interface Mass {
 
   /**
    * A megadott periódusok által lefedett időpontok elrejtése.
+   * Ez az AUTOMATIKUSAN számolt kizárás (ütközés-elkerülés). A mentéskori
+   * automatikák (backend optimizeExperiods, frontend collision-logika) ezt
+   * szabadon újraszámolják.
    */
   experiod?: number[] | null;
+
+  /**
+   * #428: A felhasználó által KÉZZEL beállított kizárt időszakok. Ezt egyik
+   * automatika sem bántja, így megmarad akkor is, ha a kizárt periódusban
+   * egyáltalán nincs is külön mise (pl. "egész évben, kivéve nyáron").
+   * Megjelenítéskor/dátumszűréskor az `experiod`-dal UNIÓBAN rejt.
+   */
+  manualExperiod?: number[] | null;
 
   /**
    * A mise nyelvének kétbetűs kódja. Default: hu

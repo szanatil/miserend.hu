@@ -13,6 +13,7 @@ class EditOsm extends \Html\Html {
     public $osmtagsToSave;
     public $form;
     public $validKeys;
+	private $readingAccessOnly;
 
     public function __construct($path) {
         global $user;
@@ -38,32 +39,68 @@ class EditOsm extends \Html\Html {
 			if ( !isset($osmapi->xmlData->user)) {
 				throw new \Exception($osmapi->rawData);
 			}
+			$this->readingAccessOnly = false;
 		} catch (\Exception $e) {
 			addMessage('Az OSM-hez írási joggal nem tudunk hozzáférni, ezért nincsenek szerkeszthető adataink.','danger');
-			return;
+			$this->readingAccessOnly = true;
+			//return;
 		}
-
 		
 		// Letöltjük a legfrissebb saját OSM adatait
 		$this->loadOSMDataWithOSM();
 	
-		// Letöltjük azt is, hogy milyen területi egység része ez a cucc
-		global $twig;
-		$overpassapi = new \ExternalApi\OverpassApi();
-		$this->administration = $overpassapi->loadEnclosingBoundaries($this->church['lat'],$this->church['lon']);
+		// Letöltjük a legfrisseb boundaries adatokat. El is mentjük azokat.
+		$boundaryIDs = \OSM::downloadBoundaries($this->church['lat'],$this->church['lon']);		
+		$boundariesRaw = \Eloquent\Boundary::whereIn('id',$boundaryIDs)->get();
+		
+		// Csoportosítás és rendezés admin_level szerint
+		$groupedBoundaries = [];
+		foreach ($boundariesRaw as $boundary) {
+			if ($boundary->boundary === 'administrative') {
+				if (!isset($groupedBoundaries['administration'])) {
+					$groupedBoundaries['administration'] = [];
+				}
+				// Hozzáadjuk a type és color attribútumokat
+				$boundaryData = $boundary->toSimpleArray();
+				$groupedBoundaries['administration'][$boundary->admin_level] = $boundaryData;
+			} elseif ($boundary->boundary === 'religious_administration' && !empty($boundary->denomination)) {
+				$key = $boundary->denomination . '_administration';
+				if (!isset($groupedBoundaries[$key])) {
+					$groupedBoundaries[$key] = [];
+				}
+				// Hozzáadjuk a type és color attribútumokat
+				$boundaryData = $boundary->toSimpleArray();
+				$groupedBoundaries[$key][$boundary->admin_level] = $boundaryData;
+			}
+		}
+		
+		// Rendezés az admin_level szerint minden csoportban
+		foreach ($groupedBoundaries as &$group) {
+			ksort($group);
+		}
+		unset($group);		
+		$this->administration = $groupedBoundaries;
 		
 		// Letöltjük a teljes listát az OSM-ről, hogy az autocomplete boldogan üzemelhessen
-		$overpassapi->downloadUrlMiserend();
-		$this->autocomplete = $this->prepareAutocomplete($overpassapi->jsonData);
+		if($this->readingAccessOnly == false) {
+			$overpassapi = new \ExternalApi\OverpassApi();
+			$overpassapi->downloadUrlMiserend();
+			$this->autocomplete = $this->prepareAutocomplete($overpassapi->jsonData);
+		} else 
+			$this->autocomplete = [];
 		
 				
 		// Előkészítjük a FORM-ot, hogy megtaláljuk, mik a mezők amiket okés változtatni
 		$this->prepareForm();
 		$this->findValidKeys();
+		if($this->readingAccessOnly == true) {
+			$this->disableFormInputs();
+		}
+
 
 		// Ha beküldtünk adatokatt.
         $isForm = \Request::Text('submit');
-        if ($isForm) {
+        if ($isForm AND $this->readingAccessOnly == false ) {
 			// Változtatunk, elmentünk, ilyenek.
             $this->modify();
 		   
@@ -289,7 +326,19 @@ class EditOsm extends \Html\Html {
 				# https://wiki.openstreetmap.org/wiki/How_to_map_for_the_needs_of_people_with_disabilities
 				'disabled:description' => [
 					'title' => 'További leírás bármilyen akadálymentesség kapcsán'
+				],
+				'diet:gluten_free' =>[
+					'title' => 'Csökkentett gluténtartalmú szentáldozás lehetősége',
+					'options' => array(
+						'' => 'Nincs információ.',
+						'yes' => 'Legalább ünnepnapokon lehetséges. Lehet, hogy külön sorban vagy az áldozás elején/végén.',
+						'limited' => 'Lehetséges, de külön szólni kell. Sőt egyes helyeken vinni is kell ostyát.',
+						'no' => 'Nem lehetséges.'
+					),
+					'disabled' => true,
+					'help' => 'Ezt a mezőt a részletesebb (ünnepnapokat és hétköznapokat külön kezelő) beállítások alapján töltjük ki.'
 				]
+		
 			]
 		];
 		
@@ -425,6 +474,23 @@ class EditOsm extends \Html\Html {
 				]								
 			]
 		];
+
+		$this->form['other'] = [		
+			'title' => 'Egyéb',
+			'inputs' => [		
+				'payment:credit_card' =>[
+					'title' => 'Bankkártyás adományozási lehetőség',
+					'options' => array(
+						'' => 'Nincs információ.',
+						'yes' => 'Bankkártyás, digitális persely is elérhető.',
+						'limited' => 'Bankkártyás fizetés csak a sekrestyében ill. külön kérésre.',
+						'no' => 'Csak készpénzes fizetés/adományozás lehetséges.'
+					),
+					'help' => 'Egyre több helyen elérhető bankkártyás fizetési vagy külön adományozó terminál, mely első változatás a jezsuiták AutoMáténak neveztek el.'
+				]
+		
+			]
+		];
    
 		foreach( $this->form as $sid => $section) {
 			foreach( $section['inputs'] as $key => $input ) {
@@ -477,6 +543,15 @@ class EditOsm extends \Html\Html {
 		
    }
    
+   function disableFormInputs() {
+		foreach( $this->form as $sid => $section) {
+			foreach( $section['inputs'] as $key => $input ) {
+				$this->form[$sid]['inputs'][$key]['disabled'] = true;
+				if(isset($input['options'])) $this->form[$sid]['inputs'][$key]['options'] = false;
+			}
+		}
+   }
+
    function findValidKeys() {
 		$this->validKeys = [];
 		

@@ -74,6 +74,14 @@ export class AddFullEventDialogComponent {
   periodCtr = new FormControl<GeneratedPeriod | null>(this.data.event.period);
   filteredPeriods$: Observable<GeneratedPeriod[]> = of([]);
 
+  // #428: a felhasználó manuálisan állíthat be kivétel-időszakokat. A FormControl
+  // értéke periodId-kből álló tömb, ami a Mass.manualExperiod-be megy mentéskor
+  // (KÜLÖN az automatikusan számolt experiod-tól, hogy az automatikák ne töröljék).
+  experiodCtr = new FormControl<number[]>(this.data.event.manualExperiod ?? []);
+
+  // #454: Új dátum hozzáadásához használt ideiglenes változó
+  public newExceptionDate: Date | null = null;
+
   public singleEvent: boolean = this.data.event.renum === Renum.NONE;
   public specialPeriodType?: SpecialType | null = null;
 
@@ -161,6 +169,19 @@ export class AddFullEventDialogComponent {
 
       // Update multiday flag and warn if necessary
       this.maybeWarnIfNotMultiday(value);
+
+      // #428: ha az időszak megváltozott és az új időszak már a kézi kivétel-listán van,
+      // távolítsuk el - egy mise nem lehet egyszerre a "tartozik" és "kivétel" listában is.
+      const currentExperiod = this.experiodCtr.value ?? [];
+      if (value?.periodId && currentExperiod.includes(value.periodId)) {
+        this.experiodCtr.setValue(currentExperiod.filter(id => id !== value.periodId));
+      }
+    });
+
+    // #428: a multi-select módosításait átvezetjük a dialog event-re, hogy
+    // mentéskor a MassUtil.createMass át tudja venni (a KÉZI mezőbe).
+    this.experiodCtr.valueChanges.subscribe(value => {
+      this.data.event.manualExperiod = value && value.length > 0 ? value : null;
     });
     this.filteredPeriods$ = this.periodCtr.valueChanges.pipe(
       startWith(''),
@@ -394,6 +415,17 @@ export class AddFullEventDialogComponent {
     return period ? period.name : '';
   }
 
+  /**
+   * #428: a kivétel-időszak választó opciói. A pillanatnyilag kiválasztott
+   * mise-időszakot kihagyjuk - egy misét nem lehet kizárni a saját időszakából.
+   * (Periodonként egy bejegyzést tartunk: a getSelectableGeneratedPeriodsByDate
+   * már periodId szerint deduplikált.)
+   */
+  get experiodOptions(): GeneratedPeriod[] {
+    const currentPeriodId = this.periodCtr.value?.periodId;
+    return this.selectableGenPeriods.filter(p => p.periodId !== currentPeriodId);
+  }
+
   // Filter out Easter-specific titles when in recurring mode and the selected period is NOT an Easter period
   private applyTitleFilter(): void {
     // Re-load the canonical list of titles for the current rite
@@ -461,4 +493,119 @@ export class AddFullEventDialogComponent {
      
      return result;
    }
+
+  /**
+   * #454: A datepicker dateChange eseményére reagál és automatikusan hozzáadja a dátumot.
+   */
+  onExceptionDateSelected(): void {
+    this.addExceptionDate();
+  }
+
+  /**
+   * #454: Új kizárt dátum hozzáadása az exdate listához.
+   * A dátumot ISO formátumban tároljuk, a kezdési idővel kombinálva.
+   */
+  addExceptionDate(): void {
+    if (!this.newExceptionDate) {
+      return;
+    }
+
+    // Ensure exdate array exists
+    if (!this.data.event.exdate) {
+      this.data.event.exdate = [];
+    }
+
+    // Combine the selected date with the current start time
+    const startTime = this.data.event.start;
+    const exDateTime = new Date(this.newExceptionDate);
+    exDateTime.setHours(startTime.getHours());
+    exDateTime.setMinutes(startTime.getMinutes());
+    exDateTime.setSeconds(0);
+    exDateTime.setMilliseconds(0);
+
+    // Format as ISO string (YYYY-MM-DDTHH:mm)
+    const year = exDateTime.getFullYear();
+    const month = String(exDateTime.getMonth() + 1).padStart(2, '0');
+    const day = String(exDateTime.getDate()).padStart(2, '0');
+    const hours = String(exDateTime.getHours()).padStart(2, '0');
+    const minutes = String(exDateTime.getMinutes()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+    // Add only if not already present
+    if (!this.data.event.exdate.includes(dateString)) {
+      this.data.event.exdate.push(dateString);
+      // Sort dates in chronological order
+      this.data.event.exdate.sort();
+      this.cdr.markForCheck();
+    }
+
+    // Clear the input field
+    this.newExceptionDate = null;
+  }
+
+  /**
+   * #454: Kizárt dátum eltávolítása.
+   */
+  removeExceptionDate(dateString: string): void {
+    if (this.data.event.exdate) {
+      this.data.event.exdate = this.data.event.exdate.filter(d => d !== dateString);
+      if (this.data.event.exdate.length === 0) {
+        this.data.event.exdate = null;
+      }
+      this.cdr.markForCheck();
+    }
+  }
+
+  /**
+   * #454: Dátum formázása olvasható formátumba (pl. "2026.07.16.").
+   */
+  formatExceptionDate(dateString: string): string {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}.${month}.${day}.`;
+  }
+
+  /**
+   * #454: Getter a rendezett exdate tömb eléréséhez (fordított sorrendben).
+   */
+  get sortedExceptionDates(): string[] {
+    if (!this.data.event.exdate || this.data.event.exdate.length === 0) {
+      return [];
+    }
+    return [...this.data.event.exdate].sort().reverse();
+  }
+
+  /**
+   * Generates the summary text for the Advanced settings panel.
+   * Shows count of excluded dates and manual periods.
+   */
+  getAdvancedSettingsSummary(): string {
+    const dateCount = this.data.event.exdate?.length ?? 0;
+    const periodCount = this.experiodCtr.value?.length ?? 0;
+    
+    if (dateCount === 0 && periodCount === 0) {
+      return this.translateService.instant('EXCLUDED_COUNT.NONE');
+    }
+    
+    if (dateCount > 0 && periodCount > 0) {
+      return this.translateService.instant('EXCLUDED_COUNT.BOTH', {
+        dateCount: dateCount,
+        periodCount: periodCount
+      });
+    }
+    
+    if (dateCount > 0) {
+      const key = dateCount === 1 ? 'EXCLUDED_COUNT.DATES_SINGULAR' : 'EXCLUDED_COUNT.DATES_PLURAL';
+      return this.translateService.instant(key, { count: dateCount });
+    }
+    
+    if (periodCount > 0) {
+      const key = periodCount === 1 ? 'EXCLUDED_COUNT.PERIODS_SINGULAR' : 'EXCLUDED_COUNT.PERIODS_PLURAL';
+      return this.translateService.instant(key, { count: periodCount });
+    }
+    
+    return '';
+  }
 }

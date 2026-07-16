@@ -39,7 +39,7 @@ import {ScriptUtil} from '../../util/script-util';
 import {SpinnerService} from '../../services/spinner.service';
 import {CalendarUtil} from '../../util/calendar-util';
 import {MatSnackBarService} from '../../services/mat-snack-bar.service';
-import {filter, Observable} from 'rxjs';
+import {filter, Observable, take} from 'rxjs';
 import {MatFormField, MatInput, MatLabel} from '@angular/material/input';
 import {FormControl, FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {UserService} from '../../services/user.service';
@@ -55,7 +55,6 @@ import {EditConfirmationService} from '../../services/edit-confirmation.service'
 import {CopyPeriodDialogComponent, CopyPeriodDialogData} from '../copy-period-dialog/copy-period-dialog.component';
 import {DeletePeriodDialogComponent, DeletePeriodDialogData} from '../delete-period-dialog/delete-period-dialog.component';
 import {DeleteWarningDialogComponent} from '../delete-warning-dialog/delete-warning-dialog.component';
-import { co } from '@fullcalendar/core/internal-common';
 import {MassTitleCategory} from '../../enum/mass-categories';
 import {MassTitleCategoryConfig} from '../../util/mass-title-category-config';
 
@@ -232,23 +231,36 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
   private loadEventsIntoCalendar(): Promise<CalendarEvent[]> {
     return new Promise(resolve => {
       this.periodService.generatedPeriods$
-        .pipe(filter(periods => periods.length > 0))
-        .subscribe(periods => {
-          const events = MassUtil.createCalendarEvents(
-            Array.from(this.masses.values()),
-            periods,
-            this.changedMasses,
-            this.deletedMasses,
-            this.deletedDates,
-            this.translateService
-          );
-          
-          // Add sensor events to the calendar
-          const sensorCalendarEvents = this.convertSensorEventsToCalendarEvents();
-          events.push(...sensorCalendarEvents);
-          
-          resolve(events);
-        });
+        .pipe(
+          filter(periods => periods.length > 0),
+          take(1) // Unsubscribe after first emission to prevent memory leaks
+        )
+        .subscribe(
+          periods => {
+            const events = MassUtil.createCalendarEvents(
+              Array.from(this.masses.values()),
+              periods,
+              this.changedMasses,
+              this.deletedMasses,
+              this.deletedDates,
+              this.translateService
+            );
+            
+            // Add sensor events to the calendar
+            const sensorCalendarEvents = this.convertSensorEventsToCalendarEvents();
+            events.push(...sensorCalendarEvents);
+            
+            resolve(events);
+          },
+          error => {
+            console.error('[Church Calendar] generatedPeriods$ error:', error);
+          }
+        );
+      
+      // Safety timeout: if subscription doesn't resolve within 10 seconds, resolve with empty array
+      setTimeout(() => {
+        resolve([]);
+      }, 10000);
     });
   }
 
@@ -1068,6 +1080,14 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
         this.loadingEvents = false;
         this.loadedEvents = true;
         if (events && events.length > 0) this.everHadEvents = true;
+        
+        // Force calendar re-render to update noEventsContent when events are empty
+        // This is critical when API returns empty masses: [] - without this, the loading message gets stuck
+        try {
+          this.calendarComponent.getApi().render();
+        } catch (e) {
+          // calendar not initialized yet - ignore
+        }
 
         // rebuild the editable mass list when in edit/admin context
         if (this.showMassListInEdit) {
@@ -1576,6 +1596,14 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
         }
       }
 
+      // #428: ugyanez a KÉZI kivétel-listára is – a másolt mise ne zárja ki saját új időszakát
+      if (ScriptUtil.isNotNull(newMass.manualExperiod)) {
+        newMass.manualExperiod = newMass.manualExperiod.filter(id => id !== targetPeriodId);
+        if (newMass.manualExperiod.length === 0) {
+          newMass.manualExperiod = null;
+        }
+      }
+
       // Add to changes map
       this.changes.set(newMass.id, newMass);
       globalChanged = true;
@@ -2048,6 +2076,16 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       exDatesNew.sort().reverse();
       exDatesOld.sort().reverse();
 
+      // #428: szétválasztjuk az automatikus és a kézi kizárt időszakokat
+      const autoPeriodIds = m.experiod ?? [];
+      const manualPeriodIds = m.manualExperiod ?? [];
+      const autoExperiodNames = autoPeriodIds
+        .map((pid: number) => this.periodService.getPeriodNameById(pid))
+        .filter((n: any) => n);
+      const manualExperiodNames = manualPeriodIds
+        .map((pid: number) => this.periodService.getPeriodNameById(pid))
+        .filter((n: any) => n);
+
       const massData = {
         id: m.id,
         title: m.title,
@@ -2060,9 +2098,11 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
         flag: flag,
         types: m.types ? m.types : [],
         comment: m.comment,
-        // include experiod ids and resolved period names for display
-        experiod: m.experiod ? m.experiod : [],
-        experiodNames: m.experiod ? m.experiod.map((pid: number) => this.periodService.getPeriodNameById(pid)).filter((n: any) => n) : [],
+        // #428: a mise-listában az auto + kézi kizárt időszakok UNIÓJA jelenjen meg
+        experiod: MassUtil.getEffectiveExperiod(m),
+        experiodNames: MassUtil.getEffectiveExperiod(m).map((pid: number) => this.periodService.getPeriodNameById(pid)).filter((n: any) => n),
+        autoExperiodNames: autoExperiodNames,
+        manualExperiodNames: manualExperiodNames,
         exDates: m.exdate ? m.exdate : [],
         exDatesNew: exDatesNew,
         exDatesOld: exDatesOld,

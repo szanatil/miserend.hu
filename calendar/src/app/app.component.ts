@@ -1,13 +1,13 @@
 import {Component, ViewEncapsulation} from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import {TranslateService} from '@ngx-translate/core';
-import {MatProgressSpinner} from '@angular/material/progress-spinner';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {SpinnerService} from './services/spinner.service';
 import {environment} from '../environments/environment';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, MatProgressSpinner],
+  imports: [RouterOutlet, MatProgressSpinnerModule],
   templateUrl: './app.component.html',
   styleUrls: ['../styles.scss', './app.component.css'],
   encapsulation: ViewEncapsulation.ShadowDom

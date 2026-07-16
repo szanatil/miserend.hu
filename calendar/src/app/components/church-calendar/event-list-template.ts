@@ -9,7 +9,7 @@ export function eventListTemplate(vars: EventListTemplateVars): string {
   const { timeHtml, titleHtml, lang, types } = vars;
 
   // small emoji fallback map
-  const flagMap: Record<string, string> = { hu: '🇭🇺', en: '🇬🇧', de: '🇩🇪', sk: '🇸🇰', ro: '🇷🇴' };
+  const flagMap: Record<string, string> = { hu: '🇭🇺', en: '🇬🇧', de: '🇩🇪', sk: '🇸🇰', ro: '🇷🇴', ru: '🇷🇺' };
 
   let flagHtml = '';
   if (lang) {

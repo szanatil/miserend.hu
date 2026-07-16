@@ -37,6 +37,34 @@
 {% endif %}
 
 <div class="row" style="margin-top: 20px;">
+    {% if isOutdated %}
+    <div class="col-md-12">
+        <div class="alert alert-warning" role="alert">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <form method="POST" action="/templom/{{ church.id }}/editschedule" style="display: inline;">
+                        <input type="hidden" name="action" value="mark_current">
+
+                    <p style="margin: 5px 0 0 0;">
+                        {% if yearsSinceUpdate >= 1 %}
+                            {{ yearsSinceUpdate }} {{ 'SCHEDULE_OUTDATED_MESSAGE_YEARS' | trans }}
+                        {% else %}
+                            {{ monthsSinceUpdate }} {{ 'SCHEDULE_OUTDATED_MESSAGE_MONTHS' | trans }}
+                        {% endif %}
+                       {{ 'SCHEDULE_OUTDATED_MESSAGE_SUFFIX' | trans }}
+                    
+                        <button type="submit" class="btn btn-success" >
+                            <i class="fa fa-check"></i> {{ 'SCHEDULE_MARK_AS_CURRENT' | trans }}
+                        </button>
+                        </p>
+                    </form>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
     <div class="col-md-12">
         {% set alertClass = elasticMassesCount == 0 ? 'alert-danger' : (elasticMassesCount < 50 ? 'alert-info' : 'alert-success') %}
         <div class="alert {{ alertClass }}" role="alert">

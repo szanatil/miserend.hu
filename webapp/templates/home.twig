@@ -530,42 +530,38 @@
                                 var state = Number($(this).data('state')) || 0;
                                 var lang = $(this).data('lang');
                                 if (state === 1) shouldArr.push(lang);
-                                else if (state === 2) shouldNotArr.push(lang);
+                                else if (state === -1) shouldNotArr.push(lang);
                             });
                             $('#lang_should').val(shouldArr.join(','));
                             $('#lang_must_not').val(shouldNotArr.join(','));
                         }
 
                         function applyLanguageState($btn, state) {
-                            // state: 0 neutral, 1 success (green), 2 danger (red)
+                            // state: 0 neutral, 1 success (green), -1 danger (red)
                             $btn.data('state', state);
+                            $btn.attr('data-state', state);
                             $btn.removeClass('btn-light btn-success btn-danger');
                             if (state === 0) {
                                 $btn.addClass('btn-light');
                             } else if (state === 1) {
                                 $btn.addClass('btn-success');
-                            } else if (state === 2) {
+                            } else if (state === -1) {
                                 $btn.addClass('btn-danger');
                             }
                         }
 
                         $(function(){
-                            // Initialize: hu is green by default, others neutral
+                            // Initialize: all buttons neutral
                             $('.lang-toggle').each(function(){
-                                var lang = $(this).data('lang');
-                                if (lang === 'hu') {
-                                    applyLanguageState($(this), 1);
-                                } else {
-                                    applyLanguageState($(this), 0);
-                                }
+                                applyLanguageState($(this), 0);
                             });
 
-                            // Click handler: cycle through states 0 -> 1 -> 2 -> 0
+                            // Click handler: cycle through states 0 -> 1 -> -1 -> 0
                             $(document).on('click', '.lang-toggle', function(e){
                                 e.preventDefault();
                                 var $btn = $(this);
                                 var state = Number($btn.data('state')) || 0;
-                                var next = (state + 1) % 3;
+                                var next = state === 0 ? 1 : state === 1 ? -1 : 0;
                                 applyLanguageState($btn, next);
                                 updateLanguageHiddenInputs();
                             });
@@ -639,6 +635,7 @@
                         function applyCategoryState($btn, state) {
                             // state: 0 neutral, 1 success (green)
                             $btn.data('state', state);
+                            $btn.attr('data-state', state);
                             $btn.removeClass('btn-light btn-success');
                             if (state === 0) {
                                 $btn.addClass('btn-light');
@@ -648,14 +645,9 @@
                         }
         
                         $(function(){
-                            // Initialize: MASS is green by default, others neutral
+                            // Initialize: all buttons neutral
                             $('.category-toggle').each(function(){
-                                var category = $(this).data('category');
-                                if (category === 'MASS') {
-                                    applyCategoryState($(this), 1);
-                                } else {
-                                    applyCategoryState($(this), 0);
-                                }
+                                applyCategoryState($(this), 0);
                             });
         
                             // Click handler: toggle between neutral and green

@@ -235,21 +235,30 @@
                 <td style="padding:10px">
                   <div *ngIf="(m.experiodNames && m.experiodNames.length) || m.exdate || m.exDates" class="text-muted small">
                     <ng-container *ngIf="(m.exDates && m.exDates.length ) || (m.experiodNames && m.experiodNames.length)">
-                    Kivétel:
-                    </ng-container>
-                    
-                    <ng-container *ngIf="m.experiodNames && m.experiodNames.length">
-                      <ng-container *ngFor="let e of m.experiodNames; let last = last">
-                        {{ e }}<span *ngIf="!last">, </span>
+                      Kivétel:
                       </ng-container>
-                    </ng-container>
-
-                    <ng-container *ngIf="m.exDatesNew && m.exDatesNew.length">
-                      <ng-container *ngIf="m.experiodNames && m.experiodNames.length">, </ng-container>
-                      <ng-container *ngFor="let d of m.exDatesNew; let lastd = last">
-                        {{ d | date:'yyyy.MM.dd.' }}<span *ngIf="!lastd">, </span>
+                      
+                      <!-- Automatikus kizárt időszakok (normál szöveg + tooltip) -->
+                      <ng-container *ngIf="m.autoExperiodNames && m.autoExperiodNames.length">
+                        <ng-container *ngFor="let e of m.autoExperiodNames; let last = last">
+                          <span style="font-style: normal;" [matTooltip]="'PERIODS.EXCEPTION_AUTO' | translate:{periodName: e}">{{ e }}</span><span *ngIf="!last">, </span>
+                        </ng-container>
                       </ng-container>
-                    </ng-container>
+ 
+                      <!-- Kézi kizárt időszakok (dőlt szöveg + tooltip) -->
+                      <ng-container *ngIf="m.manualExperiodNames && m.manualExperiodNames.length">
+                        <ng-container *ngIf="m.autoExperiodNames && m.autoExperiodNames.length">, </ng-container>
+                        <ng-container *ngFor="let e of m.manualExperiodNames; let last = last">
+                          <span style="font-style: italic;" [matTooltip]="'PERIODS.EXCEPTION_MANUAL' | translate:{periodName: e}">{{ e }}</span><span *ngIf="!last">, </span>
+                        </ng-container>
+                      </ng-container>
+ 
+                      <ng-container *ngIf="m.exDatesNew && m.exDatesNew.length">
+                        <ng-container *ngIf="m.experiodNames && m.experiodNames.length || m.autoExperiodNames && m.autoExperiodNames.length">, </ng-container>
+                        <ng-container *ngFor="let d of m.exDatesNew; let lastd = last">
+                          <span [matTooltip]="'PERIODS.EXCEPTION_DATE' | translate">{{ d | date:'yyyy.MM.dd.' }}</span><span *ngIf="!lastd">, </span>
+                        </ng-container>
+                      </ng-container>
 
                     <!-- Old exception dates expandable section -->
                     <ng-container *ngIf="m.exDatesOld && m.exDatesOld.length">
@@ -305,16 +314,25 @@
                   Kivétel:
                   </ng-container>
                   
-                  <ng-container *ngIf="m.experiodNames && m.experiodNames.length">
-                    <ng-container *ngFor="let e of m.experiodNames; let last = last">
-                      {{ e }}<span *ngIf="!last">, </span>
+                  <!-- Automatikus kizárt időszakok (normál szöveg + tooltip) -->
+                  <ng-container *ngIf="m.autoExperiodNames && m.autoExperiodNames.length">
+                    <ng-container *ngFor="let e of m.autoExperiodNames; let last = last">
+                      <span style="font-style: normal;" [matTooltip]="'PERIODS.EXCEPTION_AUTO' | translate:{periodName: e}">{{ e }}</span><span *ngIf="!last">, </span>
+                    </ng-container>
+                  </ng-container>
+
+                  <!-- Kézi kizárt időszakok (dőlt szöveg + tooltip) -->
+                  <ng-container *ngIf="m.manualExperiodNames && m.manualExperiodNames.length">
+                    <ng-container *ngIf="m.autoExperiodNames && m.autoExperiodNames.length">, </ng-container>
+                    <ng-container *ngFor="let e of m.manualExperiodNames; let last = last">
+                      <span style="font-style: italic;" [matTooltip]="'PERIODS.EXCEPTION_MANUAL' | translate:{periodName: e}">{{ e }}</span><span *ngIf="!last">, </span>
                     </ng-container>
                   </ng-container>
 
                   <ng-container *ngIf="m.exDatesNew && m.exDatesNew.length">
-                    <ng-container *ngIf="m.experiodNames && m.experiodNames.length">, </ng-container>
+                    <ng-container *ngIf="m.experiodNames && m.experiodNames.length || m.autoExperiodNames && m.autoExperiodNames.length">, </ng-container>
                     <ng-container *ngFor="let d of m.exDatesNew; let lastd = last">
-                      {{ d | date:'yyyy.MM.dd.' }}<span *ngIf="!lastd">, </span>
+                      <span [matTooltip]="'PERIODS.EXCEPTION_DATE' | translate">{{ d | date:'yyyy.MM.dd.' }}</span><span *ngIf="!lastd">, </span>
                     </ng-container>
                   </ng-container>
 

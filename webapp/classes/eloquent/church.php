@@ -450,6 +450,10 @@ class Church extends \Illuminate\Database\Eloquent\Model {
                 'koordinatak' => [ (float) $this->lat, (float) $this->lon ],
                 'lat' => (float) $this->lat,
                 'lon' =>(float) $this->lon,
+                // #112: a templom honlapja(i) a minimal response-ban is - a /nearby
+                // API alapból minimal-t ad vissza, és a mobil alkalmazásnak
+                // (KAPP) szüksége van rá.
+                'links' => $this->links->pluck('href')->toArray(),
                 'tavolsag' => (int) $this->distance
             ];
             return $return;
@@ -959,7 +963,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
    
     
     
-    /* 
+    /*
      * A régi templomok.egyhazmegye/espereskerulet/orszag/megye/varos -ból csinál
      * boundary értéket, ha még nincs. Ill. összekapcsolást.
      */
@@ -977,11 +981,13 @@ class Church extends \Illuminate\Database\Eloquent\Model {
                 ->where('boundary','religious_administration')
                 ->where('denomination','LIKE','%_catholic')
                 ->where('admin_level',6)
-                ->get()->toArray();        
+                ->get()->toArray();
         if($tmp == array()) {
-            $boundary = \Eloquent\Boundary::firstOrNew(['boundary' => 'religious_administration', 'denomination' => $this->denomination, 'admin_level' => 6, 'name' => $_egyhazmegyek[$this->egyhazmegye]->nev]);
-            $boundary->save(); 
-            $this->boundaries()->attach($boundary->id);
+            if(isset($_egyhazmegyek[$this->egyhazmegye]) && $_egyhazmegyek[$this->egyhazmegye]->nev) {
+                $boundary = \Eloquent\Boundary::firstOrNew(['boundary' => 'religious_administration', 'denomination' => $this->denomination, 'admin_level' => 6, 'name' => $_egyhazmegyek[$this->egyhazmegye]->nev]);
+                $boundary->save();
+                $this->boundaries()->attach($boundary->id);
+            }
         }
         
         /* espereskerület */
@@ -991,9 +997,11 @@ class Church extends \Illuminate\Database\Eloquent\Model {
                 ->where('admin_level',7)
                 ->get()->toArray();
         if($tmp == array()) {
-            $boundary = \Eloquent\Boundary::firstOrNew(['boundary' => 'religious_administration', 'denomination' => $this->denomination, 'admin_level' => 7, 'name' => $_espereskeruletek[$this->espereskerulet]->nev]);
-            $boundary->save();
-            $this->boundaries()->attach($boundary->id);            
+            if(isset($_espereskeruletek[$this->espereskerulet]) && $_espereskeruletek[$this->espereskerulet]->nev) {
+                $boundary = \Eloquent\Boundary::firstOrNew(['boundary' => 'religious_administration', 'denomination' => $this->denomination, 'admin_level' => 7, 'name' => $_espereskeruletek[$this->espereskerulet]->nev]);
+                $boundary->save();
+                $this->boundaries()->attach($boundary->id);
+            }
         }
         
         /* ország */
@@ -1002,9 +1010,11 @@ class Church extends \Illuminate\Database\Eloquent\Model {
                 ->where('admin_level',2)
                 ->get()->toArray();
         if($tmp == array()) {
-            $boundary = \Eloquent\Boundary::firstOrNew(['boundary' => 'administrative', 'admin_level' => 2, 'name' => $_orszagok[$this->orszag]->nev]);
-            $boundary->save();
-            $this->boundaries()->attach($boundary->id);            
+            if(isset($_orszagok[$this->orszag]) && $_orszagok[$this->orszag]->nev) {
+                $boundary = \Eloquent\Boundary::firstOrNew(['boundary' => 'administrative', 'admin_level' => 2, 'name' => $_orszagok[$this->orszag]->nev]);
+                $boundary->save();
+                $this->boundaries()->attach($boundary->id);
+            }
         }
         
         /* megye */
@@ -1013,12 +1023,12 @@ class Church extends \Illuminate\Database\Eloquent\Model {
                 ->where('admin_level',6)
                 ->get()->toArray();
         if($tmp == array()) {
-            if(isset($_megyek[$this->megye])) {
+            if(isset($_megyek[$this->megye]) && $_megyek[$this->megye]->nev) {
                 $boundary = \Eloquent\Boundary::firstOrNew(['boundary' => 'administrative', 'admin_level' => 6, 'name' => $_megyek[$this->megye]->nev." megye"]);
                 $boundary->save();
-                $this->boundaries()->attach($boundary->id);            
+                $this->boundaries()->attach($boundary->id);
             }
-        }        
+        }
 
         /* város */
         $tmp = $this->boundaries()
@@ -1026,9 +1036,11 @@ class Church extends \Illuminate\Database\Eloquent\Model {
                 ->where('admin_level',8)
                 ->get()->toArray();
         if($tmp == array()) {
-            $boundary = \Eloquent\Boundary::firstOrNew(['boundary' => 'administrative', 'admin_level' => 8, 'name' => $this->varos]);
-            $boundary->save();
-            $this->boundaries()->attach($boundary->id);  
+            if(!empty($this->varos)) {
+                $boundary = \Eloquent\Boundary::firstOrNew(['boundary' => 'administrative', 'admin_level' => 8, 'name' => $this->varos]);
+                $boundary->save();
+                $this->boundaries()->attach($boundary->id);
+            }
         }
 
     }

@@ -3,6 +3,14 @@
 namespace Eloquent;
 use Carbon\Carbon;
 
+/**
+ * #428: a `manual_experiod` oszlop a felhasználó által kézzel beállított kizárt
+ * időszakokat tárolja (az `experiod` marad az automatikusan számolt kizárásoknak).
+ * A projektben nincs migrációs rendszer, ezért éles adatbázison kézzel kell felvenni
+ * (ahogy annak idején az `experiod` is):
+ *
+ *   ALTER TABLE cal_masses ADD COLUMN manual_experiod json DEFAULT NULL AFTER experiod;
+ */
 class CalMass extends CalModel
 {
     protected $table = 'cal_masses';
@@ -17,6 +25,7 @@ class CalMass extends CalModel
         'duration',
         'rrule',
         'experiod',
+        'manual_experiod',
         'exdate',
         'lang',
         'comment',
@@ -31,7 +40,8 @@ class CalMass extends CalModel
         'start_date' => 'string',
         'duration' => 'array',     // JSON
         'rrule' => 'array',     // JSON
-        'experiod' => 'array',     // JSON
+        'experiod' => 'array',     // JSON – automatikusan számolt (ütközés-elkerülés) kizárt időszakok
+        'manual_experiod' => 'array',     // JSON – #428: a felhasználó által KÉZZEL beállított kizárt időszakok
         'exdate' => 'array',     // JSON
         'lang' => 'string',
         'comment' => 'string',
@@ -43,6 +53,37 @@ class CalMass extends CalModel
     public function period()
     {
         return $this->belongsTo(CalPeriod::class, 'period_id');
+    }
+
+    /**
+     * #428: A ténylegesen kizárandó időszakok azonosítói – az automatikusan
+     * számolt `experiod` (ütközés-elkerülés) ÉS a kézzel beállított
+     * `manual_experiod` uniója. A kézi kizárásokat sem az `optimizeExperiods`,
+     * sem a collision-logika nem bántja, ezért itt, olvasáskor egyesítjük őket.
+     * Egy mise sosem zárja ki a saját időszakát.
+     */
+    static private function effectiveExperiod($mass): array
+    {
+        $decode = function ($value) {
+            if (is_string($value)) {
+                $decoded = json_decode($value, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $value = $decoded;
+                }
+            }
+            return is_array($value) ? $value : [];
+        };
+
+        $merged = array_values(array_unique(array_merge(
+            $decode($mass->experiod ?? []),
+            $decode($mass->manual_experiod ?? [])
+        )));
+
+        if (!empty($mass->period_id)) {
+            $merged = array_values(array_diff($merged, [$mass->period_id]));
+        }
+
+        return $merged;
     }
     /**
      * Generálja a miseidőpontokat adott évekre,
@@ -159,15 +200,8 @@ class CalMass extends CalModel
                     }
                 }
                                                                     
-                // --- kizárt periódusok ---
-                $excludedPeriods = $mass->experiod ?? [];
-                if (is_string($excludedPeriods)) {
-                    $decoded = json_decode($excludedPeriods, true);
-                    if (json_last_error() === JSON_ERROR_NONE) {
-                        $excludedPeriods = $decoded;
-                    }
-                }
-                $excludedPeriods = is_array($excludedPeriods) ? $excludedPeriods : [];
+                // --- kizárt periódusok (auto `experiod` ∪ kézi `manual_experiod`) #428 ---
+                $excludedPeriods = self::effectiveExperiod($mass);
 
                 // --- az adott miséhez való legeneráltperiódusok betöltése ---
                 $periods = CalGeneratedPeriod::where('period_id', $mass->period_id)
@@ -369,15 +403,8 @@ class CalMass extends CalModel
                     }
                 }
                                                                     
-                // --- kizárt periódusok ---
-                $excludedPeriods = $mass->experiod ?? [];
-                if (is_string($excludedPeriods)) {
-                    $decoded = json_decode($excludedPeriods, true);
-                    if (json_last_error() === JSON_ERROR_NONE) {
-                        $excludedPeriods = $decoded;
-                    }
-                }
-                $excludedPeriods = is_array($excludedPeriods) ? $excludedPeriods : [];
+                // --- kizárt periódusok (auto `experiod` ∪ kézi `manual_experiod`) #428 ---
+                $excludedPeriods = self::effectiveExperiod($mass);
 
 
                 // Ha nincsen periódusa, akkor ő vagy egyedi esemény vagy évenként ismétlődő egyedi esemény!

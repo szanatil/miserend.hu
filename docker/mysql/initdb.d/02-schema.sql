@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS `cal_masses` (
   `duration` json DEFAULT NULL,
   `rrule` json DEFAULT NULL,
   `experiod` json DEFAULT NULL,
+  `manual_experiod` json DEFAULT NULL,
   `exdate` json DEFAULT NULL,
   `lang` varchar(3) NOT NULL,
   `comment` text DEFAULT NULL,
@@ -784,6 +785,21 @@ CREATE TABLE IF NOT EXISTS `templomok_full` (
   KEY `osm` (`osmid`,`osmtype`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5420 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `church_update_tokens`
+--
+
+CREATE TABLE IF NOT EXISTS `church_update_tokens` (
+  `token` varchar(64) NOT NULL,
+  `uid` int(11) NOT NULL,
+  `church_id` int(11) DEFAULT NULL,
+  `email_batch_id` varchar(64) NOT NULL,
+  `expires_at` timestamp NOT NULL,
+  `used_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`token`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `tokens`
