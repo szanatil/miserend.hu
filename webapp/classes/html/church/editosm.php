@@ -50,7 +50,14 @@ class EditOsm extends \Html\Html {
 		$this->loadOSMDataWithOSM();
 	
 		// Letöltjük a legfrisseb boundaries adatokat. El is mentjük azokat.
-		$boundaryIDs = \OSM::downloadBoundaries($this->church['lat'],$this->church['lon']);		
+		try {
+			$boundaryIDs = \OSM::downloadBoundaries($this->church['lat'],$this->church['lon']);
+			if ($boundaryIDs === null) $boundaryIDs = [];
+		} catch (\Exception $e) {
+			addMessage('Az OSM területi adatok lekérése nem sikerült. <details><summary>Részletek</summary><pre>'
+				. htmlspecialchars($e->getMessage()) . '</pre></details>', 'warning');
+			$boundaryIDs = [];
+		}
 		$boundariesRaw = \Eloquent\Boundary::whereIn('id',$boundaryIDs)->get();
 		
 		// Csoportosítás és rendezés admin_level szerint
@@ -83,10 +90,21 @@ class EditOsm extends \Html\Html {
 		
 		// Letöltjük a teljes listát az OSM-ről, hogy az autocomplete boldogan üzemelhessen
 		if($this->readingAccessOnly == false) {
-			$overpassapi = new \ExternalApi\OverpassApi();
-			$overpassapi->downloadUrlMiserend();
-			$this->autocomplete = $this->prepareAutocomplete($overpassapi->jsonData);
-		} else 
+			try {
+				$overpassapi = new \ExternalApi\OverpassApi();
+				$overpassapi->downloadUrlMiserend();
+				if ($overpassapi->hasError() || !isset($overpassapi->jsonData->elements)) {
+					addMessage($overpassapi->getErrorMessageHtml('Az OSM url:miserend adatok lekérése nem sikerült.'), 'warning');
+					$this->autocomplete = [];
+				} else {
+					$this->autocomplete = $this->prepareAutocomplete($overpassapi->jsonData);
+				}
+			} catch (\Exception $e) {
+				addMessage('Az OSM url:miserend adatok lekérése nem sikerült. <details><summary>Részletek</summary><pre>'
+					. htmlspecialchars($e->getMessage()) . '</pre></details>', 'warning');
+				$this->autocomplete = [];
+			}
+		} else
 			$this->autocomplete = [];
 		
 				
