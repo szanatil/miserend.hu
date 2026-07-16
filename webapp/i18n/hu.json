@@ -301,5 +301,10 @@
     "wine_community": "borközösség",
     "wine_growing_area": "borvidék",
     "police": "rendőrség"
-  }
+  },
+
+  "SCHEDULE_OUTDATED_MESSAGE_YEARS": "éve nem volt frissítve a miserend.",
+  "SCHEDULE_OUTDATED_MESSAGE_MONTHS": "hónapja nem volt frissítve a miserend.",
+  "SCHEDULE_OUTDATED_MESSAGE_SUFFIX": "Kérlek frissítsd az adatokat. Ha így jó ahogy van, kattints ide:",
+  "SCHEDULE_MARK_AS_CURRENT": "A miserend így pontos"
 }

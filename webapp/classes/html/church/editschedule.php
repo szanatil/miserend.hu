@@ -10,9 +10,24 @@ class EditSchedule extends \Html\Html {
     public $elasticMassesCount;
     public $elasticMassesExamples;
     public $tids;
+    public $isOutdated;
+    public $monthsSinceUpdate;
+    public $yearsSinceUpdate;
 
     public function __construct($path) {
         $this->tid = $path[0];
+
+        // Handle POST request to mark schedule as current
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'mark_current') {
+            $church = \Eloquent\Church::find($this->tid);
+            if ($church && $church->writeAccess) {
+                $church->frissites = date('Y-m-d H:i:s');
+                $church->save();
+                // Redirect to refresh the page
+                header("Location: /templom/{$this->tid}/editschedule");
+                exit;
+            }
+        }
 
         $this->church = \Eloquent\Church::find($this->tid)->append(['writeAccess']);;
         if (!$this->church) {
@@ -22,6 +37,23 @@ class EditSchedule extends \Html\Html {
         if (!$this->church->writeAccess) {
             throw new \Exception('Hiányzó jogosultság!');
             return;
+        }
+
+        // Check if church schedule is outdated (>6 months)
+        $this->isOutdated = false;
+        $this->monthsSinceUpdate = 0;
+        $this->yearsSinceUpdate = 0;
+        
+        if ($this->church->frissites) {
+            $lastUpdate = strtotime($this->church->frissites);
+            $now = time();
+            $daysSinceUpdate = ($now - $lastUpdate) / (60 * 60 * 24);
+            
+            if ($daysSinceUpdate > 180) { // 6 months ≈ 180 days
+                $this->isOutdated = true;
+                $this->monthsSinceUpdate = floor($daysSinceUpdate / 30);
+                $this->yearsSinceUpdate = floor($daysSinceUpdate / 365);
+            }
         }
 
         // DIAGNOSTIC LOG: Check if the church has masses in ElasticSearch
