@@ -27,28 +27,7 @@ class Cron extends \Illuminate\Database\Eloquent\Model {
     }
 
     public function initialize() {
-        $jobsToSave = [
-            ['\Eloquent\Cron', 'initialize', '1 week'],
-           ['\Message', 'clean', '1 hour'],
-            ['\Api\Sqlite', 'cron', '1 day'],
-            ['\ExternalApi\OverpassApi', 'updateUrlMiserend', '1 day'],
-            ['\ExternalApi\ExternalApi', 'clearAllOldCache', '1 day'],
-            ['\OSM', 'checkBoundaries', '5 min'],
-            ['\OSM', 'checkUrlMiserend', '1 day'],            
-            ['\KeywordShortcut', 'updateAll', '1 day'],
-            ['\Distance', 'updateSome', '15 min'],
-            ['\Token', 'cleanOut', '2 hours'],
-            ['\Photos', 'cron', '1 week'],
-            ['\Crons','gorogkatolizalas','1 week'],
-   ['\Crons','generateMassTolIgTmp','1 week'],
-   ['\ExternalCalendarImporter', 'importAllExternalCalendars', '1 day']
-   
-        ];
-        foreach ($jobsToSave as $jobToSave) {
-            $job = \Eloquent\Cron::firstOrCreate(['class' => $jobToSave[0], 'function' => $jobToSave[1]]);
-            $job->frequency = $jobToSave[2];
-            $job->save();
-        }
+       return true;
     }
     
     function run() {

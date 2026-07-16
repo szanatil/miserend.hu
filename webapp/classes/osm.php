@@ -123,12 +123,38 @@ class OSM {
         return $return;
     }
 
-    /*
-     * Az OSM-ből az url:miserend -es cuccok lekérése és a templomok azok 
-     * alapján való mentése.
+    /**
+     * Szinkronizálja az OSM adatokat az url:miserend tag alapján.
+     *
+     * Ez a függvény az OpenStreetMap-ról letölti az összes olyan elemet,
+     * amely rendelkezik az "url:miserend" keyel. Az megadott URL-ből kivonja a
+     * templom ID-ját és megtalálja a megfelelő templom rekordot az adatbázisban.
+     *
+     * Minden egyes templom esetén:
+     * - Letölti az összes OSM key-value párost azaz tag-et az elemről
+     * - Elmenti az összes tag-et az attributes táblába (fromOSM=1 jelöléssel)
+     * - Frissíti a templom koordinátáit és OSM azonosítóit (osmtype, osmid)
+     *
+     * FIGYELMEZTETÉSEK ÉS TELJESÍTMÉNYI KOCKÁZATOK:
+     *
+     * 1. NAGY ADATMENNYISÉG: Az Overpass API-tól az ÖSSZES url:miserend elemet
+     *    letölti, amely nagy adatmennyiség lehet (többezer elem). 
+     * 2. TELJES SZINKRONIZÁCIÓ: A függvény az összes OSM tagot (nem csak az
+     *    url:miserend-et) elmenti az attributes táblába.
+     * 3. TÖRLÉS ÉS ÚJRAÍRÁS: Minden futásnál az összes korábbi OSM attribútum
+     *    (fromOSM=1) törlődik és újra létrehozódik. 
+     * 4. NINCS HIBAKEZELÉS: Ha az OSM azonosító változik egy templomnál (más
+     *    elemre kerül az url:miserend tag), az átkötés automatikusan átkerül az
+     *    új elemre, ami nem feltétlenül szándékos.
+     *
+     * AJÁNLÁSOK:
+     * - Futtatás sávon kívüli időben, csúcsidőn kívül
+     * - Figyelemmel kísérendő az adatbázis terhelése futás közben
+     * - Érdemes lehet az OSM attributumok száma alapján szűrni (nem az összes tagot tárolni)     
+     *
+     * @throws Exception Ha az Overpass API lekérdezésből hiányoznak az elemek
      */
-
-    function checkUrlMiserend() {
+    function syncUrlMiserendFromOSM() {
         
         $overpass = new \ExternalApi\OverpassApi();
         $overpass->downloadUrlMiserend();
