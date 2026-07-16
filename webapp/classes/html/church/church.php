@@ -107,10 +107,15 @@ class Church extends \Html\Html {
             ->toArray();
         		   		
          /*
-         * 
+         *
          */
-        if( $church->lat != '' AND !isset($church->location->city)) {
-            (new \OSM())->checkBoundariesForOne($church);
+        try {
+            if( $church->lat != '' AND !isset($church->location->city)) {
+                (new \OSM())->checkBoundariesForOne($church);
+            }
+        } catch (\Exception $e) {
+            addMessage('Az OSM területi adatok lekérése nem sikerült. <details><summary>Részletek</summary><pre>'
+                . htmlspecialchars($e->getMessage()) . '</pre></details>', 'warning');
         }
 
         $church->MgetReligious_administration();

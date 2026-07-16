@@ -130,7 +130,7 @@ class ExternalApi {
         curl_setopt($ch, CURLOPT_URL,$this->apiUrl . $this->rawQuery);
 		//echo $this->apiUrl . $this->rawQuery."\n";
         
-		curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+		curl_setopt($ch, CURLOPT_TIMEOUT, $this->queryTimeout);
 
         if(isset($this->postfields)) {
             curl_setopt($ch, CURLOPT_POST, true);
@@ -279,8 +279,33 @@ class ExternalApi {
 	
 	function curl_setopt($name, $value) {
 		$this->curl_opts[$name] = $value;
-	
-	
+	}
+
+	/**
+	 * Check if the last API call resulted in an error.
+	 */
+	function hasError(): bool {
+		return !empty($this->error);
+	}
+
+	/**
+	 * Get the error message as a plain string.
+	 * Handles both string and array error formats.
+	 */
+	function getErrorMessage(): string {
+		if (is_array($this->error)) {
+			return implode(' | ', array_map('strval', $this->error));
+		}
+		return (string) ($this->error ?? '');
+	}
+
+	/**
+	 * Get a user-friendly HTML error message with collapsible details.
+	 * Uses <details><summary> for a click-to-expand UI.
+	 */
+	function getErrorMessageHtml(string $summary = 'Külső API hiba'): string {
+		$errorText = htmlspecialchars($this->getErrorMessage());
+		return "$summary <details><summary>Részletek</summary><pre>$errorText</pre></details>";
 	}
 	
 	

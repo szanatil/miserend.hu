@@ -41,7 +41,7 @@ class OSM {
 
     function checkBoundariesForOne($church) {
         $boundaries = $this->downloadBoundaries($church->lat, $church->lon);
-        if($boundaries AND count($boundaries) < 1) return;            
+        if($boundaries === null || count($boundaries) < 1) return;
         $church->boundaries()->sync($boundaries);
         $church->MmigrateBoundaries();
     }
@@ -54,54 +54,44 @@ class OSM {
     }
 
     static function downloadChurchesWithinBoundary($osmtype, $osmid) {
-        $return = [];
+        $overpass = new \ExternalApi\OverpassApi();
+
         try {
-            $overpass = new \ExternalApi\OverpassApi();
-            $overpass->downloadChurchesWithinBoundary($osmtype, $osmid); // Ha responseCode 503, akkor nem JSON a result és akkor elszállna, ezért a try-catch blokk
+            $overpass->downloadChurchesWithinBoundary($osmtype, $osmid);
         } catch (\Exception $e) {
-            printr($e);
-            addMessage("Hiba történt az OSM API lekérdezése során: " . $e->getMessage(), 'danger');
-            
+            // ExternalApi::runQuery() should catch internally, but just in case
+            return null;
         }
         
-        if(isset($overpass->responseCode) and in_array($overpass->responseCode, [502, 503, 504])) {
-            //Az OSM API túlterhelt, ezért nem tudunk adatot lekérni. Ez nem a mi hibánk. Később újrapróbáljuk
-            //addMessage("Az OSM API jelenleg nem elérhető (HTTP $overpass->responseCode). Kérem próbálja meg később.", 'danger');
-            printr($overpass);
-            return;
+        if ($overpass->hasError()) {
+            return null;
         }
 
-        if (!$overpass->jsonData->elements) {
-            printr($overpass);
-            throw new \Exception("Missing Json Elements from OverpassApi Query");
-            return;
+        if (!isset($overpass->jsonData->elements) || empty($overpass->jsonData->elements)) {
+            return null;
         }
 
         return $overpass->jsonData->elements;
-         
     }
 
     static function downloadBoundaries($lat, $lon) {
         $return = [];
 
+        $overpass = new \ExternalApi\OverpassApi();
+
         try {
-            $overpass = new \ExternalApi\OverpassApi();
-            $overpass->downloadEnclosingBoundaries($lat, $lon); // Ha responseCode 503, akkor nem JSON a result és akkor elszállna, ezért a try-catch blokk
+            $overpass->downloadEnclosingBoundaries($lat, $lon);
         } catch (\Exception $e) {
-            addMessage("Hiba történt az OSM API lekérdezése során: " . $e->getMessage(), 'danger');
-            
+            // ExternalApi::runQuery() should catch internally, but just in case
+            return null;
         }
         
-        if(in_array($overpass->responseCode, [502, 503, 504])) {
-            //Az OSM API túlterhelt, ezért nem tudunk adatot lekérni. Ez nem a mi hibánk. Később újrapróbáljuk
-            //addMessage("Az OSM API jelenleg nem elérhető (HTTP $overpass->responseCode). Kérem próbálja meg később.", 'danger');
-            return;
+        if ($overpass->hasError()) {
+            return null;
         }
 
-        if (!$overpass->jsonData->elements) {
-            printr($overpass);
-            throw new \Exception("Missing Json Elements from OverpassApi Query");
-            return;
+        if (!isset($overpass->jsonData->elements) || empty($overpass->jsonData->elements)) {
+            return null;
         }
          
         foreach($overpass->jsonData->elements as $element) {            
