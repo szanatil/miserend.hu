@@ -10,6 +10,8 @@ import {Church} from '../model/church';
 import {LanguageCode} from '../enum/language-code';
 import {Renum} from '../enum/recurrence';
 import {Day} from '../enum/day';
+import {Mass} from '../model/mass';
+import {GeneratedPeriod} from '../model/generated-period';
 
 describe('MassUtil - Category Classification', () => {
   let translate: TranslateService;
@@ -372,39 +374,110 @@ function makeDialogEvent(overrides: Partial<DialogEvent> = {}): DialogEvent {
   };
 }
 
-describe('MassUtil.createMass (#428 experiod plumb-through)', () => {
+describe('MassUtil.createMass (#428 manual experiod plumb-through)', () => {
 
-  it('passes dialogEvent.experiod through to the resulting Mass', () => {
-    const dialogEvent = makeDialogEvent({experiod: [11, 12, 13]});
+  // #428: a dialógus kézi kivétel-választása a Mass.manualExperiod-be megy (NEM az
+  // auto experiod-ba), hogy a mentéskori automatikák ne törölhessék ki.
 
-    const mass = MassUtil.createMass(makeCalendarEvent(), dialogEvent, makeChurch(), 1);
-
-    expect(mass.experiod).toEqual([11, 12, 13]);
-  });
-
-  it('does not set experiod on the Mass when dialogEvent has none', () => {
-    const dialogEvent = makeDialogEvent({experiod: null});
+  it('passes dialogEvent.manualExperiod through to the Mass.manualExperiod', () => {
+    const dialogEvent = makeDialogEvent({manualExperiod: [11, 12, 13]});
 
     const mass = MassUtil.createMass(makeCalendarEvent(), dialogEvent, makeChurch(), 1);
 
-    expect(mass.experiod).toBeUndefined();
+    expect(mass.manualExperiod).toEqual([11, 12, 13]);
   });
 
-  it('does not set experiod when dialogEvent.experiod is an empty array', () => {
-    const dialogEvent = makeDialogEvent({experiod: []});
+  it('does NOT write the manual selection into the auto experiod field', () => {
+    const dialogEvent = makeDialogEvent({manualExperiod: [11]});
 
     const mass = MassUtil.createMass(makeCalendarEvent(), dialogEvent, makeChurch(), 1);
 
     expect(mass.experiod).toBeUndefined();
   });
 
-  it('clones the experiod array so later mutations on the dialog do not leak into the Mass', () => {
+  it('does not set manualExperiod on the Mass when dialogEvent has none', () => {
+    const dialogEvent = makeDialogEvent({manualExperiod: null});
+
+    const mass = MassUtil.createMass(makeCalendarEvent(), dialogEvent, makeChurch(), 1);
+
+    expect(mass.manualExperiod).toBeUndefined();
+  });
+
+  it('does not set manualExperiod when dialogEvent.manualExperiod is an empty array', () => {
+    const dialogEvent = makeDialogEvent({manualExperiod: []});
+
+    const mass = MassUtil.createMass(makeCalendarEvent(), dialogEvent, makeChurch(), 1);
+
+    expect(mass.manualExperiod).toBeUndefined();
+  });
+
+  it('clones the manualExperiod array so later mutations on the dialog do not leak into the Mass', () => {
     const original = [11];
-    const dialogEvent = makeDialogEvent({experiod: original});
+    const dialogEvent = makeDialogEvent({manualExperiod: original});
 
     const mass = MassUtil.createMass(makeCalendarEvent(), dialogEvent, makeChurch(), 1);
     original.push(99);
 
-    expect(mass.experiod).toEqual([11]);
+    expect(mass.manualExperiod).toEqual([11]);
+  });
+});
+
+describe('MassUtil.getEffectiveExperiod (#428 auto ∪ manual union)', () => {
+
+  it('unions the auto experiod with the manual experiod', () => {
+    const mass = {periodId: 10, experiod: [11], manualExperiod: [7]} as Mass;
+
+    expect(MassUtil.getEffectiveExperiod(mass).sort((a, b) => a - b)).toEqual([7, 11]);
+  });
+
+  it('deduplicates ids present in both arrays', () => {
+    const mass = {periodId: 10, experiod: [11], manualExperiod: [11]} as Mass;
+
+    expect(MassUtil.getEffectiveExperiod(mass)).toEqual([11]);
+  });
+
+  it('returns manual-only exclusions even when auto experiod is null (the #428 core case)', () => {
+    const mass = {periodId: 10, experiod: null, manualExperiod: [11]} as Mass;
+
+    expect(MassUtil.getEffectiveExperiod(mass)).toEqual([11]);
+  });
+
+  it('never excludes the mass own period', () => {
+    const mass = {periodId: 11, experiod: [11], manualExperiod: [11]} as Mass;
+
+    expect(MassUtil.getEffectiveExperiod(mass)).toEqual([]);
+  });
+
+  it('returns an empty array when both are null', () => {
+    const mass = {periodId: 10, experiod: null, manualExperiod: null} as Mass;
+
+    expect(MassUtil.getEffectiveExperiod(mass)).toEqual([]);
+  });
+});
+
+describe('MassUtil.createCalendarEvent (#428 manual experiod hides dates)', () => {
+
+  function makeGenPeriod(overrides: Partial<GeneratedPeriod> = {}): GeneratedPeriod {
+    return {
+      id: 1, periodId: 10, name: 'Évközi', weight: 1,
+      startDate: '2026-01-01', endDate: '2027-01-01', color: '#fff',
+      ...overrides,
+    };
+  }
+
+  it('produces an exrule from manualExperiod alone (auto experiod is null)', () => {
+    const yearPeriod = makeGenPeriod({id: 1, periodId: 10});
+    const summerPeriod = makeGenPeriod({id: 2, periodId: 11, name: 'Nyári szünet',
+      startDate: '2026-06-15', endDate: '2026-09-01'});
+    const mass = {
+      title: 'Szentmise', periodId: 10, experiod: null, manualExperiod: [11],
+      rrule: {dtstart: '2026-03-01T07:00:00', until: '2027-01-01', freq: 'weekly'},
+    } as unknown as Mass;
+
+    const events = MassUtil.createCalendarEvent(mass, [yearPeriod, summerPeriod]);
+
+    expect(events.length).toBeGreaterThan(0);
+    expect(events[0].exrule).toBeDefined();
+    expect(events[0].exrule!.length).toBeGreaterThan(0);
   });
 });

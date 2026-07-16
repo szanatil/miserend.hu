@@ -414,7 +414,8 @@ export class SuggestionsComponent implements OnInit {
     }
 
     const period: string = this.getPeriod(mass);
-    const exPeriodNames: string[] = this.getExPeriodNames(mass.experiod);
+    // #428: az auto + kézi kizárt időszakok uniója jelenjen meg az összefoglalóban/diffben
+    const exPeriodNames: string[] = this.getExPeriodNames(MassUtil.getEffectiveExperiod(mass));
     const days: string = this.getDays(mass);
     const christmas: string | null = this.getChristmas(mass);
     const easter: string | null = this.getEaster(mass);

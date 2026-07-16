@@ -62,17 +62,39 @@ export class MassUtil {
       ...(calendarEvent.duration && {duration: calendarEvent.duration}),
       ...(calendarEvent.rrule && {rrule: calendarEvent.rrule}),
       ...(calendarEvent.exdate && {exdate: calendarEvent.exdate}),
-      // #428: a felhasználó által manuálisan kiválasztott "kivétel időszakok" is
-      // kerüljenek bele. Az exclude*PeriodMasses* utáni auto-logika ezt extendálni
-      // fogja, nem felülírja, így a két forrás konfliktusmentesen él együtt.
-      ...(dialogEvent.experiod && dialogEvent.experiod.length > 0 && {experiod: [...dialogEvent.experiod]}),
+      // #428: a felhasználó által manuálisan kiválasztott "kivétel időszakok" a
+      // KÜLÖN `manualExperiod` mezőbe kerülnek – NEM az `experiod`-ba. Így sem a
+      // backend `optimizeExperiods`, sem a frontend collision-logika nem törli ki
+      // őket akkor sem, ha a kizárt periódusban egyáltalán nincs is külön mise.
+      // Az auto `experiod`-ot ezután az exclude*PeriodMasses* helper-ek építik fel.
+      ...(dialogEvent.manualExperiod && dialogEvent.manualExperiod.length > 0 && {manualExperiod: [...dialogEvent.manualExperiod]}),
       lang: dialogEvent.language,
       comment: dialogEvent.comment
     };
   }
 
+  /**
+   * #428: A ténylegesen kizárandó időszakok azonosítói – az automatikusan
+   * számolt `experiod` (ütközés-elkerülés) ÉS a felhasználó által kézzel
+   * beállított `manualExperiod` uniója. Egy mise sosem zárja ki a saját
+   * időszakát. Ezt használjuk mindenhol, ahol a kizárás ténylegesen rejt
+   * (naptár exrule, mise-lista, összefoglaló) – a két tömb külön él a state-ben.
+   */
+  public static getEffectiveExperiod(mass: Mass): number[] {
+    const merged = new Set<number>([
+      ...(mass.experiod ?? []),
+      ...(mass.manualExperiod ?? []),
+    ]);
+    if (mass.periodId != null) {
+      merged.delete(mass.periodId);
+    }
+    return [...merged];
+  }
+
   public static createCalendarEvent(mass: Mass, periods: GeneratedPeriod[], recentExDates?:string[], translate?: TranslateService): CalendarEvent[] {
     const calEvents: CalendarEvent[] = [];
+    // #428: az auto + kézi kizárt időszakok uniója rejt a naptárban.
+    const effectiveExperiod = MassUtil.getEffectiveExperiod(mass);
     //ha rendes ismétlődő esemény
     if (mass.rrule && mass.periodId) {
       periods
@@ -84,7 +106,7 @@ export class MassUtil {
           rrule: ScriptUtil.clone(mass.rrule!),
           ...(mass.duration && {duration: mass.duration}),
           ...(mass.exdate && {exdate: mass.exdate}),
-          ...(mass.experiod && {exrule: MassUtil.generateExRule(mass.rrule!, mass.experiod, periods)}),
+          ...(effectiveExperiod.length > 0 && {exrule: MassUtil.generateExRule(mass.rrule!, effectiveExperiod, periods)}),
           extendedProps: {
             massId: mass.id,
             recentExDates: recentExDates?.map(date=>date.slice(0, 10)),
@@ -109,7 +131,7 @@ export class MassUtil {
         rrule: ScriptUtil.clone(mass.rrule!),
         ...(mass.duration && {duration: mass.duration}),
         ...(mass.exdate && {exdate: mass.exdate}),
-        ...(mass.experiod && {exrule: MassUtil.generateExRule(mass.rrule!, mass.experiod, periods)}),
+        ...(effectiveExperiod.length > 0 && {exrule: MassUtil.generateExRule(mass.rrule!, effectiveExperiod, periods)}),
         extendedProps: {
           massId: mass.id,
           recentExDates: recentExDates?.map(date=>date.slice(0, 10)),
@@ -295,7 +317,9 @@ export class MassUtil {
       comment: mass.comment ? mass.comment : '',
       editOne: false,
       exdate: mass.exdate,
-      experiod: mass.experiod
+      experiod: mass.experiod,
+      // #428: a kézi kivétel-időszakok visszatöltése a dialógus multiselectjébe
+      manualExperiod: mass.manualExperiod
     };
   }
 
@@ -308,6 +332,8 @@ export class MassUtil {
     dialogEvent.period = null;
     dialogEvent.exdate = null;
     dialogEvent.experiod = null;
+    // #428: egy konkrét alkalom szerkesztése leválik a sorozat kézi kizárásairól
+    dialogEvent.manualExperiod = null;
     return dialogEvent;
   }
 

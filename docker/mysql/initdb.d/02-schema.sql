@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS `cal_masses` (
   `duration` json DEFAULT NULL,
   `rrule` json DEFAULT NULL,
   `experiod` json DEFAULT NULL,
+  `manual_experiod` json DEFAULT NULL,
   `exdate` json DEFAULT NULL,
   `lang` varchar(3) NOT NULL,
   `comment` text DEFAULT NULL,

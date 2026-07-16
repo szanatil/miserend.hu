@@ -75,8 +75,9 @@ export class AddFullEventDialogComponent {
   filteredPeriods$: Observable<GeneratedPeriod[]> = of([]);
 
   // #428: a felhasználó manuálisan állíthat be kivétel-időszakokat. A FormControl
-  // értéke periodId-kből álló tömb, ami a Mass.experiod-be megy mentéskor.
-  experiodCtr = new FormControl<number[]>(this.data.event.experiod ?? []);
+  // értéke periodId-kből álló tömb, ami a Mass.manualExperiod-be megy mentéskor
+  // (KÜLÖN az automatikusan számolt experiod-tól, hogy az automatikák ne töröljék).
+  experiodCtr = new FormControl<number[]>(this.data.event.manualExperiod ?? []);
 
   public singleEvent: boolean = this.data.event.renum === Renum.NONE;
   public specialPeriodType?: SpecialType | null = null;
@@ -166,7 +167,7 @@ export class AddFullEventDialogComponent {
       // Update multiday flag and warn if necessary
       this.maybeWarnIfNotMultiday(value);
 
-      // #428: ha az időszak megváltozott és az új időszak már az experiod listán van,
+      // #428: ha az időszak megváltozott és az új időszak már a kézi kivétel-listán van,
       // távolítsuk el - egy mise nem lehet egyszerre a "tartozik" és "kivétel" listában is.
       const currentExperiod = this.experiodCtr.value ?? [];
       if (value?.periodId && currentExperiod.includes(value.periodId)) {
@@ -175,9 +176,9 @@ export class AddFullEventDialogComponent {
     });
 
     // #428: a multi-select módosításait átvezetjük a dialog event-re, hogy
-    // mentéskor a MassUtil.createMass át tudja venni.
+    // mentéskor a MassUtil.createMass át tudja venni (a KÉZI mezőbe).
     this.experiodCtr.valueChanges.subscribe(value => {
-      this.data.event.experiod = value && value.length > 0 ? value : null;
+      this.data.event.manualExperiod = value && value.length > 0 ? value : null;
     });
     this.filteredPeriods$ = this.periodCtr.valueChanges.pipe(
       startWith(''),

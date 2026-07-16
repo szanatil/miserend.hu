@@ -220,35 +220,35 @@ describe('AddFullEventDialogComponent (#428 manual experiod selector)', () => {
     fixture.detectChanges();
   }
 
-  it('initializes experiodCtr empty when no experiod is preset', async () => {
+  it('initializes experiodCtr empty when no manualExperiod is preset', async () => {
     await setup([makeGeneratedPeriod()]);
 
     expect(component.experiodCtr.value).toEqual([]);
   });
 
-  it('initializes experiodCtr from data.event.experiod on edit', async () => {
-    const data = makeDialogData(null, [], {experiod: [11, 12]});
+  it('initializes experiodCtr from data.event.manualExperiod on edit', async () => {
+    const data = makeDialogData(null, [], {manualExperiod: [11, 12]});
 
     await setup([makeGeneratedPeriod()], data);
 
     expect(component.experiodCtr.value).toEqual([11, 12]);
   });
 
-  it('writes experiodCtr changes back to data.event.experiod', async () => {
+  it('writes experiodCtr changes back to data.event.manualExperiod', async () => {
     await setup([makeGeneratedPeriod()]);
 
     component.experiodCtr.setValue([20, 30]);
 
-    expect(component.data.event.experiod).toEqual([20, 30]);
+    expect(component.data.event.manualExperiod).toEqual([20, 30]);
   });
 
-  it('writes null to data.event.experiod when selection is cleared', async () => {
-    const data = makeDialogData(null, [], {experiod: [11]});
+  it('writes null to data.event.manualExperiod when selection is cleared', async () => {
+    const data = makeDialogData(null, [], {manualExperiod: [11]});
     await setup([makeGeneratedPeriod()], data);
 
     component.experiodCtr.setValue([]);
 
-    expect(component.data.event.experiod).toBeNull();
+    expect(component.data.event.manualExperiod).toBeNull();
   });
 
   it('experiodOptions excludes the currently selected mass period', async () => {
@@ -278,14 +278,14 @@ describe('AddFullEventDialogComponent (#428 manual experiod selector)', () => {
     expect(component.experiodOptions.length).toBe(2);
   });
 
-  it('removes a period from experiod if the user later selects it as the mass period', async () => {
+  it('removes a period from manualExperiod if the user later selects it as the mass period', async () => {
     const evkozi = makeGeneratedPeriod({id: 1, periodId: 10, name: 'Évközi'});
     const nyari  = makeGeneratedPeriod({id: 2, periodId: 11, name: 'Nyári szünet'});
-    const data = makeDialogData(null, [], {experiod: [11]});
+    const data = makeDialogData(null, [], {manualExperiod: [11]});
 
     await setup([evkozi, nyari], data);
 
-    // Sanity: nyari (11) is in experiod
+    // Sanity: nyari (11) is in the manual exclusion list
     expect(component.experiodCtr.value).toContain(11);
 
     // User switches mass period to nyari
