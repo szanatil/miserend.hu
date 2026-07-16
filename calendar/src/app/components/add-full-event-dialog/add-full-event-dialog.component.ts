@@ -79,6 +79,9 @@ export class AddFullEventDialogComponent {
   // (KÜLÖN az automatikusan számolt experiod-tól, hogy az automatikák ne töröljék).
   experiodCtr = new FormControl<number[]>(this.data.event.manualExperiod ?? []);
 
+  // #454: Új dátum hozzáadásához használt ideiglenes változó
+  public newExceptionDate: Date | null = null;
+
   public singleEvent: boolean = this.data.event.renum === Renum.NONE;
   public specialPeriodType?: SpecialType | null = null;
 
@@ -490,4 +493,89 @@ export class AddFullEventDialogComponent {
      
      return result;
    }
+
+  /**
+   * #454: A datepicker dateChange eseményére reagál és automatikusan hozzáadja a dátumot.
+   */
+  onExceptionDateSelected(): void {
+    this.addExceptionDate();
+  }
+
+  /**
+   * #454: Új kizárt dátum hozzáadása az exdate listához.
+   * A dátumot ISO formátumban tároljuk, a kezdési idővel kombinálva.
+   */
+  addExceptionDate(): void {
+    if (!this.newExceptionDate) {
+      return;
+    }
+
+    // Ensure exdate array exists
+    if (!this.data.event.exdate) {
+      this.data.event.exdate = [];
+    }
+
+    // Combine the selected date with the current start time
+    const startTime = this.data.event.start;
+    const exDateTime = new Date(this.newExceptionDate);
+    exDateTime.setHours(startTime.getHours());
+    exDateTime.setMinutes(startTime.getMinutes());
+    exDateTime.setSeconds(0);
+    exDateTime.setMilliseconds(0);
+
+    // Format as ISO string (YYYY-MM-DDTHH:mm)
+    const year = exDateTime.getFullYear();
+    const month = String(exDateTime.getMonth() + 1).padStart(2, '0');
+    const day = String(exDateTime.getDate()).padStart(2, '0');
+    const hours = String(exDateTime.getHours()).padStart(2, '0');
+    const minutes = String(exDateTime.getMinutes()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+    // Add only if not already present
+    if (!this.data.event.exdate.includes(dateString)) {
+      this.data.event.exdate.push(dateString);
+      // Sort dates in chronological order
+      this.data.event.exdate.sort();
+      this.cdr.markForCheck();
+    }
+
+    // Clear the input field
+    this.newExceptionDate = null;
+  }
+
+  /**
+   * #454: Kizárt dátum eltávolítása.
+   */
+  removeExceptionDate(dateString: string): void {
+    if (this.data.event.exdate) {
+      this.data.event.exdate = this.data.event.exdate.filter(d => d !== dateString);
+      if (this.data.event.exdate.length === 0) {
+        this.data.event.exdate = null;
+      }
+      this.cdr.markForCheck();
+    }
+  }
+
+  /**
+   * #454: Dátum formázása olvasható formátumba (pl. "2024. december 25. 10:00").
+   */
+  formatExceptionDate(dateString: string): string {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = this.translateService.instant(`MONTHS.${date.getMonth() + 1}`);
+    const day = date.getDate();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}. ${month} ${day}. ${hours}:${minutes}`;
+  }
+
+  /**
+   * #454: Getter a rendezett exdate tömb eléréséhez.
+   */
+  get sortedExceptionDates(): string[] {
+    if (!this.data.event.exdate || this.data.event.exdate.length === 0) {
+      return [];
+    }
+    return [...this.data.event.exdate].sort();
+  }
 }
