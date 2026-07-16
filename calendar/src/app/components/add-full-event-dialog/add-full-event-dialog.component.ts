@@ -576,4 +576,36 @@ export class AddFullEventDialogComponent {
     }
     return [...this.data.event.exdate].sort().reverse();
   }
+
+  /**
+   * Generates the summary text for the Advanced settings panel.
+   * Shows count of excluded dates and manual periods.
+   */
+  getAdvancedSettingsSummary(): string {
+    const dateCount = this.data.event.exdate?.length ?? 0;
+    const periodCount = this.experiodCtr.value?.length ?? 0;
+    
+    if (dateCount === 0 && periodCount === 0) {
+      return this.translateService.instant('EXCLUDED_COUNT.NONE');
+    }
+    
+    if (dateCount > 0 && periodCount > 0) {
+      return this.translateService.instant('EXCLUDED_COUNT.BOTH', {
+        dateCount: dateCount,
+        periodCount: periodCount
+      });
+    }
+    
+    if (dateCount > 0) {
+      const key = dateCount === 1 ? 'EXCLUDED_COUNT.DATES_SINGULAR' : 'EXCLUDED_COUNT.DATES_PLURAL';
+      return this.translateService.instant(key, { count: dateCount });
+    }
+    
+    if (periodCount > 0) {
+      const key = periodCount === 1 ? 'EXCLUDED_COUNT.PERIODS_SINGULAR' : 'EXCLUDED_COUNT.PERIODS_PLURAL';
+      return this.translateService.instant(key, { count: periodCount });
+    }
+    
+    return '';
+  }
 }

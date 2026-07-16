@@ -46,6 +46,7 @@
   "COPY_NEW_MASS": "Új liturgia rögzítése",
   "EDIT_MASS": "Meglévő liturgia szerkesztése",
   "OTHER_SETTINGS": "Tulajdonságok",
+  "ADVANCED_SETTINGS": "Speciális",
   "COMMENT": "Megjegyzés",
 
   "RECURRENCE": "Ismétlődés",
@@ -57,6 +58,14 @@
   "ADD_EXCEPTION_DATE": "Dátum hozzáadása",
   "REMOVE_DATE": "Dátum törlése",
   "SELECT_DATE": "Válassz dátumot",
+  "EXCLUDED_COUNT": {
+    "DATES_SINGULAR": "kizárva 1 dátum",
+    "DATES_PLURAL": "kizárva {{count}} dátum",
+    "PERIODS_SINGULAR": "kizárva 1 időszak",
+    "PERIODS_PLURAL": "kizárva {{count}} időszak",
+    "BOTH": "kizárva {{dateCount}} dátum, {{periodCount}} időszak",
+    "NONE": "Nincs beállítva"
+  },
   "LANGUAGE": "Nyelv",
   "START_DATE": "Dátum",
   "START_TIME": "Időpont",

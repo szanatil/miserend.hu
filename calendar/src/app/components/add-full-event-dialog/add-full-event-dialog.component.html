@@ -129,48 +129,6 @@
               </mat-form-field>
             }
           }
-
-          @if (periodCtr.value && experiodOptions.length > 0) {
-            <mat-form-field>
-              <mat-label>{{'MANUAL_EXPERIOD' | translate}}</mat-label>
-              <mat-select multiple [formControl]="experiodCtr">
-                @for (period of experiodOptions; track period.periodId) {
-                  <mat-option [value]="period.periodId">
-                    <span class="period-color-dot" [style.background-color]="period.color"></span>
-                    {{period.name}}
-                  </mat-option>
-                }
-              </mat-select>
-              <mat-hint>{{'MANUAL_EXPERIOD_HINT' | translate}}</mat-hint>
-            </mat-form-field>
-          }
-
-          @if (periodCtr.value) {
-            <mat-form-field>
-              <mat-label>{{'EXCEPTION_DATES' | translate}}</mat-label>
-              <mat-chip-grid #chipGrid>
-                @for (dateStr of sortedExceptionDates; track dateStr) {
-                  <mat-chip-row (removed)="removeExceptionDate(dateStr)">
-                    {{ formatExceptionDate(dateStr) }}
-                    <button matChipRemove [attr.aria-label]="'REMOVE_DATE' | translate">
-                      <mat-icon>cancel</mat-icon>
-                    </button>
-                  </mat-chip-row>
-                }
-              </mat-chip-grid>
-              <input
-                matInput
-                [matDatepicker]="exDatePicker"
-                [(ngModel)]="newExceptionDate"
-                (dateChange)="onExceptionDateSelected()"
-                style="display: none;">
-              <button matSuffix mat-icon-button (click)="exDatePicker.open()" type="button" [matTooltip]="'ADD_EXCEPTION_DATE' | translate">
-                <mat-icon>add_circle_outline</mat-icon>
-              </button>
-              <mat-datepicker #exDatePicker/>
-              <mat-hint>{{'EXCEPTION_DATES_HINT' | translate}}</mat-hint>
-            </mat-form-field>
-          }
         }
 
         @if (singleEvent) {
@@ -239,6 +197,63 @@
        </div>
 
     </mat-expansion-panel>
+
+    <!-- Advanced Settings Panel - Only for recurring events -->
+    @if (!singleEvent) {
+      <mat-expansion-panel>
+        <mat-expansion-panel-header>
+          <mat-panel-title>{{ 'ADVANCED_SETTINGS' | translate }}</mat-panel-title>
+          <mat-panel-description>
+            {{ getAdvancedSettingsSummary() }}
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+
+        <div class="advanced-settings">
+          @if (periodCtr.value) {
+            <mat-form-field>
+              <mat-label>{{'EXCEPTION_DATES' | translate}}</mat-label>
+              <mat-chip-grid #chipGrid>
+                @for (dateStr of sortedExceptionDates; track dateStr) {
+                  <mat-chip-row (removed)="removeExceptionDate(dateStr)">
+                    {{ formatExceptionDate(dateStr) }}
+                    <button matChipRemove [attr.aria-label]="'REMOVE_DATE' | translate">
+                      <mat-icon>cancel</mat-icon>
+                    </button>
+                  </mat-chip-row>
+                }
+              </mat-chip-grid>
+              <input
+                matInput
+                [matDatepicker]="exDatePicker"
+                [(ngModel)]="newExceptionDate"
+                (dateChange)="onExceptionDateSelected()"
+                style="display: none;">
+              <button matSuffix mat-icon-button (click)="exDatePicker.open()" type="button" [matTooltip]="'ADD_EXCEPTION_DATE' | translate">
+                <mat-icon>add_circle_outline</mat-icon>
+              </button>
+              <mat-datepicker #exDatePicker/>
+              <mat-hint>{{'EXCEPTION_DATES_HINT' | translate}}</mat-hint>
+            </mat-form-field>
+          }
+
+          @if (periodCtr.value && experiodOptions.length > 0) {
+            <mat-form-field>
+              <mat-label>{{'MANUAL_EXPERIOD' | translate}}</mat-label>
+              <mat-select multiple [formControl]="experiodCtr">
+                @for (period of experiodOptions; track period.periodId) {
+                  <mat-option [value]="period.periodId">
+                    <span class="period-color-dot" [style.background-color]="period.color"></span>
+                    {{period.name}}
+                  </mat-option>
+                }
+              </mat-select>
+              <mat-hint>{{'MANUAL_EXPERIOD_HINT' | translate}}</mat-hint>
+            </mat-form-field>
+          }
+        </div>
+
+      </mat-expansion-panel>
+    }
 
     <mat-expansion-panel>
       <mat-expansion-panel-header>
