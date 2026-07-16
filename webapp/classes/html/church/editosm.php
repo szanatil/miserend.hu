@@ -45,9 +45,7 @@ class EditOsm extends \Html\Html {
 			$this->readingAccessOnly = true;
 			//return;
 		}
-
-		$this->readingAccessOnly = false;
-
+		
 		// Letöltjük a legfrissebb saját OSM adatait
 		$this->loadOSMDataWithOSM();
 	
