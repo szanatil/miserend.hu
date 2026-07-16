@@ -9,14 +9,14 @@
 
 | Cél | Host | Port | Mire kell | Forrás (osztály) |
 |---|---|---|---|---|
-| **OSM Nominatim** | `nominatim.openstreetmap.org` | 443 | Cím → koordináta keresés (geocoding) | `\ExternalApi\NominatimApi` |
+| **OSM Nominatim** | `nominatim.openstreetmap.org` | 443 | Cím vagy terület neve → koordináta keresés (geocoding) | `\ExternalApi\NominatimApi` |
 | **OSM Overpass** | `overpass-api.de` | 80 | Templom-elemek és határok lekérése OSM-ből (`url:miserend` tag) | `\ExternalApi\OverpassApi` |
 | **OSM opening_hours evaluator** | `openingh.openstreetmap.de` | 443 | `opening_hours` mező parse / evaluate | `\ExternalApi\OpeninghApi` |
-| **OSM OAuth** | `master.apis.dev.openstreetmap.org` | 443 | OSM OAuth flow (admin) | `\ExternalApi\OpenStreetMapApi` |
+| **OSM OAuth** | fejlesztéshez `master.apis.dev.openstreetmap.org`, élesen:  `api.openstreetmap.org` | 443 | OSM adatok módosítása | `\ExternalApi\OpenStreetMapApi` |
 | **Mapquest Directions** | `open.mapquestapi.com` | 80 | Útvonal-távolság számítás templomok között (cron) | `\ExternalApi\MapquestApi` |
 | **Közösségek API** | `kozossegek.hu` | 443 | Templomhoz tartozó közösségek lekérése | `\ExternalApi\KozossegekApi` |
-| **Szentségimádások** | `szentsegimadas.hu` | 443 | Adoráció / szentségimádás-időpontok | `\ExternalApi\SzentsegimadasApi` |
-| **Napi lelki batyu** | `szentjozsefhackathon.github.io` | 443 | Napi lelki batyu (idézet / olvasmány) | `\ExternalApi\NapiLelkibatyuApi` |
+| **Szentségimádások** | `szentsegimadas.hu` | 443 | Szentségimádás-időpontok (elavulóban) | `\ExternalApi\SzentsegimadasApi` |
+| **Napi lelki batyu** | `szentjozsefhackathon.github.io` | 443 | Napi lelki batyu: a liturgikus naptár érkezik innen | `\ExternalApi\NapiLelkibatyuApi` |
 
 ## Belső szolgáltatások (Docker compose network)
 
