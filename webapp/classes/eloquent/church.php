@@ -450,6 +450,10 @@ class Church extends \Illuminate\Database\Eloquent\Model {
                 'koordinatak' => [ (float) $this->lat, (float) $this->lon ],
                 'lat' => (float) $this->lat,
                 'lon' =>(float) $this->lon,
+                // #112: a templom honlapja(i) a minimal response-ban is - a /nearby
+                // API alapból minimal-t ad vissza, és a mobil alkalmazásnak
+                // (KAPP) szüksége van rá.
+                'links' => $this->links->pluck('href')->toArray(),
                 'tavolsag' => (int) $this->distance
             ];
             return $return;
