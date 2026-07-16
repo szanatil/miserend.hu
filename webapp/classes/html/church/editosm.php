@@ -476,6 +476,23 @@ class EditOsm extends \Html\Html {
 				]								
 			]
 		];
+
+		$this->form['other'] = [		
+			'title' => 'Egyéb',
+			'inputs' => [		
+				'payment:credit_card' =>[
+					'title' => 'Bankkártyás adományozási lehetőség',
+					'options' => array(
+						'' => 'Nincs információ.',
+						'yes' => 'Bankkártyás, digitális persely is elérhető.',
+						'limited' => 'Bankkártyás fizetés csak a sekrestyében ill. külön kérésre.',
+						'no' => 'Csak készpénzes fizetés/adományozás lehetséges.'
+					),
+					'help' => 'Egyre több helyen elérhető bankkártyás fizetési vagy külön adományozó terminál, mely első változatás a jezsuiták AutoMáténak neveztek el.'
+				]
+		
+			]
+		];
    
 		foreach( $this->form as $sid => $section) {
 			foreach( $section['inputs'] as $key => $input ) {
