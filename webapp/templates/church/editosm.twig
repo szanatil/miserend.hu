@@ -189,7 +189,7 @@
 				<ul>
 				{% for adm in administration[ osmtags.denomination ~ '_administration'] %}
 					<li>
-					<a href="/collection/{{ adm.osmtype }}:{{ adm.osmid }}"><strong>{{ adm.name }}</strong></a> <span class="badge" style="background-color: {{ adm.color }};">{{ adm.type }}</span></li>
+					<a href="/collection/{{ adm.osm.type }}:{{ adm.osm.id }}"><strong>{{ adm.name }}</strong></a> <span class="badge" style="background-color: {{ adm.color }};">{{ adm.type }}</span></li>
 				{% endfor %}
 				</ul>
 			{% else %}
@@ -208,7 +208,7 @@
 				A területi elhelyezkedése alapján azért megtaláltunk már így is némi információt:
 				<ul>
 				{% for adm in administration[ 'administration'] %}
-					<li><a href="/collection/{{ adm.osmtype }}:{{ adm.osmid }}"><strong>{{ adm['name:hu'] ?? adm.name }}</strong></a> <span class="badge" style="background-color: {{ adm.color }};">{{ adm.type }}</span></li>
+					<li><a href="/collection/{{ adm.osm.type }}:{{ adm.osm.id }}"><strong>{{ adm['name:hu'] ?? adm.name }}</strong></a> <span class="badge" style="background-color: {{ adm.color }};">{{ adm.type }}</span></li>
 				{% endfor %}
 				</ul>
 			{% else %}
