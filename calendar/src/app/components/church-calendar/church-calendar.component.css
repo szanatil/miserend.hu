@@ -150,12 +150,14 @@
 ::ng-deep .fc-timegrid-slots tr:has(> td.fc-timegrid-slot-lane.fc-empty-slot) > td {
   height: 0 !important;
   padding: 0 !important;
+  line-height: 0 !important;
   overflow: hidden !important;
   border-top: 1px dashed #c9c9c9 !important; /* a "törés" varrat */
 }
-/* A collapsed slotok idő-feliratát is rejtsük (belt-and-suspenders). */
-::ng-deep .fc-timegrid-slots tr:has(> td.fc-timegrid-slot-lane.fc-empty-slot) .fc-timegrid-slot-label-cushion,
-::ng-deep .fc-timegrid-slots tr:has(> td.fc-timegrid-slot-lane.fc-empty-slot) .fc-timegrid-axis-cushion {
+/* A táblacella magasságát a TARTALMA feszíti (a "10:00" felirat frame-je), ezért
+ * a collapsed sor celláinak a tartalmát is el kell rejteni - különben a td csak
+ * ~minimumig zsugorodik. Így a sor tényleg ~0 magasságú lesz. */
+::ng-deep .fc-timegrid-slots tr:has(> td.fc-timegrid-slot-lane.fc-empty-slot) > td > * {
   display: none !important;
 }
 
