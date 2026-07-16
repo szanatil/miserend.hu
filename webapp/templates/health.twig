@@ -186,36 +186,59 @@
 
 	<table class="table table-hover table-condensed table-striped">
 		<tr>
-			<td><strong>Átlagosan frissítettség</strong></td>
+			<td><strong>Átlagosan frissítettség</strong> <small class="text-muted">(csak a már valaha ellenőrzötteknél)</small></td>
 			<td>{{ boundariesStats.with_osm.avg_days_old }} nap</td>
+		</tr>
+		<tr>
+			<td><strong>Misézőhelyek amiknek nem kerestük még soha</strong> </td>
+			<td>
+				{% if boundariesStats.with_osm.never_checked_count == 0 %}
+					<span class="badge bg-success">0</span>
+				{% elseif boundariesStats.with_osm.never_checked_count < 100 %}
+					<span class="badge bg-warning">{{ boundariesStats.with_osm.never_checked_count }}</span>
+				{% else %}
+					<span class="badge bg-danger">{{ boundariesStats.with_osm.never_checked_count }}</span>
+				{% endif %}
+				/ {{ boundariesStats.with_osm.count }}
+			</td>
 		</tr>
 		<tr>
 			<td><strong>Legfrissebb</strong></td>
 			<td>
-				{% set newestDate = boundariesStats.with_osm.newest|date('Y-m-d', 'UTC') %}
-				{% set now = "now"|date('Y-m-d', 'UTC') %}
-				{% set newestDateTime = date(newestDate) %}
-				{% set nowDateTime = date(now) %}
-				{% set daysDiff = ((nowDateTime.timestamp - newestDateTime.timestamp) / 86400)|round(0, 'floor') %}
-				{% if daysDiff < 7 %}
-					<span class="badge bg-success">{{ boundariesStats.with_osm.newest }}</span>
-				{% elseif daysDiff > 30 %}
-					<span class="badge bg-danger">{{ boundariesStats.with_osm.newest }}</span>
+				{% if boundariesStats.with_osm.newest %}
+					{% set newestDate = boundariesStats.with_osm.newest|date('Y-m-d', 'UTC') %}
+					{% set now = "now"|date('Y-m-d', 'UTC') %}
+					{% set newestDateTime = date(newestDate) %}
+					{% set nowDateTime = date(now) %}
+					{% set daysDiff = ((nowDateTime.timestamp - newestDateTime.timestamp) / 86400)|round(0, 'floor') %}
+					{% if daysDiff < 7 %}
+						<span class="badge bg-success">{{ boundariesStats.with_osm.newest }}</span>
+					{% elseif daysDiff > 30 %}
+						<span class="badge bg-danger">{{ boundariesStats.with_osm.newest }}</span>
+					{% else %}
+						<span class="badge">{{ boundariesStats.with_osm.newest }}</span>
+					{% endif %}
 				{% else %}
-					<span class="badge">{{ boundariesStats.with_osm.newest }}</span>
+					<span class="badge bg-secondary">N/A</span>
 				{% endif %}
 			</td>
 		</tr>
 		<tr>
 			<td><strong>Legöregebb</strong></td>
 			<td>
-				{% set oldestDate = boundariesStats.with_osm.oldest|date('Y-m-d', 'UTC') %}
-				{% set oldestDateTime = date(oldestDate) %}
-				{% set daysDiffOldest = ((nowDateTime.timestamp - oldestDateTime.timestamp) / 86400)|round(0, 'floor') %}
-				{% if daysDiffOldest < 365 %}
-					<span class="badge bg-success">{{ boundariesStats.with_osm.oldest }}</span>
+				{% if boundariesStats.with_osm.oldest %}
+					{% set oldestDate = boundariesStats.with_osm.oldest|date('Y-m-d', 'UTC') %}
+					{% set now = "now"|date('Y-m-d', 'UTC') %}
+					{% set oldestDateTime = date(oldestDate) %}
+					{% set nowDateTime = date(now) %}
+					{% set daysDiffOldest = ((nowDateTime.timestamp - oldestDateTime.timestamp) / 86400)|round(0, 'floor') %}
+					{% if daysDiffOldest < 365 %}
+						<span class="badge bg-success">{{ boundariesStats.with_osm.oldest }}</span>
+					{% else %}
+						<span class="badge bg-danger">{{ boundariesStats.with_osm.oldest }}</span>
+					{% endif %}
 				{% else %}
-					<span class="badge bg-danger">{{ boundariesStats.with_osm.oldest }}</span>
+					<span class="badge bg-secondary">N/A</span>
 				{% endif %}
 			</td>
 		</tr>
@@ -248,9 +271,9 @@
 					</div>
 				</div>
 				<div style="margin-top: 8px; font-size: 12px; color: #666;">
-					<span style="color: #28a745;">■</span>Templomok OSM lokációval: {{ boundariesStats.churches_with_osm_boundary }}/{{ boundariesStats.total_churches }}
+					<span style="color: #28a745;">■</span>Misézőhelyek OSM boundary adatokkal: {{ boundariesStats.churches_with_osm_boundary }}/{{ boundariesStats.total_churches }}
 					&nbsp;&nbsp;
-					<span style="color: #dc3545;">■</span>Templomok OSM lokáció nélkül: {{ boundariesStats.churches_without_osm_boundary }}/{{ boundariesStats.total_churches }}
+					<span style="color: #dc3545;">■</span>Misézőhelyek OSM boundary adatok nélkül: {{ boundariesStats.churches_without_osm_boundary }}/{{ boundariesStats.total_churches }}
 				</div>
 			</td>
 		</tr>

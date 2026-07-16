@@ -686,13 +686,15 @@ CREATE TABLE IF NOT EXISTS `templomok` (
   `osmtype` varchar(9) DEFAULT NULL,
   `lat` decimal(11,7) DEFAULT NULL,
   `lon` decimal(10,7) DEFAULT NULL,
+  `boundaries_checked_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `id` (`id`),
   KEY `varos` (`varos`),
   KEY `ismertnev` (`ismertnev`),
   KEY `egyhazmegye` (`egyhazmegye`),
   KEY `espereskerulet` (`espereskerulet`),
-  KEY `osm` (`osmid`,`osmtype`)
+  KEY `osm` (`osmid`,`osmtype`),
+  KEY `boundaries_checked_at` (`boundaries_checked_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5420 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

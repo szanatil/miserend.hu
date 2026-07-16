@@ -12,45 +12,57 @@ class OSM {
     function checkBoundaries($limit = 50) {
         $this->deleteOrphanBoundaries();
 
-        $churches = \Eloquent\Church::where('ok','i')->where('lat','<>','')
-                ->doesntHave('boundaries')
-                ->orderByRaw("RAND()")
-                ->take($limit)
-                ->get();
+        // Egyetlen unified query: rendezés boundaries_checked_at szerint (NULL-ok = soha nem ellenőrzöttek - előre),
+        // majd legrégebben ellenőrzöttek kerülnek sorra. A kétfázisú doesntHave+RAND() logika hibás volt,
+        // mert koordináta nélküli / API-hibás templomok örökös hurokba ragadtak, és a régi adatú templomok soha nem frissültek.
+        $churches = \Eloquent\Church::where('ok', 'i')
+            ->whereNotNull('lat')
+            ->where('lat', '!=', 0)
+            ->whereNotNull('lon')
+            ->where('lon', '!=', 0)
+            ->orderByRaw('ISNULL(boundaries_checked_at) DESC, boundaries_checked_at ASC')
+            ->take($limit)
+            ->get();
 
-        if(count($churches) < 1) {
-            $results= DB::table('templomok')
-            ->join('lookup_boundary_church', 'templomok.id', '=', 'lookup_boundary_church.church_id')
-            ->select('lookup_boundary_church.*')
-            ->orderBy('lookup_boundary_church.updated_at','ASC')
-            ->groupBy('church_id')
-            ->limit($limit)
-            ->get(); 
-            $churches = array();
-            foreach($results as $result) {
-                $churches[] = \Eloquent\Church::find($result->church_id);
-            }
-        }
-        
-        /**/
-        foreach($churches as $church) {
-            $this->checkBoundariesForOne($church);
-        }
+        if ($churches->isEmpty()) return;
 
+        // A referencia táblákat EGYSZER töltjük be az összes templomhoz – nem minden templomnál külön.
+        // MmigrateBoundaries() korábban minden templomnál 5x lekérdezte ezeket = 250 query/batch.
+        $referenceData = [
+            'egyhazmegyek'     => collect(DB::table('egyhazmegye')->get())->keyBy('id'),
+            'espereskeruletek' => collect(DB::table('espereskerulet')->get())->keyBy('id'),
+            'orszagok'         => collect(DB::table('orszagok')->get())->keyBy('id'),
+            'megyek'           => collect(DB::table('megye')->select('*', 'megyenev as nev')->get())->keyBy('id'),
+        ];
+
+        foreach ($churches as $church) {
+            $this->checkBoundariesForOne($church, $referenceData);
+        }
     }
 
-    function checkBoundariesForOne($church) {
+    function checkBoundariesForOne($church, array $referenceData = []) {
         $boundaries = $this->downloadBoundaries($church->lat, $church->lon);
-        if($boundaries === null || count($boundaries) < 1) return;
+
+        // Mindig jelöljük, hogy megpróbáltuk – akár sikeres volt, akár nem (pl. Overpass 503).
+        // Ez megakadályozza az örökös hurkot: a következő futásban más templomok kerülnek sorra.
+        \Eloquent\Church::where('id', $church->id)
+            ->update(['boundaries_checked_at' => date('Y-m-d H:i:s')]);
+
+        if ($boundaries === null || count($boundaries) < 1) return;
+
         $church->boundaries()->sync($boundaries);
-        $church->MmigrateBoundaries();
+        $church->MmigrateBoundaries($referenceData);
     }
     
     function deleteOrphanBoundaries() {
-        $boundaries = \Eloquent\Boundary::doesntHave('churches')->get();
-        foreach($boundaries as $boundary) {
-            $boundary->delete();
-        }
+        // Bulk DELETE egyszerre, ahelyett hogy egyenként töröljük Eloquent-tel.
+        // Az eredeti kód: doesntHave()->get() majd loop + delete() = N query.
+        // Ez egyetlen subquery-s DELETE.
+        DB::table('boundaries')
+            ->whereNotIn('id', function($query) {
+                $query->select('boundary_id')->from('lookup_boundary_church');
+            })
+            ->delete();
     }
 
     static function downloadChurchesWithinBoundary($osmtype, $osmid) {
@@ -115,7 +127,13 @@ class OSM {
                 $changed = true;
             }
 
-            $changed ? $boundary->save() : false;
+            if ($changed) {
+                $boundary->save();
+            } else {
+                // Az OSM adat nem változott, de jelezzük, hogy most is ellenőriztük.
+                // Ez biztosítja, hogy a boundaries.updated_at tükrözze az utolsó ellenőrzés idejét.
+                $boundary->touch();
+            }
 
             $return[] = $boundary->id;
         }
