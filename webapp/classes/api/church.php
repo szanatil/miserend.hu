@@ -46,6 +46,7 @@ class Church extends Api {
             <li>„varos”</li>
             <li>„lat”</li>
             <li>„lon”</li>
+            <li>„links” (<em>string[]</em>): a templom honlapjai (üres tömb ha nincs)</li>
             <li>„tavolsag” (<em>integer</em>): távolság méterben</li>
             <li>„misek”: az adott napi szentmisék listája
                 <ul>
