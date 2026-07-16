@@ -478,4 +478,34 @@ class ApiEndpointsTest extends TestCase {
         );
     }
 
+    /**
+     * Regression test: /calendar/generate must return valid JSON.
+     * Before the fix, echo statements inside updateMasses() corrupted the JSON response.
+     */
+    public function testCalendarGenerateReturnsValidJson(): void
+    {
+        $ch = curl_init($this->baseUrl . '/calendar/generate?tids[]=1&years[]=2025');
+        curl_setopt_array($ch, [
+            CURLOPT_CUSTOMREQUEST  => 'PUT',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 120,
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+        ]);
+        $raw      = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr  = curl_error($ch);
+        curl_close($ch);
+
+        $this->assertEmpty($curlErr, 'Curl error: ' . $curlErr);
+        $this->assertEquals(200, $httpCode, "Expected HTTP 200, got {$httpCode}");
+
+        $decoded = json_decode($raw, true);
+        $this->assertNotNull(
+            $decoded,
+            "Response is not valid JSON. First 500 chars: " . substr($raw, 0, 500)
+        );
+        $this->assertArrayHasKey('success', $decoded);
+        $this->assertTrue($decoded['success']);
+    }
+
 }

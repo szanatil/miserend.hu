@@ -57,12 +57,15 @@ class Generate extends \Html\Calendar\CalendarApi {
                   // Itt egy keresés volt korábban, de úgy tűnt semmi nem használja. 
                   break;
                               
-            case 'PUT':                                
-                $debug = \ExternalApi\ElasticsearchApi::updateMasses($this->years, $this->tids);
+            case 'PUT':
+                $generateLog = [];
+                $debug = \ExternalApi\ElasticsearchApi::updateMasses($this->years, $this->tids,
+                    function($msg) use (&$generateLog) { $generateLog[] = $msg; }
+                );
 
                 $this->content = json_encode([
                     'success' => true,
-                    'debug'   => array_merge($debug, $this->debugLog)
+                    'debug'   => array_merge($debug ?? [], $generateLog, $this->debugLog)
                 ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
                 break;
         }}

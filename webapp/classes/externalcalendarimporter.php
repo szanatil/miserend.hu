@@ -130,7 +130,9 @@ class ExternalCalendarImporter {
 
         // 4. Refresh Elasticsearch index for this church
         $years = [2025, 2026, 2027, 2028];
-        \ExternalApi\ElasticsearchApi::updateMasses($years, [$churchId]);
+        \ExternalApi\ElasticsearchApi::updateMasses($years, [$churchId],
+            function($msg) { echo "  " . $msg . "<br>\n"; }
+        );
 
         echo "  Elasticsearch index updated<br>\n";
     }
