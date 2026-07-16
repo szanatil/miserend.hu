@@ -1596,6 +1596,14 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
         }
       }
 
+      // #428: ugyanez a KÉZI kivétel-listára is – a másolt mise ne zárja ki saját új időszakát
+      if (ScriptUtil.isNotNull(newMass.manualExperiod)) {
+        newMass.manualExperiod = newMass.manualExperiod.filter(id => id !== targetPeriodId);
+        if (newMass.manualExperiod.length === 0) {
+          newMass.manualExperiod = null;
+        }
+      }
+
       // Add to changes map
       this.changes.set(newMass.id, newMass);
       globalChanged = true;
@@ -2068,6 +2076,16 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       exDatesNew.sort().reverse();
       exDatesOld.sort().reverse();
 
+      // #428: szétválasztjuk az automatikus és a kézi kizárt időszakokat
+      const autoPeriodIds = m.experiod ?? [];
+      const manualPeriodIds = m.manualExperiod ?? [];
+      const autoExperiodNames = autoPeriodIds
+        .map((pid: number) => this.periodService.getPeriodNameById(pid))
+        .filter((n: any) => n);
+      const manualExperiodNames = manualPeriodIds
+        .map((pid: number) => this.periodService.getPeriodNameById(pid))
+        .filter((n: any) => n);
+
       const massData = {
         id: m.id,
         title: m.title,
@@ -2080,9 +2098,11 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
         flag: flag,
         types: m.types ? m.types : [],
         comment: m.comment,
-        // include experiod ids and resolved period names for display
-        experiod: m.experiod ? m.experiod : [],
-        experiodNames: m.experiod ? m.experiod.map((pid: number) => this.periodService.getPeriodNameById(pid)).filter((n: any) => n) : [],
+        // #428: a mise-listában az auto + kézi kizárt időszakok UNIÓJA jelenjen meg
+        experiod: MassUtil.getEffectiveExperiod(m),
+        experiodNames: MassUtil.getEffectiveExperiod(m).map((pid: number) => this.periodService.getPeriodNameById(pid)).filter((n: any) => n),
+        autoExperiodNames: autoExperiodNames,
+        manualExperiodNames: manualExperiodNames,
         exDates: m.exdate ? m.exdate : [],
         exDatesNew: exDatesNew,
         exDatesOld: exDatesOld,

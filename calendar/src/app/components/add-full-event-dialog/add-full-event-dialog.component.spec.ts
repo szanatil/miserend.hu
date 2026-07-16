@@ -24,15 +24,13 @@ function makeGeneratedPeriod(overrides: Partial<GeneratedPeriod> = {}): Generate
   };
 }
 
-// #450: a komponens a `renum === Renum.NONE` alapján dönti el, hogy egyszeri
-// alkalomról van-e szó (`singleEvent`). Egyszeri alkalomhoz NEM rendelünk
-// alapértelmezett időszakot (ez volt a #450 bug). Ezért a #308 default-period
-// teszteknek ismétlődő misét (EVERY_WEEK) kell használniuk — különben a
-// singleEvent-ág kihagyja a period-választást és null marad.
+// #450: a default-period tesztek ismétlődő misét igényelnek (EVERY_WEEK), mert
+// egyszeri alkalom (Renum.NONE → singleEvent) NEM kap alapértelmezett időszakot.
+// Az eventOverrides spread a renum után van, így egy teszt felül tudja írni.
 function makeDialogData(
   periodOverride: GeneratedPeriod | null = null,
   existingPeriodIds: number[] = [],
-  renum: Renum = Renum.EVERY_WEEK,
+  eventOverrides: Record<string, any> = {},
 ) {
   return {
     title: 'ADD_NEW_MASS',
@@ -45,10 +43,11 @@ function makeDialogData(
       start: new Date('2026-03-15T10:00:00'),
       duration: {hours: 1},
       language: LanguageCode.HU,
-      renum,
+      renum: Renum.EVERY_WEEK,
       selectedDays: [Day.SU],
       comment: '',
       editOne: false,
+      ...eventOverrides,
     },
   };
 }
@@ -167,7 +166,7 @@ describe('AddFullEventDialogComponent (#308 default period)', () => {
     const p10 = makeGeneratedPeriod({id: 1, periodId: 10, name: 'Iskolaidő'});
 
     // DialogData without existingPeriodIds key at all (legacy callers / safety net).
-    // #450: ismétlődő mise (EVERY_WEEK), hogy a default-period ág lefusson.
+    // #450: ismétlődő mise, hogy a default-period ág lefusson.
     const data = {
       title: 'ADD_NEW_MASS',
       event: {
@@ -188,6 +187,112 @@ describe('AddFullEventDialogComponent (#308 default period)', () => {
     await setup([p10], data as any);
 
     expect(component.periodCtr.value).toEqual(p10);
+  });
+});
+
+describe('AddFullEventDialogComponent (#428 manual experiod selector)', () => {
+  let component: AddFullEventDialogComponent;
+  let fixture: ComponentFixture<AddFullEventDialogComponent>;
+  let periodServiceMock: {
+    getSelectableGeneratedPeriodsByDate: jasmine.Spy;
+    getPeriodById: jasmine.Spy;
+    getSpecialPeriodType: jasmine.Spy;
+  };
+
+  async function setup(periods: GeneratedPeriod[], data = makeDialogData()) {
+    periodServiceMock = {
+      getSelectableGeneratedPeriodsByDate: jasmine.createSpy().and.returnValue(of(periods)),
+      getPeriodById: jasmine.createSpy().and.returnValue(null),
+      getSpecialPeriodType: jasmine.createSpy().and.returnValue(null),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [AddFullEventDialogComponent, TranslateModule.forRoot()],
+      providers: [
+        {provide: MAT_DIALOG_DATA, useValue: data},
+        {provide: MatDialogRef, useValue: {close: jasmine.createSpy()}},
+        {provide: PeriodService, useValue: periodServiceMock},
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(AddFullEventDialogComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  }
+
+  it('initializes experiodCtr empty when no manualExperiod is preset', async () => {
+    await setup([makeGeneratedPeriod()]);
+
+    expect(component.experiodCtr.value).toEqual([]);
+  });
+
+  it('initializes experiodCtr from data.event.manualExperiod on edit', async () => {
+    const data = makeDialogData(null, [], {manualExperiod: [11, 12]});
+
+    await setup([makeGeneratedPeriod()], data);
+
+    expect(component.experiodCtr.value).toEqual([11, 12]);
+  });
+
+  it('writes experiodCtr changes back to data.event.manualExperiod', async () => {
+    await setup([makeGeneratedPeriod()]);
+
+    component.experiodCtr.setValue([20, 30]);
+
+    expect(component.data.event.manualExperiod).toEqual([20, 30]);
+  });
+
+  it('writes null to data.event.manualExperiod when selection is cleared', async () => {
+    const data = makeDialogData(null, [], {manualExperiod: [11]});
+    await setup([makeGeneratedPeriod()], data);
+
+    component.experiodCtr.setValue([]);
+
+    expect(component.data.event.manualExperiod).toBeNull();
+  });
+
+  it('experiodOptions excludes the currently selected mass period', async () => {
+    const evkozi = makeGeneratedPeriod({id: 1, periodId: 10, name: 'Évközi'});
+    const nyari  = makeGeneratedPeriod({id: 2, periodId: 11, name: 'Nyári szünet'});
+    const oszi   = makeGeneratedPeriod({id: 3, periodId: 12, name: 'Őszi szünet'});
+
+    await setup([evkozi, nyari, oszi]);
+    // Simulate the user picking the "Évközi" (periodId=10) as the mass period.
+    component.periodCtr.setValue(evkozi);
+
+    const optionPeriodIds = component.experiodOptions.map(p => p.periodId);
+    expect(optionPeriodIds).not.toContain(10);
+    expect(optionPeriodIds).toContain(11);
+    expect(optionPeriodIds).toContain(12);
+  });
+
+  it('experiodOptions returns all periods when no mass period is selected', async () => {
+    const evkozi = makeGeneratedPeriod({id: 1, periodId: 10});
+    const nyari  = makeGeneratedPeriod({id: 2, periodId: 11});
+
+    await setup([evkozi, nyari]);
+    // #308 óta a periodCtr auto-fill-elődik az első elérhető periódusra,
+    // ezért a „nincs kiválasztva" ágat explicit reset-tel hozzuk létre.
+    component.periodCtr.setValue(null);
+
+    expect(component.experiodOptions.length).toBe(2);
+  });
+
+  it('removes a period from manualExperiod if the user later selects it as the mass period', async () => {
+    const evkozi = makeGeneratedPeriod({id: 1, periodId: 10, name: 'Évközi'});
+    const nyari  = makeGeneratedPeriod({id: 2, periodId: 11, name: 'Nyári szünet'});
+    const data = makeDialogData(null, [], {manualExperiod: [11]});
+
+    await setup([evkozi, nyari], data);
+
+    // Sanity: nyari (11) is in the manual exclusion list
+    expect(component.experiodCtr.value).toContain(11);
+
+    // User switches mass period to nyari
+    component.periodCtr.setValue(nyari);
+
+    // The "exclude yourself" guard kicks in
+    expect(component.experiodCtr.value).not.toContain(11);
   });
 });
 
@@ -222,7 +327,7 @@ describe('AddFullEventDialogComponent (#450 egyszeri alkalom nem kap időszakot)
   it('does NOT assign a default period for a single event (renum NONE), even if periods exist', async () => {
     const evkozi = makeGeneratedPeriod({id: 1, periodId: 10, name: 'Iskolaidő'});
 
-    await setup([evkozi], makeDialogData(null, [10], Renum.NONE));
+    await setup([evkozi], makeDialogData(null, [10], {renum: Renum.NONE}));
 
     expect(component.singleEvent).toBeTrue();
     expect(component.periodCtr.value).toBeNull();
@@ -234,11 +339,9 @@ describe('AddFullEventDialogComponent (#450 egyszeri alkalom nem kap időszakot)
   it('clears the period when switching from recurring to single (onRecurrenceModChange)', async () => {
     const evkozi = makeGeneratedPeriod({id: 1, periodId: 10, name: 'Iskolaidő'});
 
-    // Ismétlődőként indul → kap default period-ot.
-    await setup([evkozi], makeDialogData(null, [10], Renum.EVERY_WEEK));
+    await setup([evkozi], makeDialogData(null, [10], {renum: Renum.EVERY_WEEK}));
     expect(component.periodCtr.value).toEqual(evkozi);
 
-    // A felhasználó egyszerire vált.
     component.singleEvent = true;
     component.onRecurrenceModChange();
 

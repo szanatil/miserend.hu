@@ -28,4 +28,6 @@ export interface DialogEvent {
   editOne: boolean;
   exdate?: string[] | null;
   experiod?: number[] | null;
+  // #428: a felhasználó által kézzel beállított kivétel-időszakok
+  manualExperiod?: number[] | null;
 }

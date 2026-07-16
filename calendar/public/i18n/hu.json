@@ -50,6 +50,8 @@
 
   "RECURRENCE": "Ismétlődés",
   "PERIOD": "Időszak",
+  "MANUAL_EXPERIOD": "Kézzel kivett időszakok",
+  "MANUAL_EXPERIOD_HINT": "A kiválasztott időszakokban semmiképp nem fog megjelenni.",
   "LANGUAGE": "Nyelv",
   "START_DATE": "Dátum",
   "START_TIME": "Időpont",
@@ -242,7 +244,10 @@
     "NO_PERIOD": "Időszak nélkül",
     "OLDER_MASSES_EXPANDABLE": "Vannak még régebbi misék is. Kattints ide a kibontáshoz",
     "OLDER_EXCEPTION_DATES_SHOW": "Régebbiek megjelenítése",
-    "OLDER_EXCEPTION_DATES_HIDE": "Régebbiek elrejtése"
+    "OLDER_EXCEPTION_DATES_HIDE": "Régebbiek elrejtése",
+    "EXCEPTION_AUTO": "Automatikusan kizárva a {{periodName}} időszakból.",
+    "EXCEPTION_MANUAL": "Kézzel beállítva, hogy a {{periodName}} időszakban ne jelenjen meg.",
+    "EXCEPTION_DATE": "Ismétlődő esemény kézzel törölve erről erről a napról."
   },
 
   "SIMPLE_EVENT": {
