@@ -177,26 +177,32 @@ class Health extends Html {
 		}
 		
 		// Health of Boundaries
-		// 1. Boundaries átlagéletkora (updated_at), legfrissebb és legöregebb dátuma, amelyeknek van osmid és osmtype-ja
-		$boundariesWithOsm = DB::table('boundaries')
-			->whereNotNull('osmtype')
-			->whereNotNull('osmid')
-			->where('osmtype', '!=', '')
-			->where('osmid', '!=', 0)
+		// 1. Mikor volt utoljára ellenőrizve egy-egy templomhoz a boundary (boundaries_checked_at).
+		// Ez mutatja meg valósan, mikor volt utoljára lefuttatva a checkBoundaries cron egy adott templomnál.
+		// (A korábbi boundaries.updated_at az OSM adatok változási dátumát mutatta, ami évek óta nem változhat,
+		//  ezért adott hamisan nagy értéket az átlagos frissítettségnél.)
+		$churchBoundaryStats = DB::table('templomok')
+			->where('ok', 'i')
+			->whereNotNull('lat')
+			->where('lat', '!=', 0)
+			->whereNotNull('lon')
+			->where('lon', '!=', 0)
 			->select(
 				DB::raw('COUNT(*) as count'),
-				DB::raw('AVG(DATEDIFF(NOW(), updated_at)) as avg_days_old'),
-				DB::raw('MAX(updated_at) as newest'),
-				DB::raw('MIN(updated_at) as oldest')
+				DB::raw('SUM(CASE WHEN boundaries_checked_at IS NULL THEN 1 ELSE 0 END) as never_checked_count'),
+				DB::raw('AVG(CASE WHEN boundaries_checked_at IS NOT NULL THEN DATEDIFF(NOW(), boundaries_checked_at) END) as avg_days_old'),
+				DB::raw('MAX(boundaries_checked_at) as newest'),
+				DB::raw('MIN(CASE WHEN boundaries_checked_at IS NOT NULL THEN boundaries_checked_at END) as oldest')
 			)
 			->first();
 		
 		$this->boundariesStats = [
 			'with_osm' => [
-				'count' => $boundariesWithOsm->count ?? 0,
-				'avg_days_old' => $boundariesWithOsm->avg_days_old ? round($boundariesWithOsm->avg_days_old, 2) : 0,
-				'newest' => $boundariesWithOsm->newest ?? 'N/A',
-				'oldest' => $boundariesWithOsm->oldest ?? 'N/A'
+				'count' => $churchBoundaryStats->count ?? 0,
+				'never_checked_count' => $churchBoundaryStats->never_checked_count ?? 0,
+				'avg_days_old' => $churchBoundaryStats->avg_days_old ? round($churchBoundaryStats->avg_days_old, 2) : 0,
+				'newest' => $churchBoundaryStats->newest ?? null,
+				'oldest' => $churchBoundaryStats->oldest ?? null
 			]
 		];
 		

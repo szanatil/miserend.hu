@@ -967,14 +967,16 @@ class Church extends \Illuminate\Database\Eloquent\Model {
      * A régi templomok.egyhazmegye/espereskerulet/orszag/megye/varos -ból csinál
      * boundary értéket, ha még nincs. Ill. összekapcsolást.
      */
-    function MmigrateBoundaries() {
+    function MmigrateBoundaries(array $referenceData = []) {
         
-        // Sok templom vizsgálata esetén ez eléggé erőforráspazarló. De csak azoknál kerülhet elő, ahol nincs koordináta. Az pedig néhány eltévedt bárányka.
-        $_egyhazmegyek = collect(DB::table('egyhazmegye')->get())->keyBy('id')->sortBy('sorrend');
-        $_espereskeruletek = collect(DB::table('espereskerulet')->get())->keyBy('id');
-        $_orszagok = collect(DB::table('orszagok')->get())->keyBy('id');
-        $_megyek = collect(DB::table('megye')->select('*','megyenev as nev')->get())->keyBy('id');
-        $_varosok = collect(DB::table('varosok')->get())->keyBy('id');
+        // Ha a hívó (pl. OSM::checkBoundaries) már betöltötte a referencia táblákat,
+        // használjuk azokat (50 templomnál 5 tábla = 250 query megtakarítás batch-enként).
+        // Ha nincs átadva (pl. egyedi hívásból), akkor töltjük be helyben.
+        $_egyhazmegyek     = $referenceData['egyhazmegyek']     ?? collect(DB::table('egyhazmegye')->get())->keyBy('id')->sortBy('sorrend');
+        $_espereskeruletek = $referenceData['espereskeruletek'] ?? collect(DB::table('espereskerulet')->get())->keyBy('id');
+        $_orszagok         = $referenceData['orszagok']         ?? collect(DB::table('orszagok')->get())->keyBy('id');
+        $_megyek           = $referenceData['megyek']           ?? collect(DB::table('megye')->select('*','megyenev as nev')->get())->keyBy('id');
+        $_varosok          = isset($referenceData['varosok']) ? $referenceData['varosok'] : collect([]);
         
         /* egyházmegye */
         $tmp = $this->boundaries()
@@ -1071,6 +1073,12 @@ class Church extends \Illuminate\Database\Eloquent\Model {
   
     public function save(array $options = [])
     {
+        // Ha a koordináta megváltozott, a régi boundary hozzárendelések érvénytelenek.
+        // Nullázzuk boundaries_checked_at-t, hogy a checkBoundaries cron újra lefuttassa.
+        if ($this->isDirty(['lat', 'lon'])) {
+            $this->boundaries_checked_at = null;
+        }
+
         // Másolat készítése a modellről
         $model = $this;
 

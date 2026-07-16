@@ -553,43 +553,6 @@ CREATE TABLE IF NOT EXISTS `osm` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `osm_tags`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE IF NOT EXISTS `osm_tags` (
-  `type` varchar(8) CHARACTER SET utf8mb3 COLLATE utf8mb3_uca1400_ai_ci NOT NULL,
-  `id` varchar(11) CHARACTER SET utf8mb3 COLLATE utf8mb3_uca1400_ai_ci NOT NULL,
-  `name` varchar(45) CHARACTER SET utf8mb3 COLLATE utf8mb3_uca1400_ai_ci NOT NULL,
-  `value` varchar(200) CHARACTER SET utf8mb3 COLLATE utf8mb3_uca1400_ai_ci DEFAULT NULL,
-  UNIQUE KEY `valami` (`id`,`name`,`type`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `osmtags`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE IF NOT EXISTS `osmtags` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `osmtype` varchar(9) NOT NULL,
-  `osmid` varchar(11) NOT NULL,
-  `name` varchar(45) NOT NULL,
-  `value` varchar(255) DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT '0000-00-00 00:00:00',
-  `updated_at` timestamp NULL DEFAULT '0000-00-00 00:00:00',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `valami` (`osmtype`,`osmid`,`name`),
-  KEY `index_osm` (`osmtype`,`osmid`),
-  KEY `index_name` (`name`),
-  KEY `index_name_value` (`name`,`value`)
-) ENGINE=InnoDB AUTO_INCREMENT=90215 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `photos`
 --
 
@@ -723,13 +686,15 @@ CREATE TABLE IF NOT EXISTS `templomok` (
   `osmtype` varchar(9) DEFAULT NULL,
   `lat` decimal(11,7) DEFAULT NULL,
   `lon` decimal(10,7) DEFAULT NULL,
+  `boundaries_checked_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `id` (`id`),
   KEY `varos` (`varos`),
   KEY `ismertnev` (`ismertnev`),
   KEY `egyhazmegye` (`egyhazmegye`),
   KEY `espereskerulet` (`espereskerulet`),
-  KEY `osm` (`osmid`,`osmtype`)
+  KEY `osm` (`osmid`,`osmtype`),
+  KEY `boundaries_checked_at` (`boundaries_checked_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5420 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

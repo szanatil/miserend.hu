@@ -1,0 +1,284 @@
+<?php
+
+use PHPUnit\Framework\TestCase;
+use Illuminate\Database\Capsule\Manager as DB;
+
+/**
+ * Integration tests for OSM boundary checking logic.
+ *
+ * Tests the checkBoundaries() selection logic, checkBoundariesForOne() tracking,
+ * and the boundaries_checked_at coordinate-change reset in Church::save().
+ *
+ * Uses DB transactions rolled back after each test to keep the DB clean.
+ * The OverpassApi is mocked via PHPUnit partial mocks on the OSM class,
+ * since downloadBoundaries() is called as $this->downloadBoundaries() internally.
+ */
+class OsmBoundariesTest extends TestCase {
+
+    /** @var int ID of the primary test church inserted in setUp */
+    private int $testChurchId;
+
+    /** @var array Extra church IDs to clean up (rollback covers these too) */
+    private array $extraChurchIds = [];
+
+    protected function setUp(): void {
+        parent::setUp();
+        DB::beginTransaction();
+
+        $this->testChurchId = $this->insertChurch([
+            'nev' => 'PHPUnit Test Church',
+            'ok' => 'i',
+            'lat' => 47.5,
+            'lon' => 19.0,
+            'boundaries_checked_at' => null,
+        ]);
+    }
+
+    protected function tearDown(): void {
+        DB::rollBack();
+        parent::tearDown();
+    }
+
+    // ─── Helpers ────────────────────────────────────────────────────────────
+
+    private function insertChurch(array $overrides = []): int {
+        $defaults = [
+            'nev'        => 'Test Church',
+            'ok'         => 'i',
+            'lat'        => 47.0,
+            'lon'        => 19.0,
+            'varos'      => 'Budapest',
+            'cim'        => 'Test utca 1.',
+            'plebania'   => '',
+            'leiras'     => '',
+            'megjegyzes' => '',
+            'misemegj'   => '',
+            'bucsu'      => '',
+            'kontakt'    => '',
+            'kontaktmail'=> '',
+            'adminmegj'  => '',
+            'log'        => '',
+            'letrehozta' => '',
+            'modositotta'=> '',
+            'moddatum'   => '0000-00-00 00:00:00',
+            'frissites'  => date('Y-m-d'),
+            'boundaries_checked_at' => null,
+        ];
+        return DB::table('templomok')->insertGetId(array_merge($defaults, $overrides));
+    }
+
+    /** Create a partial mock of OSM that stubs downloadBoundaries() */
+    private function osmWithMockedDownload(?array $returnValue): OSM {
+        $osm = $this->getMockBuilder(OSM::class)
+            ->onlyMethods(['downloadBoundaries'])
+            ->getMock();
+        $osm->method('downloadBoundaries')->willReturn($returnValue);
+        return $osm;
+    }
+
+    // ─── checkBoundaries() selection order ──────────────────────────────────
+
+    /**
+     * A NULL boundaries_checked_at (soha nem ellenőrzött) templomnak kell elsőnek kerülnie,
+     * még akkor is, ha van régebben ellenőrzött temploml is.
+     */
+    public function testCheckBoundariesSelectsNullCheckedAtFirst(): void {
+        // Egy régebben ellenőrzött másik egyház
+        $this->insertChurch([
+            'lat' => 47.6, 'lon' => 19.1,
+            'boundaries_checked_at' => '2020-01-01 00:00:00',
+        ]);
+
+        $selectedLats = [];
+        $osm = $this->getMockBuilder(OSM::class)
+            ->onlyMethods(['downloadBoundaries'])
+            ->getMock();
+        $osm->method('downloadBoundaries')
+            ->willReturnCallback(function($lat, $lon) use (&$selectedLats) {
+                $selectedLats[] = (float) $lat;
+                return null;
+            });
+
+        $osm->checkBoundaries(1); // limit = 1 → csak 1 kerül sorra
+
+        $this->assertCount(1, $selectedLats,
+            'Pontosan 1 templomnak kell sorra kerülnie limit=1 esetén.');
+        $this->assertEquals(47.5, $selectedLats[0],
+            'A NULL boundaries_checked_at-ű templomnak kell előre kerülnie.');
+    }
+
+    /**
+     * Ha több templomnak is van boundaries_checked_at értéke, a legrégebbit kell előre venni.
+     */
+    public function testCheckBoundariesSelectsOldestFirst(): void {
+        // Beállítjuk a primary test church checked_at értékét (újabb)
+        DB::table('templomok')->where('id', $this->testChurchId)
+            ->update(['boundaries_checked_at' => '2024-06-01 00:00:00']);
+
+        // Egy régebben ellenőrzött egyház
+        $olderId = $this->insertChurch([
+            'lat' => 47.6, 'lon' => 19.1,
+            'boundaries_checked_at' => '2020-01-01 00:00:00',
+        ]);
+
+        $selectedLats = [];
+        $osm = $this->getMockBuilder(OSM::class)
+            ->onlyMethods(['downloadBoundaries'])
+            ->getMock();
+        $osm->method('downloadBoundaries')
+            ->willReturnCallback(function($lat, $lon) use (&$selectedLats) {
+                $selectedLats[] = (float) $lat;
+                return null;
+            });
+
+        $osm->checkBoundaries(1);
+
+        $this->assertCount(1, $selectedLats);
+        $this->assertEquals(47.6, $selectedLats[0],
+            'A legrégebben ellenőrzött templomnak kell előre kerülnie.');
+    }
+
+    /**
+     * Null vagy nulla koordinátájú templomra NEM szabad lefuttatni a downloadBoundaries-t.
+     */
+    public function testCheckBoundariesSkipsChurchesWithoutCoordinates(): void {
+        // A primary test church lat=NULL legyen
+        DB::table('templomok')->where('id', $this->testChurchId)
+            ->update(['lat' => null, 'lon' => null]);
+
+        $osm = $this->getMockBuilder(OSM::class)
+            ->onlyMethods(['downloadBoundaries'])
+            ->getMock();
+        $osm->expects($this->never())
+            ->method('downloadBoundaries');
+
+        $osm->checkBoundaries(50);
+        // Ha ide értünk és a downloadBoundaries nem volt meghívva, a teszt sikerült
+    }
+
+    /**
+     * lat=0 koordinátájú templomra szintén nem szabad futtatni.
+     */
+    public function testCheckBoundariesSkipsZeroCoordinates(): void {
+        DB::table('templomok')->where('id', $this->testChurchId)
+            ->update(['lat' => 0, 'lon' => 0]);
+
+        $osm = $this->getMockBuilder(OSM::class)
+            ->onlyMethods(['downloadBoundaries'])
+            ->getMock();
+        $osm->expects($this->never())
+            ->method('downloadBoundaries');
+
+        $osm->checkBoundaries(50);
+    }
+
+    // ─── checkBoundariesForOne() boundaries_checked_at tracking ────────────
+
+    /**
+     * Sikeres API hívás esetén boundaries_checked_at frissüljön.
+     */
+    public function testCheckBoundariesForOneUpdatesBoundariesCheckedAtOnSuccess(): void {
+        // Egy boundary létrehozása, amelyet a mock visszaad
+        $boundaryId = DB::table('boundaries')->insertGetId([
+            'boundary'    => 'administrative',
+            'admin_level' => 8,
+            'name'        => 'Test Boundary',
+            'created_at'  => date('Y-m-d'),
+            'updated_at'  => date('Y-m-d'),
+        ]);
+
+        $osm = $this->osmWithMockedDownload([$boundaryId]);
+
+        $church = \Eloquent\Church::find($this->testChurchId);
+        $osm->checkBoundariesForOne($church);
+
+        $updated = DB::table('templomok')->where('id', $this->testChurchId)->first();
+        $this->assertNotNull($updated->boundaries_checked_at,
+            'boundaries_checked_at kell, hogy be legyen állítva sikeres API hívás után.');
+    }
+
+    /**
+     * Ha az API null-t ad vissza (Overpass hiba), boundaries_checked_at akkor is frissüljön.
+     * Ez akadályozza meg az örökös hurkot.
+     */
+    public function testCheckBoundariesForOneUpdatesBoundariesCheckedAtOnApiFailure(): void {
+        $osm = $this->osmWithMockedDownload(null);
+
+        $church = \Eloquent\Church::find($this->testChurchId);
+        $osm->checkBoundariesForOne($church);
+
+        $updated = DB::table('templomok')->where('id', $this->testChurchId)->first();
+        $this->assertNotNull($updated->boundaries_checked_at,
+            'boundaries_checked_at kell, hogy frissüljön még API hiba/null esetén is - örökös hurok megelőzése.');
+    }
+
+    /**
+     * Ha az API üres tömböt ad vissza, boundaries_checked_at szintén frissüljön.
+     */
+    public function testCheckBoundariesForOneUpdatesBoundariesCheckedAtOnEmptyResult(): void {
+        $osm = $this->osmWithMockedDownload([]);
+
+        $church = \Eloquent\Church::find($this->testChurchId);
+        $osm->checkBoundariesForOne($church);
+
+        $updated = DB::table('templomok')->where('id', $this->testChurchId)->first();
+        $this->assertNotNull($updated->boundaries_checked_at,
+            'boundaries_checked_at kell, hogy frissüljön üres API eredmény esetén is.');
+    }
+
+    // ─── Church::save() koordinátaváltozás reset ────────────────────────────
+
+    /**
+     * Ha a koordináta megváltozik, boundaries_checked_at NULL-ra kell resetelődnie,
+     * hogy a cron újra lefuttassa a boundary ellenőrzést.
+     */
+    public function testChurchCoordinateChangeResetsBoundariesCheckedAt(): void {
+        // Beállítjuk, hogy már volt ellenőrizve
+        DB::table('templomok')->where('id', $this->testChurchId)
+            ->update(['boundaries_checked_at' => '2024-01-01 00:00:00']);
+
+        $church = \Eloquent\Church::find($this->testChurchId);
+        $this->assertEquals('2024-01-01 00:00:00', $church->boundaries_checked_at,
+            'Előfeltétel: boundaries_checked_at legyen beállítva.');
+
+        $church->lat = 48.0; // koordináta változás!
+        $church->save();
+
+        $updated = DB::table('templomok')->where('id', $this->testChurchId)->first();
+        $this->assertNull($updated->boundaries_checked_at,
+            'boundaries_checked_at NULL-ra kell resetelődjön, ha a lat koordináta megváltozik.');
+    }
+
+    /**
+     * Ha csak a lon koordináta változik, szintén resetelődjön.
+     */
+    public function testChurchLonChangeResetsBoundariesCheckedAt(): void {
+        DB::table('templomok')->where('id', $this->testChurchId)
+            ->update(['boundaries_checked_at' => '2024-01-01 00:00:00']);
+
+        $church = \Eloquent\Church::find($this->testChurchId);
+        $church->lon = 20.0; // lon változás!
+        $church->save();
+
+        $updated = DB::table('templomok')->where('id', $this->testChurchId)->first();
+        $this->assertNull($updated->boundaries_checked_at,
+            'boundaries_checked_at NULL-ra kell resetelődjön, ha a lon koordináta megváltozik.');
+    }
+
+    /**
+     * Ha a koordináta NEM változik (pl. csak a név), boundaries_checked_at maradjon meg.
+     */
+    public function testChurchNonCoordinateSaveDoesNotResetBoundariesCheckedAt(): void {
+        $checkedAt = '2024-06-15 10:00:00';
+        DB::table('templomok')->where('id', $this->testChurchId)
+            ->update(['boundaries_checked_at' => $checkedAt]);
+
+        $church = \Eloquent\Church::find($this->testChurchId);
+        $church->nev = 'Módosított Teszt Egyház'; // csak a névváltozik, koordináta nem
+        $church->save();
+
+        $updated = DB::table('templomok')->where('id', $this->testChurchId)->first();
+        $this->assertNotNull($updated->boundaries_checked_at,
+            'boundaries_checked_at NEM kell resetelődjön, ha a koordináta nem változik.');
+    }
+}

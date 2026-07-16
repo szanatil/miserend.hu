@@ -18,11 +18,15 @@ class Josm extends Html {
 
         if (\Request::Boolean('update')) {
             set_time_limit('300');
-            $cache = new \ExternalApi\OverpassApi();
-            $cache->cache = '1 sec';
-            $cache->clearOldCache();
 
-            $job = \Eloquent\Cron::where('class','\OSM')->where('function','checkUrlMiserend')->first();
+            // Szeretnénk, ha may a syncUrlMiserendFromOSM() a legfrissebb változatot töltené le
+            // Ezért amit ott le fog húzni, azt most gyorsan lehúzzuk neki előre. 
+            // Mert itt tudjuk jól állítani a cache idejét 
+            $overpass = new \ExternalApi\OverpassApi();
+            $overpass->cache = '1 sec';
+            $overpass->downloadUrlMiserend();
+            
+            $job = \Eloquent\Cron::where('class','\OSM')->where('function','syncUrlMiserendFromOSM')->first();
             $job->run();                       
         }
 
@@ -31,8 +35,7 @@ class Josm extends Html {
 
         // Behúzzuk az adatot, hogy lássuk mikor futott le utoljára
         $this->cron = \Eloquent\Cron::where('class','\OSM')
-                ->where('function','checkUrlMiserend')->first();
-              
+                ->where('function','syncUrlMiserendFromOSM')->first();
 
        $overpass = new \ExternalApi\OverpassApi();
        $overpass->downloadUrlMiserend();
