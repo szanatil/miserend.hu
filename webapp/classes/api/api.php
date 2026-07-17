@@ -138,10 +138,12 @@ class Api {
     }
 
     public function validateVariable($type, $name, $details, $input = null) {
-        if($input === null) {
-            printr($this->input);
-            $input = $this->input[$name];        
-        }
+        // #182-szerű leak eltávolítva: egy null lista-elem (pl. add:[1,null,2]) eddig
+        // a printr($this->input)-on át a TELJES request-payloadot a válaszba echózta
+        // (JSON-szennyezés + belső adat szivárgás), és a null-t az egész tömbre cserélte
+        // (rossz hiba-címke). Mindkét hívó (getInputJson, list-rekurzió) átadja a 4.
+        // argumentumot, így a valódi null egyszerűen a lenti validateInteger-en akad fenn,
+        // tiszta "Field ... should be an integer." hibával, szivárgás nélkül.
 
         if($type == 'integer') {
             $this->validateInteger($name, $details, $input);
