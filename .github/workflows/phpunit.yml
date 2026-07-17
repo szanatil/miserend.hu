@@ -60,6 +60,14 @@ jobs:
         run: |
             timeout 300 bash -c 'until curl -fsS http://127.0.0.1:8000/ > /dev/null 2>&1; do sleep 2; done'
 
+      # Az Elasticsearch lassabban áll fel mint a webapp (JVM + cluster-init), és
+      # a fenti "Wait for application" csak a :8000-t várja. Az ES-t igénylő
+      # tesztek ezért versenyeznek az ES bootjával ("Failed to connect to
+      # elasticsearch port 9200"). Itt megvárjuk, míg az ES legalább `yellow`.
+      - name: Wait for Elasticsearch
+        run: |
+            timeout 300 bash -c 'until curl -fsS "http://127.0.0.1:9200/_cluster/health?wait_for_status=yellow&timeout=5s" > /dev/null 2>&1; do sleep 3; done'
+
       - name: Run PHPUnit tests
         env:
           COVERAGE_IMAGE_TAG: ${{ steps.tag.outputs.TAG }}

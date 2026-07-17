@@ -56,6 +56,15 @@ services:
       inner:
         aliases:
           - elasticsearch
+    # Az ES lassan áll fel (JVM + cluster-init); a "started" (process indul) != "kész".
+    # A healthcheck a 9200-on `yellow` cluster-státuszt vár, hogy a rá-épülő miserend
+    # (és így a tesztek) csak akkor induljanak, ha az ES tényleg fogadja a kéréseket.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s' > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
   miserend:
     container_name: miserend
 
@@ -71,7 +80,7 @@ services:
       mysql:
         condition: service_healthy
       elasticsearch:
-        condition: service_started
+        condition: service_healthy
     environment: 
       - MISEREND_WEBAPP_ENVIRONMENT=production
 
