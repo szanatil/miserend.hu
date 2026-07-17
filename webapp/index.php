@@ -34,26 +34,38 @@ try {
         $html = new $class($path->arguments);
     }
 } catch (\Exception $e) {
+    // #182: a nyers hibaüzenet (QueryException esetén a TELJES SQL) és a stack
+    // trace eddig környezet-ellenőrzés NÉLKÜL kiment a frontendre — pl. egy emoji
+    // beküldésekor a "SQLSTATE... Incorrect string value ... insert into `remarks`
+    // ..." + fájlútvonalak/sorszámok. Csak debug módban (dev/testing/staging)
+    // mutatjuk a részleteket; prod-ban ($config['debug']=0) generikus üzenet.
+    // A részletek MINDIG a szerver-logba kerülnek, hogy debug=0 mellett se vesszenek el.
+    $showDetails = !empty($config['debug']);
+    error_log('[miserend] Unhandled exception: ' . $e->getMessage()
+        . ' @ ' . $e->getFile() . ':' . $e->getLine());
+
     if (isset($html)) {
-        addMessage($e->getMessage(), 'danger');
+        addMessage($showDetails ? $e->getMessage() : 'Váratlan hiba történt. Kérjük, próbáld újra később.', 'danger');
     } else {
-	
+
 		// Mi lenne, ha a hibaüzenetünket szeben írnánk ki?
 		$html = new \Html\Html($path->arguments);
-		
+
 		$html->template = 'Exception.twig';
-		$html->errorMessage = $e->getMessage();
 		$html->errorTrace = '';
-		
-        foreach ($e->getTrace() as $trace) {
-            if (isset($trace['class']))
-                $html->errorTrace .= $trace['class'] . "::" . $trace['function'] . "()";
-            if (isset($trace['file']))
-                $html->errorTrace .= $trace['file'] . ":" . $trace['line'] . " -> " . $trace['function'] . "()";
-            $html->errorTrace .= "<br>";
+
+        if ($showDetails) {
+            $html->errorMessage = $e->getMessage();
+            foreach ($e->getTrace() as $trace) {
+                if (isset($trace['class']))
+                    $html->errorTrace .= $trace['class'] . "::" . $trace['function'] . "()";
+                if (isset($trace['file']))
+                    $html->errorTrace .= $trace['file'] . ":" . $trace['line'] . " -> " . $trace['function'] . "()";
+                $html->errorTrace .= "<br>";
+            }
+        } else {
+            $html->errorMessage = 'Váratlan hiba történt. Kérjük, próbáld újra később.';
         }
-		
-		
     }
 }
 if (isset($html)) {
