@@ -53,6 +53,7 @@ $twig->addFilter(new \Twig\TwigFilter('trans', 'twig_translate'));
 $twig->addFilter(new \Twig\TwigFilter('floor', 'floor'));
 $twig->addFilter(new \Twig\TwigFilter('phone_links', 'twig_phone_links'));
 // DANGER: a twig declarálva van / meg van hívva a Class/Html/Html.php -ban is. Így ott is módosítani kellhet a filterket
+$twig->addGlobal('domain', DOMAIN); // Environment-specific domain for email templates
 
 //
 //  Useful CONSTANTS
