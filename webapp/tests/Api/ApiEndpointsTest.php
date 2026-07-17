@@ -8,8 +8,10 @@ require_once dirname(__DIR__, 2) . '/functions.php';
 class ApiEndpointsTest extends TestCase {
 
     protected ?string $token = null;
-    private string $fixtureUsername = 'admin';
-    private string $fixturePassword = 'miserend';
+    // #ci: const (nem instance-prop), hogy a static data-providerek (self::) is
+    // hivatkozhassák - az újabb PHPUnit statikus data-provider metódust követel.
+    private const FIXTURE_USERNAME = 'admin';
+    private const FIXTURE_PASSWORD = 'miserend';
 
     protected function setUp(): void {
         parent::setUp();
@@ -84,7 +86,7 @@ class ApiEndpointsTest extends TestCase {
         $this->assertArrayContainsSubset($output, $response);
     }
 
-    public function providerTestApiSignup() {
+    public static function providerTestApiSignup() {
         $randomSuffix = substr(md5(uniqid()), 0, 5);
         return [
             ['vacskamati', ['username' => 'vacskamati', 'password' => 'VanValami'], ['error' => 1]],  // missing email
@@ -107,11 +109,11 @@ class ApiEndpointsTest extends TestCase {
         $this->assertArrayContainsSubset($output, $response);
     }
 
-    public function providerTestApiLogin() {
+    public static function providerTestApiLogin() {
         return [
             [
                 'valid fixture user',
-                ['username' => $this->fixtureUsername, 'password' => $this->fixturePassword],
+                ['username' => self::FIXTURE_USERNAME, 'password' => self::FIXTURE_PASSWORD],
                 ['error' => 0],
             ],
             [
@@ -145,8 +147,8 @@ class ApiEndpointsTest extends TestCase {
 
         // First, login to get a token
         $loginResponse = $this->apiRequest('/api/v4/login', [
-            'username' => $this->fixtureUsername,
-            'password' => $this->fixturePassword,
+            'username' => self::FIXTURE_USERNAME,
+            'password' => self::FIXTURE_PASSWORD,
         ]);
 
         $this->assertArrayHasKey('token', $loginResponse);
@@ -280,8 +282,8 @@ class ApiEndpointsTest extends TestCase {
     public function testApiReportAuthenticated(string $scenario, array $payload, array $expectedOutput): void {
         // Login with admin fixture user
         $loginResponse = $this->apiRequest('/api/v4/login', [
-            'username' => $this->fixtureUsername,
-            'password' => $this->fixturePassword,
+            'username' => self::FIXTURE_USERNAME,
+            'password' => self::FIXTURE_PASSWORD,
         ]);
 
         if (isset($loginResponse['token'])) {

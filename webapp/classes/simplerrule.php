@@ -20,7 +20,7 @@ class SimpleRRule
     private $timezone;
 
 
-    public function __construct(array $rrule, callable $debugCallback = null, string $timezone = 'Europe/Budapest')
+    public function __construct(array $rrule, ?callable $debugCallback = null, string $timezone = 'Europe/Budapest')
     {
         $this->timezone   = $timezone;
         $this->start      = Carbon::parse($rrule['dtstart'], $this->timezone);

@@ -86,7 +86,11 @@ class OSM {
         return $overpass->jsonData->elements;
     }
 
-    static function downloadBoundaries($lat, $lon) {
+    // #ci: instance-metódus (nem static), hogy az OsmBoundariesTest partial-mockja
+    // (onlyMethods(['downloadBoundaries'])) tudja stubbolni - statikust nem lehet
+    // mockolni. A törzse nem használ $this-t, így a váltás biztonságos; a checkBoundaries
+    // már $this->downloadBoundaries()-ként hívja.
+    function downloadBoundaries($lat, $lon) {
         $return = [];
 
         $overpass = new \ExternalApi\OverpassApi();
