@@ -9,12 +9,11 @@ class DiocesesInBBox extends Ajax {
         //echo json_encode(['roman_catholic' => \Html\Map::getGeoJsonDioceses()]);
         //return;
 
-        $bbox = explode(';',$_REQUEST['bbox']);
-        if(count($bbox) != 4 ) return ;
-        foreach($bbox as $int) {
-            if(!is_numeric($int)) return;
-        }
-              
+        // #391: a bbox parse+validáció a \Request::Bbox()-ban (ld. churchesinbbox).
+        // Hiányzó/rossz alakú bbox → false, ekkor némán kilépünk.
+        $bbox = \Request::Bbox('bbox');
+        if($bbox === false) return;
+
         echo json_encode([
             'roman_catholic' => $this->getDioceses($bbox, 'roman_catholic'),
             'greekcatholic' => $this->getDioceses($bbox, 'greek_catholic')
