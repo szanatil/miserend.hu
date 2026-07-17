@@ -495,7 +495,7 @@ CREATE TABLE IF NOT EXISTS `megye` (
   `megyenev` varchar(50) NOT NULL DEFAULT '',
   `orszag` int(2) NOT NULL DEFAULT 12,
   `egyeb` varchar(255) NOT NULL DEFAULT '',
-  UNIQUE KEY `id` (`id`)
+  PRIMARY KEY (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
