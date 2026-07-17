@@ -217,7 +217,7 @@ class Html {
         }
 
         if(!$toString)
-            echo "<pre>".$return."<pre>";
+            echo "<pre>".$return."</pre>";
        
         return $return;
     }
