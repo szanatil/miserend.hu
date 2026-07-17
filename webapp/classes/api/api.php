@@ -227,9 +227,13 @@ class Api {
                     $details[$key] = json_encode($value);
                     try {
                         if($fieldType == 'integer') {
-                            $this->validateInteger($field, $validationRule);
+                            // #374: hiányzott a 3. ($input) argumentum -> ArgumentCountError
+                            // (\Error, amit a catch(\Exception) nem fog el), így minden
+                            // típusos-szabályú enum elszállt volna. Az $input a validateEnum
+                            // paramétere, itt átadjuk.
+                            $this->validateInteger($field, $validationRule, $input);
                         } elseif($fieldType == 'float') {
-                            $this->validateFloat($field, $validationRule);                            
+                            $this->validateFloat($field, $validationRule, $input);
                         } elseif($fieldType == 'string') {
                             if(!is_string($input)) {
                                 throw new \Exception("Field '".$field."' should be a string.");
