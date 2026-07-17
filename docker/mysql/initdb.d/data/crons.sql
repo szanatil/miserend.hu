@@ -50,6 +50,12 @@ UNLOCK TABLES;
 INSERT INTO `crons` VALUES
 (43,'\\Crons','rollPeriodYears','1 month',NULL,NULL,'0000-00-00 00:00:00',0,'0000-00-00 00:00:00','0000-00-00 00:00:00','0000-00-00 00:00:00');
 
+-- #290: külön INSERT-ként (nem a fenti VALUES-listába), hogy ne ütközzön más
+-- branch cron-hozzáadásával. Id 44/45 (41/42 foglalt: #351; 43 foglalt: #306).
+INSERT INTO `crons` VALUES
+(44,'\\User','sendHolidayReminder','1 day','1am','6am','0000-00-00 00:00:00',0,'0000-00-00 00:00:00','0000-00-00 00:00:00','0000-00-00 00:00:00'),
+(45,'\\Eloquent\\Email','sendQueued','15 minutes','1am','6am','0000-00-00 00:00:00',0,'0000-00-00 00:00:00','0000-00-00 00:00:00','0000-00-00 00:00:00');
+
 commit;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
