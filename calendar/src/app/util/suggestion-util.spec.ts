@@ -1,6 +1,7 @@
 import {SuggestionUtil} from './suggestion-util';
 import {Mass} from '../model/mass';
 import {Rite} from '../enum/rites';
+import {MassState, Suggestion} from '../model/suggestion';
 
 function makeMass(overrides: Partial<Mass> = {}): Mass {
   return {
@@ -113,5 +114,57 @@ describe('SuggestionUtil.isMassUnchanged (#352)', () => {
     const modified = makeMass({id: 5, comment: null});
 
     expect(SuggestionUtil.isMassUnchanged(original, modified)).toBe(false);
+  });
+});
+
+describe('SuggestionUtil.mergeMasses', () => {
+  it('DELETED eltávolítja a misét a bázisból', () => {
+    const base = [makeMass({id: 1, title: 'A'})];
+    const suggestions: Suggestion[] = [{massId: 1, massState: MassState.DELETED, changes: {}}];
+    expect(SuggestionUtil.mergeMasses(base, suggestions)).toEqual([]);
+  });
+
+  it('MODIFIED átírja a meglévő misét', () => {
+    const base = [makeMass({id: 1, title: 'A'})];
+    const suggestions: Suggestion[] = [{massId: 1, massState: MassState.MODIFIED, changes: {title: 'B'}}];
+    const result = SuggestionUtil.mergeMasses(base, suggestions);
+    expect(result.length).toBe(1);
+    expect(result[0].title).toBe('B');
+  });
+
+  it('üres suggestions -> változatlan bázis', () => {
+    const base = [makeMass({id: 1, title: 'A'})];
+    const result = SuggestionUtil.mergeMasses(base, []);
+    expect(result.length).toBe(1);
+    expect(result[0].title).toBe('A');
+  });
+});
+
+describe('SuggestionUtil.modifiedSuggestions', () => {
+  it('üres == üres -> false', () => {
+    expect(SuggestionUtil.modifiedSuggestions([], [])).toBe(false);
+  });
+
+  it('eltérő hossz -> true', () => {
+    const s: Suggestion[] = [{massId: 1, massState: MassState.DELETED, changes: {}}];
+    expect(SuggestionUtil.modifiedSuggestions(s, [])).toBe(true);
+  });
+
+  it('azonos changes + massState -> false', () => {
+    const s: Suggestion[] = [{massId: 1, massState: MassState.MODIFIED, changes: {title: 'B'}}];
+    const a: Suggestion[] = [{massId: 1, massState: MassState.MODIFIED, changes: {title: 'B'}}];
+    expect(SuggestionUtil.modifiedSuggestions(s, a)).toBe(false);
+  });
+
+  it('eltérő changes -> true', () => {
+    const s: Suggestion[] = [{massId: 1, massState: MassState.MODIFIED, changes: {title: 'B'}}];
+    const a: Suggestion[] = [{massId: 1, massState: MassState.MODIFIED, changes: {title: 'C'}}];
+    expect(SuggestionUtil.modifiedSuggestions(s, a)).toBe(true);
+  });
+
+  it('eltérő massState -> true', () => {
+    const s: Suggestion[] = [{massId: 1, massState: MassState.MODIFIED, changes: {}}];
+    const a: Suggestion[] = [{massId: 1, massState: MassState.DELETED, changes: {}}];
+    expect(SuggestionUtil.modifiedSuggestions(s, a)).toBe(true);
   });
 });
