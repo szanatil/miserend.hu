@@ -282,16 +282,77 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 		]));
 		$elastic->run();
 	}
-	
+
+	/**
+	 * #306: Tiszta döntési logika — kell-e teljes mise-újragenerálás?
+	 * Szándékosan DB/ES-mentes (csak a beadott értékekből dönt), hogy unit-tesztelhető legyen.
+	 *
+	 * @param ?string $lastSuccessAt       a cron legutóbbi sikeres futása (DATETIME) vagy null
+	 * @param ?string $maxPeriodUpdatedAt  a cal_generated_periods legnagyobb updated_at-ja (DATE) vagy null
+	 * @param bool    $indexEmpty          a mass_index hiányzik vagy 0 dokumentum
+	 */
+	static function shouldFullReindex(?string $lastSuccessAt, ?string $maxPeriodUpdatedAt, bool $indexEmpty): bool {
+		// Startup: üres/hiányzó index -> mindenképp fel kell építeni.
+		if ($indexEmpty) return true;
+		// Nincs korábbi sikeres futás (vagy nulldátum) -> fussunk.
+		if (empty($lastSuccessAt) || strpos($lastSuccessAt, '0000-00-00') === 0) return true;
+		// Nincs egyetlen generatedPeriod sem -> ne blokkoljunk (ritka, adatbiztos irány).
+		if (empty($maxPeriodUpdatedAt) || strpos($maxPeriodUpdatedAt, '0000-00-00') === 0) return true;
+		// Date-inkluzív (>=): ha a periódusok az utolsó sikeres futás NAPJÁN vagy után frissültek,
+		// generáljunk újra. Az updated_at DATE (napi granularitás), ezért aznapi módosítás +
+		// korábbi aznapi futás esetén inkább egyszer túl-futunk (adatbiztos), mint hogy kihagyjunk.
+		return substr($maxPeriodUpdatedAt, 0, 10) >= substr($lastSuccessAt, 0, 10);
+	}
+
+	/** #306: a mass_index hiányzik vagy 0 dokumentumot tartalmaz? (startup-force ág) */
+	private static function massIndexIsEmpty(): bool {
+		$elastic = new \ExternalApi\ElasticsearchApi();
+		if (!$elastic->isexistsIndex('mass_index')) {
+			return true;
+		}
+		$info = $elastic->checkIndex('mass_index');
+		$docs = isset($info->{'docs.count'}) ? (int) $info->{'docs.count'} : 0;
+		return $docs === 0;
+	}
+
 	/*
 	 * Frissíti az összes elasticsearch mise indexet az adatbázisból
 	 * Ehhez legenerálja az összes miseidőpontot is
-	 * !! TODO: Iszonyú overkill mindig mindent frissíteni. Optimalizálni kellene!!
+	 *
+	 * #306: a teljes (top-level, $tids nélküli) cron-futás korábban MINDIG mindent
+	 * újragenerált (~40 perc, 500k+ esemény), akkor is, ha semmi nem változott. Most a
+	 * shouldFullReindex() őr csak akkor engedi a teljes futást, ha az index üres/hiányzik
+	 * (startup), vagy a generatedPeriods változott a legutóbbi sikeres futás óta. A per-
+	 * templom PUT (generate.php) és a rekurzív chunk-hívások mindig nem-üres $tids-szel
+	 * jönnek, ezért érintetlenek.
 	 */
 	static function updateMasses($years = [], $tids = [], ?callable $logger = null) {
 		$log = $logger ?? function($msg) {};
 		$startTime = time();
 		set_time_limit(3000); // Hosszabb idő kellhet a frissítéshez
+
+		// #306: teljes cron-futásnál (üres $tids) döntsük el, kell-e egyáltalán újragenerálni.
+		if (empty($tids)) {
+			try {
+				$indexEmpty = self::massIndexIsEmpty();
+			} catch (\Throwable $e) {
+				// ES-hiba az index-ellenőrzésnél: a biztonság kedvéért fussunk le teljesen.
+				$indexEmpty = true;
+				$log("#306: index-ellenőrzés hibázott (" . $e->getMessage() . ") — biztonságból teljes futás.");
+			}
+			$cron = \Eloquent\Cron::where('class', '\\ExternalApi\\ElasticsearchApi')
+				->where('function', 'updateMasses')->first();
+			$lastSuccess = $cron->lastsuccess_at ?? null;
+			$maxUpdated  = \Eloquent\CalGeneratedPeriod::max('updated_at');
+
+			if (!self::shouldFullReindex($lastSuccess, $maxUpdated, $indexEmpty)) {
+				$log("#306: a generatedPeriods nem változott a legutóbbi sikeres futás óta ("
+					. $lastSuccess . "), és az index nem üres — teljes újragenerálás kihagyva.");
+				return;
+			}
+			$log("#306: teljes újragenerálás indul (indexEmpty=" . ($indexEmpty ? '1' : '0')
+				. ", lastSuccess=" . $lastSuccess . ", maxPeriodUpdated=" . $maxUpdated . ").");
+		}
 
 		if (empty($years)) {
 			$years = [date('Y') - 1, date('Y'), date('Y') + 1];
