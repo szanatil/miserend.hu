@@ -70,7 +70,10 @@ $environment['development'] = [
     'mail' => [
         'debug' => 0
     ],
-	'openstreetmap' => false,
+    'path' => [
+        'domain' => 'http://localhost:8000'
+    ],
+	'openstreetmap' => [], # => false: semmit nem használ ami OMS ; [] => adatot letölt, de nem nyúl hozzá
     'error_reporting' => E_ALL
 ];
 
