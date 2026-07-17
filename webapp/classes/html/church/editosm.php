@@ -51,7 +51,7 @@ class EditOsm extends \Html\Html {
 	
 		// Letöltjük a legfrisseb boundaries adatokat. El is mentjük azokat.
 		try {
-			$boundaryIDs = \OSM::downloadBoundaries($this->church['lat'],$this->church['lon']);
+			$boundaryIDs = (new \OSM())->downloadBoundaries($this->church['lat'],$this->church['lon']);
 			if ($boundaryIDs === null) $boundaryIDs = [];
 		} catch (\Exception $e) {
 			addMessage('Az OSM területi adatok lekérése nem sikerült. <details><summary>Részletek</summary><pre>'
