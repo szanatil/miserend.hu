@@ -58,7 +58,79 @@
     <div class="alert alert-warning">Ennek a misézőhelynek a liturgikus beosztását sajnos még nem sikerült áthoznunk az új rendszerbe. Elnézést és türelmet kérünk.</div>
     {% endif %}
 
-    <div class="church-update-meta"><b>Frissítve ill. megerősítve:</b> {{ updated }}</div>
+    {# ── Frissesség jelzés ── #}
+    {% if frissites and frissites != '0000-00-00' %}
+        {% set frissites_ts = frissites|date("U") %}
+        {% set now_ts = "now"|date("U") %}
+        {% set days_ago = ((now_ts - frissites_ts) / 86400)|round %}
+
+        {% if days_ago < 180 %}
+            {# Friss: < 6 hónap #}
+            <div class="church-freshness church-freshness--fresh alert alert-success">
+                <div class="church-freshness__main">
+                    <span class="church-freshness__icon"><i class="fa fa-check-circle" aria-hidden="true"></i></span>
+                    <span class="church-freshness__text">
+                        <strong>Valószínűleg megbízható, hiszen friss adatok!</strong>
+                        <span class="church-freshness__date">Frissítve: {{ updated }}</span>
+                    </span>
+                </div>
+            </div>
+        {% elseif days_ago < 1825 %}
+            {# Közepes: 6 hónap – 5 év #}
+            {% set collapse_id = 'freshness-help-' ~ id %}
+            <div class="church-freshness church-freshness--medium alert alert-warning">
+                <div class="church-freshness__main">
+                    <span class="church-freshness__icon"><i class="fa fa-exclamation-circle" aria-hidden="true"></i></span>
+                    <span class="church-freshness__text">
+                        <strong>Frissítve: {{ updated }}</strong>
+                        <span class="church-freshness__subtitle">Az adatok egy ideje nem lettek megerősítve.</span>
+                    </span>
+                    <a class="church-freshness__help-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" href="#{{ collapse_id }}" aria-expanded="false" aria-controls="{{ collapse_id }}">
+                        Segítségedet kérjük! <i class="fa fa-chevron-down church-freshness__chevron" aria-hidden="true"></i>
+                    </a>
+                </div>
+                <div class="collapse church-freshness__collapse" id="{{ collapse_id }}">
+                    <div class="church-freshness__help-body">
+                        <p>Ha tudod, hogy pontosak-e még az adatok, kérjük segítsd a közösséget!</p>
+                        <ul>
+                            <li><strong>Naptár szerkesztése:</strong> a miserendnél a naptár elemekre kattintva módosíthatod az egyes alkalmakat, majd egybe beküldheted a javaslatodat.</li>
+                            <li><strong>Észrevétel küldése:</strong> ha nem tudod szerkeszteni, de tudod mi változott,
+                                <a href="javascript:OpenNewWindow('/templom/{{ id }}/ujeszrevetel',450,530);" class="alert-link">küldj be észrevételt</a>.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            {# Elavult: 5+ év #}
+            {% set collapse_id = 'freshness-help-' ~ id %}
+            <div class="church-freshness church-freshness--stale alert alert-danger">
+                <div class="church-freshness__main">
+                    <span class="church-freshness__icon"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></span>
+                    <span class="church-freshness__text">
+                        <strong>Figyelem: valószínűleg elavult adatok!</strong>
+                        <span class="church-freshness__subtitle">Utolsó frissítés: {{ updated }}</span>
+                    </span>
+                    <a class="church-freshness__help-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" href="#{{ collapse_id }}" aria-expanded="false" aria-controls="{{ collapse_id }}">
+                        Segítségedet kérjük! <i class="fa fa-chevron-down church-freshness__chevron" aria-hidden="true"></i>
+                    </a>
+                </div>
+                <div class="collapse church-freshness__collapse" id="{{ collapse_id }}">
+                    <div class="church-freshness__help-body">
+                        <p><strong>Az adatok több mint 5 éve nem lettek frissítve – szinte biztosan megbízhatatlanok.</strong> Kérjük, segíts a közösségnek!</p>
+                        <ul>
+                            <li><strong>Naptár szerkesztése:</strong> a miserendnél a naptár elemekre kattintva módosíthatod az egyes alkalmakat, majd egybe beküldheted a javaslatodat.</li>
+                            <li><strong>Észrevétel küldése:</strong> ha nem tudod szerkeszteni, de tudod mi változott,
+                                <a href="javascript:OpenNewWindow('/templom/{{ id }}/ujeszrevetel',450,530);" class="alert-link">küldj be észrevételt</a>.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="church-update-meta"><b>Frissítve ill. megerősítve:</b> {{ updated }}</div>
+    {% endif %}
 
     {% include '_panelcampaign.twig' with { collapsible: 'collapsed' }  %}
 
