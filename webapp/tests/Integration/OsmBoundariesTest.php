@@ -25,6 +25,15 @@ class OsmBoundariesTest extends TestCase {
         parent::setUp();
         DB::beginTransaction();
 
+        // #ci: a seed-adatban ~5133 valódi, érvényes-koordinátás templom van, amiket a
+        // checkBoundaries() felszedne a teszt-fixture-ök helyett. NEM elég őket
+        // "ellenőrzöttnek" jelölni (boundaries_checked_at), mert akkor is szelektálhatók
+        // maradnak, csak alacsonyabb prioritással -> a Skip-tesztek limit=50-nél elkapnák
+        // őket. Ezért ok='n'-re állítjuk: a checkBoundaries ELSŐ szűrője where('ok','i'),
+        // így a seed teljesen kiesik. Csak a lentebb beszúrt (ok='i') fixture-ök maradnak.
+        // A tranzakció a tearDown-ban visszagördül, a seed érintetlen marad.
+        DB::table('templomok')->update(['ok' => 'n']);
+
         $this->testChurchId = $this->insertChurch([
             'nev' => 'PHPUnit Test Church',
             'ok' => 'i',

@@ -98,6 +98,21 @@ class RequestTest extends TestCase {
         $this->assertIsString($result);
     }
 
+    // TextFromGet() tests
+    public function testTextFromGetIgnoresRequestOverride() {
+        $_GET['test'] = 'from-get';
+        $_REQUEST['test'] = 'from-cookie-or-whatever-overrode-request';
+        $result = \Request::TextFromGet('test');
+        $this->assertEquals('from-get', $result);
+        unset($_GET['test']);
+    }
+
+    public function testTextFromGetNotSet() {
+        unset($_GET['test']);
+        $result = \Request::TextFromGet('test');
+        $this->assertIsString($result);
+    }
+
     // TextRequired() tests
     public function testTextRequired() {
         $_REQUEST['test'] = 'Required Text';

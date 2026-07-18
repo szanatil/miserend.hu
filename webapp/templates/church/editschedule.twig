@@ -5,28 +5,37 @@
 
 {% set title = "Miserend feltöltése / módosítása" %}
 
+{# Provide church metadata for mobile header #}
+{% set id = church.id %}
+{% set alternative_names = church.alternative_names %}
 
 {% block pageHeader %}
     <div class="page-header">
-        <h2>            
+        <h2>
             Miserend szerkesztése: {{ church.names.0 }}
-			<div style="float:right" class="text-end">{% include "church/_adminlinks.twig" %}</div>
-            {% if church.alternative_names|length > 0 %}
-                <br/>
+        </h2>
+        
+        {# Alternative names - Desktop only #}
+        {% if church.alternative_names|length > 0 %}
+            <div class="page-header-alt-names-desktop">
                 <small>
                     <span class="hidden-xs hidden-sm">
-                       {{ church.alternative_names.0|raw }}{% if church.alternative_names|length > 1 %}, <a href="#" onclick="this.style.display='none'; document.getElementById('all-names').style.display='inline'; return false;">...</a><span id="all-names" style="display:none;" onclick="document.getElementById('all-names').style.display='none'; this.previousElementSibling.style.display='inline'; return false;">
-                            {{ church.alternative_names|slice(1)|join(", ")|raw }}                            
+                       {{ church.alternative_names.0|raw }}{% if church.alternative_names|length > 1 %}, <a href="#" onclick="this.style.display='none'; document.getElementById('all-names-desk').style.display='inline'; return false;">...</a><span id="all-names-desk" style="display:none;" onclick="document.getElementById('all-names-desk').style.display='none'; this.previousElementSibling.style.display='inline'; return false;">
+                            {{ church.alternative_names|slice(1)|join(", ")|raw }}
                         </span>
                     {% endif %}
                     </span>
                 </small>
-            {% endif %}
-        </h2>
+            </div>
+        {% endif %}
     </div>
 {%  endblock %}
 
 {% block content %}
+
+	{# Admin links section #}
+	{% set writeAcess = true %}
+	{% include 'church/_adminlinks-section.twig' %}
 
 {% if church.id in tids %}
     <div class="alert alert-danger text-center" role="alert" style="max-width:600px;margin:20px auto;font-weight:700;">

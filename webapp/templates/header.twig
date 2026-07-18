@@ -1,0 +1,57 @@
+{# Responsive Header Component - Desktop and Mobile variants #}
+
+{# Desktop Header (visible at 576px and above) #}
+<div id="header-desktop" class="header-desktop">
+    <div class="container">
+        <div class="col-md-3 nopadding logo"><a href="/"><img src="/img/logo.png" alt="Miserend oldal" loading="lazy"/></a></div>
+        <div class="col-md-9 nopadding text-right">
+            <a href="https://kozossegek.hu" target="_blank" class="tarsoldal tkozossegek">kozossegek.hu</a>
+        </div>
+    </div>
+    <div class="menusav">
+        <div class="container">
+            {% include 'navbar.twig' %}
+        </div>
+    </div>
+</div>
+
+{# Mobile Header (visible below 576px) #}
+<div id="header-mobile" class="header-mobile">
+    <div class="menusav">
+        <div class="container" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+                <a href="/" title="Vissza a miserend.hu főoldalára" style="text-decoration: none; color: #fff; font-size: 18px; flex-shrink: 0;">
+                    <img src="/img/logo-icon.png" alt="Miserend oldal" loading="lazy" class="logo-icon"/>
+                </a>
+                <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1;">
+                    {% if title %}<h3 style="margin: 0; white-space: nowrap; color: #fff; overflow: hidden; text-overflow: ellipsis;">{{ title|raw }}</h3>{% endif %}
+                    {# Church metadata for mobile header: favorites + alternative names #}
+                    {% if id and favorite is defined %}
+                        <div style="display: flex; align-items: center; gap: 6px; color: #fff; font-size: 12px; overflow: hidden;">
+                            {% if user.loggedin %}
+                                <span
+                                    class="star-favorite {{ ICONS_FAVORITE }} {% if favorite == 1 %}yellow{% elseif favorite == 0 %}grey{% endif %}"
+                                    style="font-size: 0.9em; width: 16px; height: 16px; cursor: pointer;"
+                                    title="{% if favorite %}Kattintásra törlés a kedvencek közül.{% else %}Kattintással kedvencek közé emelés.{% endif %}"
+                                    data-tid="{{ id }}">
+                                </span>
+                            {% else %}
+                                <span
+                                    class="{{ ICONS_NON_FAVORITE }} grey"
+                                    style="font-size: 0.9em; width: 16px; height: 16px;"
+                                    title="A kedvencek közé mentéshez be kell jelentkezni.">
+                                </span>
+                            {% endif %}
+                            {% if alternative_names is defined and alternative_names|length > 0 %}
+                                <small style="font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    {{ alternative_names.0|raw }}{% if alternative_names|length > 1 %}<span title="{{ alternative_names|slice(1)|join(', ') }}">…</span>{% endif %}
+                                </small>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div style="flex-shrink: 0;">{% include 'navbar.twig' %}</div>
+        </div>
+    </div>
+</div>

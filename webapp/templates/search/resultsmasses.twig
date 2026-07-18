@@ -47,7 +47,7 @@
                 </p>
             </div>
 
-            <table class="table">
+            <table class="table mass-results-table">
                 <tbody>
                 {% set previousDate = null %}
                 {% set rowCounter = 0 %}
@@ -55,16 +55,21 @@
                     {% set church = result.church %}
                     {% set currentDate = result.start_date|date('Y-m-d') %}
                     {% if previousDate is null or previousDate != currentDate %}
-                        <tr style="background-color: #f5f5f5;">
-                            <td class="table-secondary" colspan="5" style="text-align: center; font-weight: bold; padding: 10px;">
-                                {{result.start_date|miserend_date('')}}{{ (liturgicalDays[currentDate].name ? ': ' ~ liturgicalDays[currentDate].name)|raw }}
+                        <tr class="date-header">
+                            <td colspan="5">
+                                <span class="date-header-text">
+                                    <span>{{ result.start_date|miserend_date('') }}</span>
+                                    {% if liturgicalDays[currentDate].name %}
+                                        <span class="date-header-liturgy">{{ liturgicalDays[currentDate].name }}</span>
+                                    {% endif %}
+                                </span>
                             </td>
                         </tr>
                         {% set previousDate = currentDate %}
                         {% set rowCounter = 0 %}
                     {% endif %}
                     <tr{% if rowCounter % 2 == 1 %} class="table-light"{% endif %}>
-                        <td class="align-middle">                           
+                        <td class="align-middle">
                             <span class="badge badge-primary">{{ "%02d:%02d"|format((result.start_minutes / 60)|round(0, 'floor'), (result.start_minutes % 60)) }}</span>
                         </td>
 
@@ -72,12 +77,6 @@
                             <img src="/cal_images/types/{{ result.rite|lower }}.svg" alt="{{ result.rite|trans }}" title="{{ result.rite|trans }}" style="height:1.3em; margin-right:6px; vertical-align:middle;">
                             <strong class="mass-list-title">{{ result.title }}</strong>
                         </td>
-
-                        <!--<td class="align-middle">
-                            {% if result.readable_rrule %}
-                                <div class="text-muted small">{{ result.readable_rrule }}</div>
-                            {% endif %}
-                        </td>-->
 
                         <td class="align-middle">
                             {% if result.lang and result.lang != 'hu' %}
@@ -89,20 +88,20 @@
                                 {% endfor %}
                             {% endif %}
                             {% if result.comment %}
-                                <i class='fas fa-info-circle' style='font-size:medium' 	title='{{ result.comment|striptags }}'></i>                                
+                                <i class='fas fa-info-circle' style='font-size:medium' title='{{ result.comment|striptags }}'></i>
                             {% endif %}
                         </td>
 
                         <td class="align-middle">
                             <a href='/templom/{{ church.id }}' class=felsomenulink title='{{ church.names|slice(1)|join(', ') }}'>
                                 <b>{{ church.names.0 }}</b>
-                                <font color=#8D317C>
+                                <span class="church-result-city">
                                     {% if church.varos is iterable %}
                                         ({{ church.varos.0 }})
                                     {% else %}
                                         ({{ church.varos }})
                                     {% endif %}
-                                </font>
+                                </span>
                             </a>
                             {% if church.alternative_names.0 %}
                                 <br/><span class="alap" style="margin-left: 20px; font-style: italic;" title="{{ church.alternative_names|slice(1)|join(', ') }}">{{ church.alternative_names.0 }}</span>
@@ -110,15 +109,9 @@
                         </td>
                         <td class="align-middle">
                             {% if result.period or result.mass.rrule %}
-                                <span class="badge" style="background-color:{{ result.period.color ??  '' }}" title="{{ result.mass.rrule.readable }}">{{ result.period.name ?? 'Időszak nélkül' }}</span>
+                                <span class="badge" style="background-color:{{ result.period.color ?? '' }}" title="{{ result.mass.rrule.readable }}">{{ result.period.name ?? 'Időszak nélkül' }}</span>
                             {% endif %}
-                            
                         </td>
-                        <!--{% if user.isadmin %}
-                            <td>
-                                {% include "church/_adminlinks.twig" with church %}
-                            </td>
-                        {% endif %}-->
                     </tr>
                     {% set rowCounter = rowCounter + 1 %}
                 {% endfor %}

@@ -73,6 +73,8 @@ Máris elérhető a http://localhost:8000 címen a miserend alkalmazás. Az `adm
 
 Az alkalmazás öt komponensből áll.
 
+> 🌐 A szerver által fut-időben használt **külső és belső hálózati kapcsolatok** (host\:port) teljes listája — hasznos firewall / egress-allow-list beállításhoz — a [Kimenő hálózati kapcsolatok](docs/outgoing-connections.md) dokumentumban található.
+
 ## 🛢️ MySQL konténer azaz az adatbázis
 
 Az adatbázis egyszerű MySQL / MariaDB. Megőrzi az adatokat újraindítás esetén is.  

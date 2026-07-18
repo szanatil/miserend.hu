@@ -25,15 +25,55 @@
     mymap.on('load', onMapMoved);
     mymap.on('load', loadBoundary);
 
-    mymap.setView(
-        {% if center %}
-            [{{ center.lat }}, {{ center.lon}} ], {% if center.zoom %} {{ center.zoom }} {% else %} 13 {% endif %} 
-        {% elseif location %}
-            [{{ location.lat }}, {{ location.lon}} ], {% if location.zoom %} {{ location.zoom }} {% else %} 13 {% endif %} 
-        {% else %}
-            [47.5, 19.05 ], 13
-        {% endif %} 
-    );
+    // Determine initial position: check autogeolocation first
+    var initialPosition = null;
+    var initialZoom = 13;
+    
+    {% if center %}
+        initialPosition = [{{ center.lat }}, {{ center.lon}}];
+        {% if center.zoom %} initialZoom = {{ center.zoom }}; {% endif %}
+    {% elseif location %}
+        initialPosition = [{{ location.lat }}, {{ location.lon}}];
+        {% if location.zoom %} initialZoom = {{ location.zoom }}; {% endif %}
+    {% else %}
+        initialPosition = [47.5, 19.05]; // Budapest default
+    {% endif %}
+    
+    // Geolocation check - try to get user position before setView
+    {% if enableAutoGeoLocation is not defined %}
+        {% set enableAutoGeoLocation = false %}
+    {% endif %}
+    
+    function initializeMapWithPosition(lat, lng) {
+        mymap.setView([lat, lng], initialZoom);
+        // Trigger the data loading
+        onMapMoved.call(mymap);
+    }
+    
+    if ({% if enableAutoGeoLocation %}true{% else %}false{% endif %} && navigator.geolocation && !{% if center %}true{% else %}false{% endif %} && !{% if location %}true{% else %}false{% endif %}) {
+        // Try to get geolocation, but don't wait too long
+        var geolocationTimer = setTimeout(function() {
+            // Fallback to initial position if geolocation takes too long
+            mymap.setView(initialPosition, initialZoom);
+            onMapMoved.call(mymap);
+        }, 3000);
+        
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                clearTimeout(geolocationTimer);
+                initializeMapWithPosition(position.coords.latitude, position.coords.longitude);
+            },
+            function(error) {
+                // Fallback to initial position on error
+                clearTimeout(geolocationTimer);
+                mymap.setView(initialPosition, initialZoom);
+                onMapMoved.call(mymap);
+            }
+        );
+    } else {
+        // No autogeolocation or already have center/location
+        mymap.setView(initialPosition, initialZoom);
+    }
                         
     //https://leaflet-extras.github.io/leaflet-providers/preview/
     var CartoDB_Voyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -335,18 +375,6 @@
         });
     }
     
-
-    // check for Geolocation
-    {% if enableAutoGeoLocation is not defined %}
-        {% set enableAutoGeoLocation = false %}
-    {% endif %}
-    {% if enableAutoGeoLocation and not center and not location %}
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-            mymap.flyTo(new L.LatLng(position.coords.latitude, position.coords.longitude));
-        });
-    }
-    {% endif %}
 
 
  const svgIcons = {

@@ -7,23 +7,27 @@
 
 {% block body %}
     {% if kozossegek|length > 0 %}
-        
-		{% for kozosseg in kozossegek %}
-			<h5><strong><a href="{{ kozosseg.link }}" target="_blank">{{ kozosseg.name }}</a></strong></h5>
-			{% for age_group in kozosseg.age_group %}		
-				<a href="https://kozossegek.hu/kozossegek?korosztaly={{ age_group|replace({' ':'_','á':'a','ő':'o','é':'e','ü':'u','ű':'u','ú':'u','í':'i','ö':'o'}) }}" target="_blank">{{ age_group}}</a>{% if loop.last == false  %}, {% endif%}
-			{% endfor %}            
-			<br/>
-			{% for tag in kozosseg.tags %}		
-				<a href="https://kozossegek.hu/kozossegek?tags={{ tag|replace({' ':'_','á':'a','ő':'o','é':'e','ü':'u','ű':'u','ú':'u','í':'i','ö':'o'}) }}" target="_blank">{{ tag }}</a>{% if loop.last == false  %}, {% endif%}
-			{% endfor %}            
 
-		{% endfor %}            
-        
-	{% else %}
-		Biztosan vannak itt is különféle közösségek, amikhez akár lehet csatlakozni is, de ezekről sajnos nem tudunk. A <a href="https://kozossegek.hu/kozosseg-regisztracio" target="_blank">közösségek.hu</a> oldalon lehet jelezni közösségek meglétét.
-    {% endif %}    
-{% endblock %}    
+        {% for kozosseg in kozossegek %}
+            <div class="kozosseg-item">
+                <h5><strong><a href="{{ kozosseg.link }}" target="_blank">{{ kozosseg.name }}</a></strong></h5>
+                {% for age_group in kozosseg.age_group %}
+                    <span class="kozosseg-tag">
+                        <a href="https://kozossegek.hu/kozossegek?korosztaly={{ age_group|replace({' ':'_','á':'a','ő':'o','é':'e','ü':'u','ű':'u','ú':'u','í':'i','ö':'o'}) }}" target="_blank">{{ age_group }}</a>
+                    </span>
+                {% endfor %}
+                {% for tag in kozosseg.tags %}
+                    <span class="kozosseg-tag">
+                        <a href="https://kozossegek.hu/kozossegek?tags={{ tag|replace({' ':'_','á':'a','ő':'o','é':'e','ü':'u','ű':'u','ú':'u','í':'i','ö':'o'}) }}" target="_blank">{{ tag }}</a>
+                    </span>
+                {% endfor %}
+            </div>
+        {% endfor %}
+
+    {% else %}
+        Biztosan vannak itt is különféle közösségek, amikhez akár lehet csatlakozni is, de ezekről sajnos nem tudunk. A <a href="https://kozossegek.hu/kozosseg-regisztracio" target="_blank">közösségek.hu</a> oldalon lehet jelezni közösségek meglétét.
+    {% endif %}
+{% endblock %}
 
 {% block footer %}
     <small>További információk és csatlakozási lehetőség a <a href="https://kozossegek.hu" target="_blank">közösségek.hu</a> partnerünknél.</small>

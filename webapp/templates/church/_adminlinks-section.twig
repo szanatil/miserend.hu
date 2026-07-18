@@ -1,0 +1,11 @@
+{# Admin links section for content block #}
+{# Used in church detail pages when user has write access #}
+
+{% if writeAcess == true %}
+    <div class="admin-links-section" style="margin-bottom: 15px; padding: 10px; background-color: #f9f9f9; border-left: 3px solid #6d3c8d; border-radius: 3px;">        
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <small style="color: #666; display: block; margin-bottom: 8px; font-weight: bold;">Admin funkciók:</small>
+            {% include "church/_adminlinks.twig" %}
+        </div>
+    </div>
+{% endif %}

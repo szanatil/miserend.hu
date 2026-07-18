@@ -213,7 +213,7 @@ $(document).ready(function() {
   });
 
   // favorites
-  $(document).on('click','#star',function(){
+  $(document).on('click','.star-favorite',function(){
     var $this= $(this);
 
     if($(this).hasClass('grey')) var method = 'add';
@@ -225,10 +225,13 @@ $(document).ready(function() {
        url:"/ajax/favorite",
        data:"tid="+tid+"&method="+method,
        success:function(response){
-          $("#star").toggleClass("grey yellow");          
-          if($("#star").hasClass('grey')) $("#star").attr('title', 'Kattintásra hozzáadás a kedvencekhez.');
-          else $("#star").attr('title', 'Kattintásra törlés a kedvencek közül.');
-      }, 
+          // Frissíts minden star-favorite elemet ugyanannak az objektumnak (data-tid alapján)
+          $(".star-favorite[data-tid='" + tid + "']").each(function() {
+            $(this).toggleClass("grey yellow");
+            if($(this).hasClass('grey')) $(this).attr('title', 'Kattintásra hozzáadás a kedvencekhez.');
+            else $(this).attr('title', 'Kattintásra törlés a kedvencek közül.');
+          });
+       },
     });
   
   });
