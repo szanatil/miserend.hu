@@ -7,9 +7,20 @@ namespace ExternalApi;
 class OverpassApi extends \ExternalApi\ExternalApi {
 
     public $name = 'overpass';
-    public $apiUrl = "http://overpass-api.de/api/interpreter";
+    public $apiUrl = "https://overpass-api.de/api/interpreter";
 	public $testQuery = 'nwr["name"="Tápiószecső"];out geom;';
     public $queryFilter;
+
+    function __construct() {
+        global $config;
+        // #376: az Overpass-endpoint mostantól konfigurálható. borazslo tapasztalata
+        // szerint a fő overpass-api.de instabil lehet; prod átállhat egy stabilabb,
+        // EU-s mirrorra (pl. overpass.kumi.systems, Ausztria) a config['overpass']['apiUrl']
+        // vagy az OVERPASS_API_URL env révén. (Orosz mirrort ne — nem EU, GDPR/megbízhatóság.)
+        if (!empty($config['overpass']['apiUrl'])) {
+            $this->apiUrl = $config['overpass']['apiUrl'];
+        }
+    }
 
     function buildQuery() {
         $this->rawQuery = "[out:json][timeout:" . $this->queryTimeout . "];";
