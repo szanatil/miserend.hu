@@ -152,6 +152,11 @@ span.toggle.active {
     display: none;
 }
 
+#header-mobile .menusav {
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
 /* Desktop Footer - visible at 576px and above */
 #footer-full {
     display: block;
@@ -214,6 +219,50 @@ span.toggle.active {
 /* FAB útvonal gomb – alapból rejtett, csak mobilon látható */
 .church-fab-direction {
   display: none;
+}
+
+/* ── Kontakt – ikon-sor (globális, minden képernyőméreten) ── */
+.contact-icon-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.contact-icon-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.contact-icon-row .icon-col {
+  width: 28px;
+  flex-shrink: 0;
+  color: #6d3c8d;
+  font-size: 16px;
+  padding-top: 2px;
+  text-align: center;
+}
+
+.contact-icon-row .text-col {
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.contact-icon-row .text-col a {
+  color: #6d3c8d;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.contact-icon-row .text-col .label-small {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #767676;
+  margin-bottom: 2px;
 }
 
 /* ══════════════════════════════════════════════════════════════

@@ -18,7 +18,6 @@
             <div class="contact-icon-row">
                 <div class="icon-col"><i class="fa fa-envelope"></i></div>
                 <div class="text-col">
-                    <span class="label-small">Email</span>
                     <a target="_blank" href="mailto:{{ religious_administration.parish.email }}">{{ religious_administration.parish.email }}</a>
                 </div>
             </div>
@@ -27,8 +26,10 @@
         {% if links %}
             {% for link in links %}
                 <div class="contact-icon-row">
-                    <div class="icon-col"><i class="fa fa-link"></i></div>
-                    <div class="text-col">{{ link.html|raw }}</div>
+                    <div class="icon-col"><i class="fa {{ link.icon }}"></i></div>
+                    <div class="text-col">
+                        <a href="{{ link.href }}">{{ link.title }}</a>
+                    </div>
                 </div>
             {% endfor %}
         {% endif %}
