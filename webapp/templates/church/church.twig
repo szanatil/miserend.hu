@@ -58,11 +58,12 @@
     <div class="alert alert-warning">Ennek a misézőhelynek a liturgikus beosztását sajnos még nem sikerült áthoznunk az új rendszerbe. Elnézést és türelmet kérünk.</div>
     {% endif %}
 
-    <h5><b>Frissítve ill. megerősítve:</b> {{ updated }}</h5>
+    <div class="church-update-meta"><b>Frissítve ill. megerősítve:</b> {{ updated }}</div>
 
     {% include '_panelcampaign.twig' with { collapsible: 'collapsed' }  %}
 
     {% if miseaktiv == 1 %}
+    <div class="church-miserend-wrap">
        {% include 'angularjs.twig' %}
     <small class="text-muted">
         A naptár widget egyszerűen beépíthető más honlapba egy iframe segítségével. 
@@ -100,9 +101,13 @@
             </li>
         </ul>
     </div>
+    </div>{# /church-miserend-wrap #}
     {% else %}
         <span class="alap">Nincs rendszeres szentmise.<br/><br/></span>
     {% endif %}
+
+    {# Mobilon ide kerül a Kapcsolat + Elhelyezkedés – JS mozgatja ide a jobb oszlopból #}
+    <div id="church-mobile-panels-placeholder"></div>
 
     {% if misemegj %}
         {% include "panel.twig" with {title:'Kapcsolódó információk','body': misemegj|raw|nl2br } %}    
@@ -139,15 +144,63 @@
 {% endblock %}
 
 {% block rightsidebar %}
-    {% include "church/_panellocation.twig" %}
-    {% include 'church/_panelcontact.twig' %}
+    <div id="church-panel-location-wrap">
+        {% include "church/_panellocation.twig" %}
+    </div>
+    <div id="church-panel-contact-wrap">
+        {% include 'church/_panelcontact.twig' %}
+    </div>
+
+    {# FAB – lebegő hívás gomb, csak ha van telefonszám, csak mobilon látható #}
+    {% if religious_administration.parish.description %}
+        <a class="church-fab-call" href="tel:{{ religious_administration.parish.description|striptags|trim }}" title="Hívás">
+            <i class="fa fa-phone"></i>
+        </a>
+    {% endif %}
+
     {% if megjegyzes %}
         {% include "panel.twig" with {title:'Jó tudni','body': megjegyzes } %}
     {% endif %}
 		
     {% if neighbours|length > 1 %}
         {% include 'church/_panelneighbours.twig' %}
-    {% endif %}    
+    {% endif %}
     
 	{% include 'church/_panelfacebookpageplugin.twig' %}
+
+	   <script>
+	   (function() {
+	       var MOBILE_BREAKPOINT = 576;
+
+	       function movePanelsForViewport() {
+	           var isMobile = window.innerWidth < MOBILE_BREAKPOINT;
+	           var placeholder = document.getElementById('church-mobile-panels-placeholder');
+	           var locationWrap = document.getElementById('church-panel-location-wrap');
+	           var contactWrap  = document.getElementById('church-panel-contact-wrap');
+
+	           if (!placeholder || !locationWrap || !contactWrap) return;
+
+	           if (isMobile) {
+	               // Mobilon: mozgasd a placeholder-be a főtartalom után
+	               placeholder.appendChild(locationWrap);
+	               placeholder.appendChild(contactWrap);
+	           } else {
+	               // Asztali: visszahelyezés a jobb oszlopba (legelőre)
+	               var sidebar = document.querySelector('.church-site-right-sidebar');
+	               if (sidebar) {
+	                   sidebar.insertBefore(locationWrap, sidebar.firstChild);
+	                   sidebar.insertBefore(contactWrap, locationWrap.nextSibling);
+	               }
+	           }
+	       }
+
+	       document.addEventListener('DOMContentLoaded', movePanelsForViewport);
+
+	       var resizeTimer;
+	       window.addEventListener('resize', function() {
+	           clearTimeout(resizeTimer);
+	           resizeTimer = setTimeout(movePanelsForViewport, 100);
+	       });
+	   })();
+	   </script>
 {% endblock %}

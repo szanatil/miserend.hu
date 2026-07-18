@@ -54,8 +54,8 @@
 {% endblock %}
 
 {% block pageHeader %}
-    <div class="page-header hidden-xs">
-        <h1>Miserend<small><span class="hidden-sm"> és templom keresés</span></small></h1>
+    <div class="page-header">
+        <h1>Miserend<small><span class="hidden-xs"> és templom keresés</span></small></h1>
     </div>
 {%  endblock %}
 
@@ -75,9 +75,9 @@
         </div>
 
             <div id="form_church"  style="margin-top:12px;">
-                <div class="form-group row">
-                    <label class="col-sm-4 control-label">Templom</label>
-                    <div class="col-sm-6">{{ forms.input(searchform.kulcsszo) }}</div>
+                <div class="search-field-group">
+                    <label class="search-label">Templom</label>
+                    <div class="search-input-wrap">{{ forms.input(searchform.kulcsszo) }}</div>
                     <div class="cols-sm-2" style="text-align:right"><span id="form_church_getdetails">{{ icons.icon('fa-plus', 'fa-2xs circle') }}</span></div>
                 </div>
                 <!--<div class="form-group row">
@@ -801,7 +801,7 @@
 
             </div>
 
-            <div align=center class="form-group" style="margin-top:12px">
+            <div class="home-cta-buttons form-group" style="margin-top:12px">
                 <button type=submit name="q" value="SearchResultsMasses"  class="btn btn-primary" id="search_masses_btn"></button>
                 <button type=submit name="q" value="SearchResultsChurches"  class="btn btn-primary">Templom keresése</button>
             </div>

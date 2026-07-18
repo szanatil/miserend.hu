@@ -1,14 +1,12 @@
-<div style="text-align:center">
-      {% for photo in photos %}
-	  <a href="{{ constant('DOMAIN') }}/kepek/templomok/{{ id }}/{{ photo.filename }}" data-lightbox="templomkepek-{{ id }}" >
-		  <img 
-			src="{{ constant('DOMAIN') }}/kepek/templomok/{{ id }}/kicsi/{{ photo.filename }}" 
-			style="object-fit: cover; width: 90px; height: 90px; vertical-align: unset"
-			title="{{ photo.title }}" 
-			loading="lazy">
-	  </a>
-	  
-	  {% endfor %}
+<div class="church-photo-strip">
+    {% for photo in photos %}
+        <a href="{{ constant('DOMAIN') }}/kepek/templomok/{{ id }}/{{ photo.filename }}" data-lightbox="templomkepek-{{ id }}">
+            <img
+                src="{{ constant('DOMAIN') }}/kepek/templomok/{{ id }}/kicsi/{{ photo.filename }}"
+                title="{{ photo.title }}"
+                loading="lazy">
+        </a>
+    {% endfor %}
 </div>
 
 <link rel="stylesheet" href="/node_modules/lightbox2/dist/css/lightbox.min.css" />
