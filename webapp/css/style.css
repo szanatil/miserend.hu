@@ -22,6 +22,20 @@ img {max-width: 100%;max-height: 100%;}
 .navbar-default {background: none;border: none;}
 .navbar-default .navbar-nav>li>a { color: #fff; }
 
+/* Navbar toggler styling for white icon on purple background */
+.navbar-toggler {
+    border-color: #fff;
+}
+
+.navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='white' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+.navbar-toggler:focus {
+    border-color: #fff;
+    box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25);
+}
+
 .footer {
     padding: 40px 0;
     color: #efefef;
@@ -124,5 +138,70 @@ span.toggle.active {
     .church-site-main-content {
         order: 0;
         width: 100%
+    }
+}
+
+/* Responsive Header and Footer - 576px breakpoint */
+
+/* Desktop Header - visible at 576px and above */
+#header-desktop {
+    display: block;
+}
+
+#header-mobile {
+    display: none;
+}
+
+/* Desktop Footer - visible at 576px and above */
+#footer-full {
+    display: block;
+}
+
+#footer-minimal {
+    display: none;
+}
+
+/* Mobile View - below 576px */
+@media (max-width: 575.98px) {
+    #header-desktop {
+        display: none;
+    }
+
+    #header-mobile {
+        display: block;
+    }
+
+    #footer-full {
+        display: none;
+    }
+
+    #footer-minimal {
+        display: block;
+    }
+    
+    /* Hide desktop-only pageHeader elements on mobile */
+    .desktop-only {
+        display: none !important;
+    }
+        
+    /* Show mobile-only elements */
+    .page-header-meta-mobile {
+        display: block !important;
+        margin-bottom: 12px;
+        padding: 8px 0;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    /* Ensure admin links section displays properly */
+    .admin-links-section {
+        display: block !important;
+    }
+}
+
+/* Desktop View - 576px and above */
+@media (min-width: 576px) {
+    /* Hide mobile-only elements on desktop */
+    .page-header-meta-mobile {
+        display: none !important;
     }
 }

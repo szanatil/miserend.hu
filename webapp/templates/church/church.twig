@@ -1,46 +1,57 @@
 {% extends "layout.twig" %}
 {% import 'macros/icons.twig' as icons %}
 
+{# Provide church metadata for mobile header #}
+{% set id = id %}
+{% set alternative_names = alternative_names %}
+
 {% block pageHeader %}
-    <div class="page-header">
-        <h2>
-            {% if user.loggedin %}
-                <span 
-                    class="{{ ICONS_FAVORITE }} {% if favorite == 1 %}yellow{% elseif favorite == 0 %}grey{% endif %}" 
-                    style="float:left;font-size:1em;margin-right:3px;width:36px;height:36px" 
-                    id="star" 
-                    title="{% if favorite %}Kattintásra törlés a kedvencek közül.{% else %}Kattintással kedvencek közé emelés.{% endif %}" 
-                    data-tid="{{ id }}">                    
-                </span>
-            {% else %}
-                <span 
-                    class="{{ ICONS_NON_FAVORITE }}  grey" 
-                    style="float:left;font-size:1em;margin-right:3px;width:36px;height:36px" 
-                    title="A kedvencek közé mentéshez be kell jelentkezni.">                    
-                </span>
-            {% endif %}
-            <span title="{{ names|join(",\n ") }}">{{ names.0 }}</span>
-			{% if writeAcess == true %}
-				<div style="float:right" class="text-end">{% include "church/_adminlinks.twig" %}</div>
-			{% endif %}
-            {% if alternative_names|length > 0 %}
-                <br/>
+    <div class="page-header desktop-only">
+        <h2 class="desktop-only" style="display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap;">
+            {# Favorites icon - Desktop only #}
+            <span class="page-header-favorite-desktop">
+                {% if user.loggedin %}
+                    <span
+                        class="{{ ICONS_FAVORITE }} {% if favorite == 1 %}yellow{% elseif favorite == 0 %}grey{% endif %}"
+                        style="font-size:1em;width:36px;height:36px;display:inline-block"
+                        id="star"
+                        title="{% if favorite %}Kattintásra törlés a kedvencek közül.{% else %}Kattintással kedvencek közé emelés.{% endif %}"
+                        data-tid="{{ id }}">
+                    </span>
+                {% else %}
+                    <span
+                        class="{{ ICONS_NON_FAVORITE }} grey"
+                        style="font-size:1em;width:36px;height:36px;display:inline-block"
+                        title="A kedvencek közé mentéshez be kell jelentkezni.">
+                    </span>
+                {% endif %}
+            </span>
+            
+            {# Title - desktop only #}
+            <span style="flex: 1;" title="{{ names|join(",\n ") }}">{{ names.0 }}</span>
+            
+        </h2>
+        
+        {# Alternative names - Desktop only #}
+        {% if alternative_names|length > 0 %}
+            <div class="page-header-alt-names-desktop">
                 <small>
-                    <span class="hidden-xs hidden-sm">
-                       {{ alternative_names.0|raw }}{% if alternative_names|length > 1 %}, <a href="#" onclick="this.style.display='none'; document.getElementById('all-names').style.display='inline'; return false;">...</a><span id="all-names" style="display:none;" onclick="document.getElementById('all-names').style.display='none'; this.previousElementSibling.style.display='inline'; return false;">
-                            {{ alternative_names|slice(1)|join(", ")|raw }}                            
+                    <span>
+                       {{ alternative_names.0|raw }}{% if alternative_names|length > 1 %}, <a href="#" onclick="this.style.display='none'; document.getElementById('all-names-desk').style.display='inline'; return false;">...</a><span id="all-names-desk" style="display:none;" onclick="document.getElementById('all-names-desk').style.display='none'; this.previousElementSibling.style.display='inline'; return false;">
+                            {{ alternative_names|slice(1)|join(", ")|raw }}
                         </span>
                     {% endif %}
                     </span>
                 </small>
-            {% endif %}
-            
-        </h2>
+            </div>
+        {% endif %}
     </div>
 {%  endblock %}
 
 
 {% block content %}
+    {# Admin links section #}
+    {% include 'church/_adminlinks-section.twig' %}
 
     {{ alert|raw }}
         
