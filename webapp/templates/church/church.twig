@@ -158,6 +158,13 @@
         </a>
     {% endif %}
 
+    {# FAB – útvonaltervezés gomb, csak ha van koordináta, csak mobilon látható #}
+    {% if location.lat %}
+        <a class="church-fab-direction{% if not religious_administration.parish.description %} church-fab-direction--solo{% endif %}" href="https://www.google.com/maps/dir/?api=1&destination={{ location.lat }},{{ location.lon }}" target="_blank" rel="noopener noreferrer" title="Útvonaltervezés">
+            <i class="{{ ICONS_MAP_DIRECTION }}"></i>
+        </a>
+    {% endif %}
+
     {% if megjegyzes %}
         {% include "panel.twig" with {title:'Jó tudni','body': megjegyzes } %}
     {% endif %}
