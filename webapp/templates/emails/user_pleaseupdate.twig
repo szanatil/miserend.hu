@@ -10,8 +10,9 @@ A templomaid a következőek:
 	{% for key, church in responsible.church %}
 		<li class="list-group-item">
 			<a href="{{ domain }}/templom/{{ church.id }}">{{ church.fullName }}</a>. Frissítve: {{ church.frissites }}
+			&nbsp;Ha módosítani szeretnéd kattints <a href="{{ domain }}/templom/{{ church.id }}">✏️ ide</a>
 			{% if churchTokens[church.id] is defined %}
-				&nbsp;&nbsp;<a href="{{ domain }}/naprakesz?token={{ churchTokens[church.id] }}" style="font-size:0.9em;">✓ Ez naprakész</a>
+				ha pedig minden rendben akkor kattints ide: <a href="{{ domain }}/naprakesz?token={{ churchTokens[church.id] }}" style="font-size:0.9em;">✓ Ez naprakész</a>
 			{% endif %}
 		</li>
 	{% endfor %}

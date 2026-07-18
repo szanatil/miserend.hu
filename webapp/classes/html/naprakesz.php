@@ -7,7 +7,7 @@ class Naprakesz extends Html {
     public $churches;
 
     public function __construct($path) {
-        $token  = \Request::Text('token');
+        $token  = \Request::TextFromGet('token');
         $result = \Eloquent\ChurchUpdateToken::redeem((string) $token);
 
         if (!$result['success']) {
