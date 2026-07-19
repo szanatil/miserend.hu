@@ -47,6 +47,91 @@ class Church extends \Illuminate\Database\Eloquent\Model {
     {
         return $this->hasMany(Adoration::class);
     }
+
+    // -------------------------------------------------------------------------
+    // Church relationships (hierarchia)
+    // -------------------------------------------------------------------------
+
+    public function parentRelationships() {
+        return $this->hasMany(ChurchRelationship::class, 'child_church_id');
+    }
+
+    public function childRelationships() {
+        return $this->hasMany(ChurchRelationship::class, 'parent_church_id');
+    }
+
+    /**
+     * Rekurziv felfelé járás: az összes ős-lánc.
+     * Max 10 szint, ciklus-védelem visited set-tel.
+     * Visszatér: [ ['church' => Church, 'type' => '...', 'children' => [...]], ... ]
+     */
+    public function getAncestorsAttribute(): array {
+        return $this->_getAncestors([$this->id]);
+    }
+
+    private function _getAncestors(array $visited, int $depth = 0): array {
+        if ($depth >= 10) return [];
+        $result = [];
+        $rels = ChurchRelationship::where('child_church_id', $this->id)->get();
+        foreach ($rels as $rel) {
+            if (in_array($rel->parent_church_id, $visited)) continue;
+            $parent = Church::find($rel->parent_church_id);
+            if (!$parent) continue;
+            $newVisited = array_merge($visited, [$rel->parent_church_id]);
+            $result[] = [
+                'church'   => $parent,
+                'type'     => $rel->type,
+                'children' => $parent->_getAncestors($newVisited, $depth + 1),
+            ];
+        }
+        return $result;
+    }
+
+    /**
+     * Rekurziv lefelé járás: az összes leszármazott.
+     * Max 10 szint, ciklus-védelem visited set-tel.
+     */
+    public function getDescendantsAttribute(): array {
+        return $this->_getDescendants([$this->id]);
+    }
+
+    private function _getDescendants(array $visited, int $depth = 0): array {
+        if ($depth >= 10) return [];
+        $result = [];
+        $rels = ChurchRelationship::where('parent_church_id', $this->id)->get();
+        foreach ($rels as $rel) {
+            if (in_array($rel->child_church_id, $visited)) continue;
+            $child = Church::find($rel->child_church_id);
+            if (!$child) continue;
+            $newVisited = array_merge($visited, [$rel->child_church_id]);
+            $result[] = [
+                'church'   => $child,
+                'type'     => $rel->type,
+                'children' => $child->_getDescendants($newVisited, $depth + 1),
+            ];
+        }
+        return $result;
+    }
+
+    /**
+     * Lapos ID lista: saját id + összes leszármazott id (Angular hierarchia URL-hez).
+     */
+    public function getDescendantIdsAttribute(): array {
+        $ids = [$this->id];
+        $this->_collectDescendantIds($this->id, $ids, [$this->id]);
+        return $ids;
+    }
+
+    private function _collectDescendantIds(int $churchId, array &$ids, array $visited, int $depth = 0): void {
+        if ($depth >= 10) return;
+        $rels = ChurchRelationship::where('parent_church_id', $churchId)->get();
+        foreach ($rels as $rel) {
+            if (in_array($rel->child_church_id, $visited)) continue;
+            $ids[] = $rel->child_church_id;
+            $visited[] = $rel->child_church_id;
+            $this->_collectDescendantIds($rel->child_church_id, $ids, $visited, $depth + 1);
+        }
+    }
     
     public function getConfessionStatusAttribute() {
         // Get all confessions related to this church
@@ -932,18 +1017,31 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         $access = false;
 
         if ($_user->checkRole('miserend'))
-            $access = true;        
+            $access = true;
         
         if(\Eloquent\ChurchHolder::where('church_id',$this->id)->where('user_id',$_user->uid)->where('status','allowed')->first())
             $access = true;
                
-        if(DB::table('egyhazmegye')->where('id',$this->egyhazmegye)->where('felelos',$_user->username)->first())        
+        if(DB::table('egyhazmegye')->where('id',$this->egyhazmegye)->where('felelos',$_user->username)->first())
             $access = true;
+
+        // Örökölt gondnokság: ha a felhasználó bármely ős-templomnak 'allowed' gondnoka
+        if (!$access) {
+            foreach ($this->ancestors as $ancestor) {
+                if (\Eloquent\ChurchHolder::where('church_id', $ancestor['church']->id)
+                    ->where('user_id', $_user->uid)
+                    ->where('status', 'allowed')
+                    ->exists()) {
+                    $access = true;
+                    break;
+                }
+            }
+        }
         
         global $user;
         if($user->uid == $_user->uid) {
             $this->writeAcess = $access;
-        }         
+        }
         return $access;
     }
 
@@ -1052,6 +1150,10 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         #$this->neighbours()->delete();
         #Distance::where('church_to', $this->id)->delete(); fromLat, fromLon
         #Distance::where('church_from', $this->id)->delete(); toLat, toLon
+
+        // Kapcsolatok törlése mindkét irányban (Eloquent eseménykezelők lefussanak)
+        \Eloquent\ChurchRelationship::where('parent_church_id', $this->id)->delete();
+        \Eloquent\ChurchRelationship::where('child_church_id', $this->id)->delete();
         
         \Eloquent\ChurchHolder::where('church_id',$this->id)->delete();
         \Eloquent\Favorite::where('tid',$this->id)->delete();
