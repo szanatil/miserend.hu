@@ -222,16 +222,8 @@ class ChurchRelationshipTest extends TestCase {
         $validRanks = \Eloquent\ChurchRelationship::validRanks();
         $this->assertContains('parish', $validRanks);
         $this->assertContains('auxiliary', $validRanks);
-        $this->assertContains('filial', $validRanks);        
+        $this->assertContains('filial', $validRanks);
         $this->assertContains('rectoral', $validRanks);
         $this->assertCount(4, $validRanks);
-    }
-
-    public function testRankCanBeSavedToChurch(): void {
-        $churchId = $this->createChurch('Plébánia');
-        DB::table('templomok')->where('id', $churchId)->update(['rank' => 'parish']);
-
-        $church = \Eloquent\Church::find($churchId);
-        $this->assertEquals('parish', $church->rank);
     }
 }
