@@ -221,10 +221,9 @@ class ChurchRelationshipTest extends TestCase {
     public function testAllEnumRanksAreValid(): void {
         $validRanks = \Eloquent\ChurchRelationship::validRanks();
         $this->assertContains('parish', $validRanks);
-        $this->assertContains('assisted_parish', $validRanks);
-        $this->assertContains('filial_church', $validRanks);
-        $this->assertContains('mass_station', $validRanks);
-        $this->assertContains('rectorate', $validRanks);
+        $this->assertContains('auxiliary', $validRanks);
+        $this->assertContains('filial', $validRanks);        
+        $this->assertContains('rectoral', $validRanks);
         $this->assertCount(5, $validRanks);
     }
 

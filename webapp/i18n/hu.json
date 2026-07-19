@@ -310,10 +310,9 @@
 
   "CHURCH_RANK": {
     "parish":           "plébánia",
-    "assisted_parish":  "oldallagosan ellátott plébánia",
-    "filial_church":    "fília",
-    "mass_station":     "misézőhely",
-    "rectorate":        "templomigazgatóság",
+    "auxiliary":  "oldallagosan ellátott plébánia",
+    "filial":    "fília",
+    "rectoral":        "templomigazgatóság",
     "unknown":          "ismeretlen"
   },
   "CHURCH_RELATIONSHIP_TYPE": {

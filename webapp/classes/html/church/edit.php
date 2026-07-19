@@ -85,13 +85,6 @@ class Edit extends \Html\Html {
             }
         }
 
-        // Rang mentése
-        if (array_key_exists('rank', $this->input['church'])) {
-            $rank = $this->input['church']['rank'];
-            $validRanks = \Eloquent\ChurchRelationship::validRanks();
-            $this->church->rank = (in_array($rank, $validRanks)) ? $rank : null;
-        }
-
         // Handle external calendar URL
         if (isset($this->input['church']['external_calendar_url'])) {
             $newUrl = trim($this->input['church']['external_calendar_url']);

@@ -17,18 +17,6 @@ ALTER TABLE `templomok`
 ALTER TABLE `templomok`
     ADD INDEX IF NOT EXISTS `boundaries_checked_at` (`boundaries_checked_at`);
 
--- Add rank column to templomok table
--- Stores the church's own classification (parish, filial, etc.).
--- NULL means unknown/not specified.
-ALTER TABLE `templomok`
-    ADD COLUMN IF NOT EXISTS `rank` ENUM(
-        'parish',
-        'assisted_parish',
-        'filial_church',
-        'mass_station',
-        'rectorate'
-    ) NULL DEFAULT NULL COMMENT 'misézőhely rangja' AFTER `miseaktiv`;
-
 -- Create church_relationships table
 -- Stores hierarchical relationships between churches.
 -- The relationship is always interpreted bottom-up: the child belongs to the parent.

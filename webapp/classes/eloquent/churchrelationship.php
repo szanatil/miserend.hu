@@ -42,6 +42,6 @@ class ChurchRelationship extends \Illuminate\Database\Eloquent\Model {
      * Érvényes rang kulcsok (angol, DB enum értékek).
      */
     public static function validRanks(): array {
-        return ['parish', 'assisted_parish', 'filial_church', 'mass_station', 'rectorate'];
+        return ['parish', 'auxiliary', 'filial', 'rectoral'];
     }
 }

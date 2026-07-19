@@ -8,17 +8,17 @@ Misézőhelyek (Eloquent `Church`) közötti hierarchikus kapcsolatok összegyű
 
 ## 1. Fogalmak és i18n
 
-### 1.1 Misézőhely rangja (`church_rank`)
+### 1.1 Misézőhely rangja (`church:type` az OSM-ben)
 
-A misézőhely saját besorolása – ez **nem** a kapcsolat típusa, hanem a misézőhely önálló jellemzője. Az adatbázisban angol kulcsszóként tárolódik, a megjelenítés i18n-en keresztül történik.
+A misézőhely saját besorolása – ez **nem** a kapcsolat típusa, hanem a misézőhely önálló jellemzője. Az adatbázisban **nem** tárolódik, hanem az **Open Street Map-ben** a `church:type` kulcs alatt kerül tárolásra. A megjelenítés i18n-en keresztül történik.
 
-| Angol kulcs (DB/kód) | Magyar | Térkép ikon |
+| Angol kulcs (OSM `church:type`) | Magyar | Térkép ikon |
 |---|---|---|
 | `parish` | plébánia | teli kör |
-| `assisted_parish` | oldallagosan ellátott plébánia | félkör |
-| `filial_church` | fília | üres/lyukas kör |
-| `mass_station` | misézőhely | kis pont |
-| `rectorate` | templomigazgatóság | négyzet |
+| `auxiliary` | oldallagosan ellátott plébánia | félkör |
+| `filial` | fília | üres/lyukas kör |
+| `` | misézőhely | kis pont |
+| `rectoral` | templomigazgatóság | négyzet |
 
 ### 1.2 Kapcsolat típusa (`relationship_type`)
 
@@ -41,10 +41,10 @@ Az i18n kulcsok **csak** a Twig sablonokban és a JS scriptekben használatosak.
 ```json
 "CHURCH_RANK": {
   "parish":           "plébánia",
-  "assisted_parish":  "oldallagosan ellátott plébánia",
-  "filial_church":    "fília",
-  "mass_station":     "misézőhely",
-  "rectorate":        "templomigazgatóság",
+  "auxiliary":  "oldallagosan ellátott plébánia",
+  "filial":    "fília",
+  "":     "misézőhely",
+  "rectoral":        "templomigazgatóság",
   "unknown":          "ismeretlen"
 },
 "CHURCH_RELATIONSHIP_TYPE": {
@@ -89,22 +89,11 @@ CREATE TABLE IF NOT EXISTS `church_relationships` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 ```
 
-### 2.2 `templomok` tábla kiegészítése: `rank` oszlop
+### 2.2 `templomok` tábla – `rank` oszlop ELTÁVOLÍTVA
 
-A misézőhely rangjának tárolásához új oszlop a `templomok` táblában:
+A misézőhely rangja az **Open Street Map-ben** tárolódik a `church:type` kulcs alatt, ezért az adatbázisban **nem** szükséges külön oszlop. Az `rank` oszlop eltávolításra kerül a `templomok` táblából.
 
-```sql
-ALTER TABLE `templomok`
-  ADD COLUMN `rank` enum(
-    'parish',
-    'assisted_parish',
-    'filial_church',
-    'mass_station',
-    'rectorate'
-  ) NULL DEFAULT NULL COMMENT 'misézőhely rangja' AFTER `miseaktiv`;
-```
-
-**Megjegyzés:** `NULL` = ismeretlen/nem megadott rang. A rang megadása opcionális, de a térkép ikonok és a hierarchia megjelenítés ezt használja.
+**Megjegyzés:** Az adatok az OSM-ből lekérdezhetők az `editosm` felületen keresztül.
 
 ### 2.3 Enum típusok összefoglalója
 
@@ -144,7 +133,7 @@ class ChurchRelationship extends \Illuminate\Database\Eloquent\Model {
 
     /** Érvényes rang kulcsok (angol, DB enum értékek) */
     public static function validRanks(): array {
-        return ['parish', 'assisted_parish', 'filial_church', 'mass_station', 'rectorate'];
+        return ['parish', 'auxiliary', 'filial', 'rectoral'];
     }
 }
 ```
@@ -156,10 +145,10 @@ Fájl: [`webapp/classes/eloquent/church.php`](../webapp/classes/eloquent/church.
 Új relációk és attribútumok:
 
 ```php
-// rank hozzáadása a fillable-höz
+// rank ELTÁVOLÍTVA a fillable-ből (az OSM-ben tárolódik)
 protected $fillable = [
     /* ... meglévők ... */
-    'rank',
+    // 'rank' – ELTÁVOLÍTVA
 ];
 
 // Relációk
@@ -269,23 +258,7 @@ Gondnokok:
 
 Fájl: [`webapp/templates/church/edit.twig`](../webapp/templates/church/edit.twig)
 
-**Rang (rank) megadása** – új sor a form elején:
-```html
-<tr>
-  <td>Misézőhely rangja:</td>
-  <td>
-    <select name="church[rank]">
-      <option value="">– ismeretlen –</option>
-      {# Az option értékek angolul, a szöveg Twig i18n-nel #}
-      {% for rankKey in ['parish','assisted_parish','filial_church','mass_station','rectorate'] %}
-        <option value="{{ rankKey }}" {% if church.rank == rankKey %}selected{% endif %}>
-          {{ ('CHURCH_RANK.' ~ rankKey)|t }}
-        </option>
-      {% endfor %}
-    </select>
-  </td>
-</tr>
-```
+**Rang (rank) megadása – ELTÁVOLÍTVA** – a misézőhely rangja az OSM-ben (`church:type`) tárolódik, ezért az edit.twig-ből eltávolításra kerül.
 
 Új szekció a form alján, „Kapcsolat más misézőhelyekkel" fejléccel:
 
@@ -349,12 +322,7 @@ $this->nearbyChurches = \Eloquent\Church::select()
 Fájl: [`webapp/classes/html/church/edit.php`](../webapp/classes/html/church/edit.php)
 
 ```php
-// Rang mentése
-if (array_key_exists('rank', $this->input['church'])) {
-    $rank = $this->input['church']['rank'];
-    $validRanks = \Eloquent\ChurchRelationship::validRanks();
-    $this->church->rank = (in_array($rank, $validRanks)) ? $rank : null;
-}
+// Rang mentése – ELTÁVOLÍTVA (az OSM-ben tárolódik)
 
 // Kapcsolat hozzáadása
 if (isset($this->input['relationship']['add']) && !empty($this->input['relationship']['parent_id'])) {
@@ -505,10 +473,10 @@ Az ikonok a `rank` mező alapján különböznek (nem a kapcsolat típusa alapj�
 | `rank` érték | Ikon | i18n kulcs |
 |---|---|---|
 | `parish` | Teli kör | `CHURCH_RANK.parish` |
-| `assisted_parish` | Félkör | `CHURCH_RANK.assisted_parish` |
-| `filial_church` | Üres/lyukas kör | `CHURCH_RANK.filial_church` |
-| `mass_station` | Kis pont | `CHURCH_RANK.mass_station` |
-| `rectorate` | Négyzet | `CHURCH_RANK.rectorate` |
+| `auxiliary` | Félkör | `CHURCH_RANK.auxiliary` |
+| `filial` | Üres/lyukas kör | `CHURCH_RANK.filial` |
+| `` | Kis pont | `CHURCH_RANK.??` |
+| `rectoral` | Négyzet | `CHURCH_RANK.rectoral` |
 | `null` | Alapértelmezett kör | – |
 
 Az ikonokat SVG-ként vagy `L.divIcon`-ként definiáljuk, CSS osztályokkal. A térkép JS-ben az angol `rank` kulcsot kapja az API-tól, és a megjelenítési logika ez alapján választ ikont – a felirathoz a `hu.json` i18n kulcsait használja.
@@ -690,17 +658,18 @@ flowchart LR
 
 | Fájl | Változás típusa |
 |---|---|
-| [`docker/mysql/initdb.d/03-migrations.sql`](../docker/mysql/initdb.d/03-migrations.sql) | Módosítás – `church_relationships` tábla + `rank` oszlop a `templomok`-ban |
+| [`docker/mysql/initdb.d/03-migrations.sql`](../docker/mysql/initdb.d/03-migrations.sql) | Módosítás – `church_relationships` tábla (rank oszlop ELTÁVOLÍTVA) |
 | [`webapp/i18n/hu.json`](../webapp/i18n/hu.json) | Módosítás – `CHURCH_RANK` és `CHURCH_RELATIONSHIP_TYPE` kulcsok |
 | [`webapp/classes/eloquent/churchrelationship.php`](../webapp/classes/eloquent/churchrelationship.php) | **Új fájl** – `typeLabels()` és `rankLabels()` t()-vel |
-| [`webapp/classes/eloquent/church.php`](../webapp/classes/eloquent/church.php) | Módosítás – `rank` fillable, relációk, rekurzió, jogosultság, `rankLabel` |
-| [`webapp/classes/html/church/edit.php`](../webapp/classes/html/church/edit.php) | Módosítás – `rank` + kapcsolat POST kezelés |
+| [`webapp/classes/eloquent/church.php`](../webapp/classes/eloquent/church.php) | Módosítás – `rank` fillable ELTÁVOLÍTVA, relációk, rekurzió, jogosultság |
+| [`webapp/classes/html/church/edit.php`](../webapp/classes/html/church/edit.php) | Módosítás – `rank` kezelés ELTÁVOLÍTVA + kapcsolat POST kezelés |
+| [`webapp/classes/html/church/editosm.php`](../webapp/classes/html/church/editosm.php) | Módosítás – `church:type` kulcs hozzáadása az "Egyházigazgatási beosztás" szekciójához |
 | [`webapp/classes/html/church/church.php`](../webapp/classes/html/church/church.php) | Módosítás – ancestors/descendants átadása |
 | [`webapp/classes/html/church/hierarchia.php`](../webapp/classes/html/church/hierarchia.php) | **Új fájl** |
 | [`webapp/classes/api/church.php`](../webapp/classes/api/church.php) | Módosítás – relationships endpoint, `rank` a válaszban |
 | [`webapp/classes/path.php`](../webapp/classes/path.php) | Módosítás – hierarchia útvonal |
 | [`webapp/classes/user.php`](../webapp/classes/user.php) | Módosítás – értesítések örökölt gondnokoknak |
-| [`webapp/templates/church/edit.twig`](../webapp/templates/church/edit.twig) | Módosítás – rank selector + kapcsolat szekció + örökölt gondnokok |
+| [`webapp/templates/church/edit.twig`](../webapp/templates/church/edit.twig) | Módosítás – rank selector ELTÁVOLÍTVA + kapcsolat szekció + örökölt gondnokok |
 | [`webapp/templates/church/church.twig`](../webapp/templates/church/church.twig) | Módosítás – panel include |
 | [`webapp/templates/church/_panelrelationships.twig`](../webapp/templates/church/_panelrelationships.twig) | **Új fájl** – i18n feliratok t()-vel |
 | [`webapp/templates/_map_leaflet.twig`](../webapp/templates/_map_leaflet.twig) | Módosítás – vonalak réteg, rank-alapú ikonok |

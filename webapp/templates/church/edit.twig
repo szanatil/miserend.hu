@@ -46,21 +46,6 @@
         <table cellpadding=4">
            
             <tr>
-                <td class=kiscim align=right>Misézőhely rangja:</td>
-                <td>
-                    <select name="church[rank]" class="form-control" style="width:auto;display:inline-block;">
-                        <option value="">– ismeretlen –</option>
-                        {% for rankKey in ['parish','assisted_parish','filial_church','mass_station','rectorate'] %}
-                            <option value="{{ rankKey }}" {% if church.rank == rankKey %}selected{% endif %}>
-                                {{ ('CHURCH_RANK.' ~ rankKey)|trans }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </td>
-                <td></td>
-            </tr>
-
-            <tr>
                 <td bgcolor=#ECE5C8 class=kiscim align=right>Megjegyzés:</td>
                 <td bgcolor=#ECE5C8>
                     <textarea name=church[adminmegj] class="urlap form-control tinymce" cols=50 placeholder="Adminisztrátori megjegyzés" rows=2>{{ church.adminmegj|nl2br }}</textarea>                    

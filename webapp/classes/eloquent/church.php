@@ -19,7 +19,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
     protected $fillable = [
         'nev', 'cim', 'orszag', 'megye', 'varos', 'plebania', 'pleb_eml', 'leiras',
         'lat', 'lon', 'miseaktiv', 'ok', 'frissites', 'misemegj','osmid','osmtype',
-        'accessibility', 'rank'
+        'accessibility'
     ];
 	protected $attributesCache = null;
 	

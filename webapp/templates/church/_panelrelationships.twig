@@ -23,8 +23,8 @@
     <li>
         <a href="/templom/{{ node.church.id }}">{{ node.church.names.0 }}</a>
         {% if node.church.varos %}({{ node.church.varos }}){% endif %}
-        {% if node.church.rank %}
-            – <span class="label label-default">{{ ('CHURCH_RANK.' ~ node.church.rank)|trans }}</span>
+        {% if node.church['church:type'] %}
+            – <span class="label label-default">{{ ('CHURCH_RANK.' ~ node.church['church:type'])|trans }}</span>
         {% endif %}
         – <em>{{ ('CHURCH_RELATIONSHIP_TYPE.' ~ node.type)|trans }}</em>
         {% if node.children|length > 0 %}
