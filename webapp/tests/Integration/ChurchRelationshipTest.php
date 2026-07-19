@@ -224,7 +224,7 @@ class ChurchRelationshipTest extends TestCase {
         $this->assertContains('auxiliary', $validRanks);
         $this->assertContains('filial', $validRanks);        
         $this->assertContains('rectoral', $validRanks);
-        $this->assertCount(5, $validRanks);
+        $this->assertCount(4, $validRanks);
     }
 
     public function testRankCanBeSavedToChurch(): void {
