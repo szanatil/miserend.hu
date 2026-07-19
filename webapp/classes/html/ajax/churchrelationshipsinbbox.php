@@ -32,10 +32,12 @@ class ChurchRelationshipsInBBox extends Ajax {
             return;
         }
 
-        // Lekérjük az összes kapcsolatot, ahol mindkét templom a bbox-ban van
+        // Lekérjük az összes kapcsolatot, ahol legalább az egyik templom a bbox-ban van
         $relationships = DB::table('church_relationships')
-            ->whereIn('parent_church_id', $churchesInBBox)
-            ->whereIn('child_church_id', $churchesInBBox)
+            ->where(function($query) use ($churchesInBBox) {
+                $query->whereIn('parent_church_id', $churchesInBBox)
+                      ->orWhereIn('child_church_id', $churchesInBBox);
+            })
             ->get();
 
         $return = [];
