@@ -71,13 +71,7 @@ $(document).ready(function() {
             ga('send','event','Search','mise',data);
             $(this).unbind('submit').submit();
         });
-
-        $('#form_church_getdetails').on('click', function(e) {               
-            $('#form_church_details').toggle('slow');
-            $('.form_church_details').toggle('slow');            
-            $('#form_church_getdetails').find('.fa-minus, .fa-plus').toggleClass('fa-minus fa-plus');
-        });
-    
+            
     $('#password2').on('input', function() { 
         if($('#password1').val() != $(this).val() || $(this).val() == '') {
               $('#password2').parent().find('.form-control-feedback').addClass("fa-solid fa-triangle-exclamation").removeClass("fa-solid fa-check");

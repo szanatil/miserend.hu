@@ -77,41 +77,9 @@
             <div id="form_church"  style="margin-top:12px;">
                 <div class="search-field-group">
                     <label class="search-label">Templom</label>
-                    <div class="search-input-wrap">{{ forms.input(searchform.kulcsszo) }}</div>
-                    <div class="cols-sm-2" style="text-align:right"><span id="form_church_getdetails">{{ icons.icon('fa-plus', 'fa-2xs circle') }}</span></div>
+                    <div class="search-input-wrap">{{ forms.input(searchform.kulcsszo) }}</div>                    
                 </div>
-                <!--<div class="form-group row">
-                    <label class="col-sm-4 control-label" ><span class="form_church_details" style="display:none">település</span></label>
-                    <div class="col-sm-8">{{ forms.input(searchform.varos) }} </div>
-                </div>-->
             </div>
-
-            <div id="form_church_details"  style="display:none">
-			<!--
-                <div class="form-group row">
-                    <label class="col-sm-4 control-label" >adott helyszín körül:</label>
-                    <div class="col-sm-8">
-                        <div class="form-inline">
-                            <div class="form-group">
-                                {{ forms.input(searchform.hely) }}
-                            </div>
-                            <div class="form-group">
-                                <div class="input-group">
-                                    <div class="input-group-addon">+</div>
-                                    {{ forms.input(searchform.tavolsag) }}
-                                    <div class="input-group-addon">km</div>
-                                </div>
-                            </div>
-                        </div>    
-                    </div>
-                </div>
-				-->
-                <div class="form-group row">
-                    <label class="col-sm-4 control-label" >egyházmegye</label>
-                    <div class="col-sm-8">{{ forms.select(searchform.ehm) }} </div>
-                </div>                
-            </div>
-
 
             <div id="form_mass_details" style="">
                 {# Mise date/time picker section #}

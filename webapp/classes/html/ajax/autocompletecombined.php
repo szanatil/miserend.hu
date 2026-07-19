@@ -65,6 +65,10 @@ class AutocompleteCombined extends Ajax {
             'region', 'historic', 'tourism_region', 'wine_growing_area'
         ];
         $boundaryQuery->whereIn('boundary', $allowedBoundaries);
+        
+        // Only include boundaries with OSM data
+        $boundaryQuery->whereNotNull('osmtype')
+            ->whereNotNull('osmid');
 
         $boundaries = $boundaryQuery
             ->orderByRaw("CASE WHEN boundary = 'religious_administration' THEN 0 WHEN boundary = 'administrative' THEN 1 ELSE 2 END")

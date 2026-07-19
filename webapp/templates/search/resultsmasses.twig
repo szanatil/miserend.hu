@@ -5,9 +5,20 @@
 
 
 {% block extraHead %}
-    <script src="/js/boundary-autocomplete.js"></script>
+    <script src="/js/unified-autocomplete.js"></script>
     <script>
         window.boundaryDataFromUrl = {{ boundaryDataJson|raw|default('[]') }};
+        window.churchDataFromUrl = {{ churchDataJson|raw|default('[]') }};
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof UnifiedAutocomplete !== 'undefined') {
+                UnifiedAutocomplete.init('#keyword', '#panel-search-mass-form', {
+                    initialBoundaries: window.boundaryDataFromUrl || [],
+                    initialChurches: window.churchDataFromUrl || []
+                });
+            }
+        });
     </script>
 {% endblock %}
 

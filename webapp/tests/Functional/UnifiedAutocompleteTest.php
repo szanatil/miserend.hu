@@ -103,11 +103,11 @@ final class UnifiedAutocompleteTest extends PantherTestCase
         self::$client->getWebDriver()->findElement(\Facebook\WebDriver\WebDriverBy::id('keyword'))
             ->sendKeys('Budapest');
 
-        self::$client->waitFor('.unified-dropdown.visible .unified-dropdown-church-icon', 3);
+        self::$client->waitFor('.unified-dropdown.visible .unified-dropdown-church-badge', 3);
 
-        $icons = self::$client->getCrawler()->filter('.unified-dropdown.visible .unified-dropdown-church-icon');
-        self::assertGreaterThan(0, $icons->count(),
-            'At least one church icon should appear in dropdown for "Budapest"');
+        $badges = self::$client->getCrawler()->filter('.unified-dropdown.visible .unified-dropdown-church-badge');
+        self::assertGreaterThan(0, $badges->count(),
+            'At least one church badge should appear in dropdown for "Budapest"');
     }
 
     // ── Selecting a church ───────────────────────────────────────────────────
