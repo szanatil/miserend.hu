@@ -86,6 +86,11 @@ class Chat {
         
     }
 
+    function deleteOldMessages() {
+        // Delete chat messages older than 30 days
+        DB::table('chat')->where('datum', '<', date('Y-m-d H:i:s', strtotime('-30 days')))->delete();
+    }
+
     function getUsers($format = false) {
         global $user;
         $return = array();

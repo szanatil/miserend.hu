@@ -23,8 +23,8 @@
 LOCK TABLES `chat` WRITE;
 /*!40000 ALTER TABLE `chat` DISABLE KEYS */;
 set autocommit=0;
-INSERT INTO `chat` (`id`, `datum`, `user`, `kinek`, `szoveg`, `ip`) VALUES
-(1,	'2026-05-13 18:11:06',	'admin',	'',	'Első chat üzenet a betöltésből.',	'');
+INSERT INTO `chat` (`id`, `datum`, `user`, `kinek`, `szoveg`) VALUES
+(1,	'2026-05-13 18:11:06',	'admin',	'',	'Első chat üzenet a betöltésből.');
 /*!40000 ALTER TABLE `chat` ENABLE KEYS */;
 UNLOCK TABLES;
 commit;

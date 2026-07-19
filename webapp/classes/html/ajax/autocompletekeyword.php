@@ -31,9 +31,13 @@ class AutocompleteKeyword extends Ajax {
 			$label = $result->nev . " (";
 			if($result->ismertnev) $label .= $result->ismertnev . ", ";
 			$label .= (is_array($result->varos) ? $result->varos[0] : $result->varos) . ")";
-			//$label .= " (score: ".$result->score.")";
 
-			$return[] = ['label' => $label, 'value' => $result->nev . ' id:' . $result->id];
+			$return[] = [
+				'label' => $label,
+				'value' => $result->nev,
+				'id'    => $result->id,
+				'city'  => is_array($result->varos) ? ($result->varos[0] ?? '') : ($result->varos ?? ''),
+			];
 		}
 
 		if($totalCount > $limit) {

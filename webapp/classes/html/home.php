@@ -12,6 +12,10 @@ class Home extends Html {
     public $searchform;
     public $admindashboard;
     public $boundaryDataJson;
+    public $churchDataJson;
+    public $rites;
+    public $categories;
+    public $langs;
 
     public function __construct() {
         global $user, $config;
@@ -26,9 +30,20 @@ class Home extends Html {
     
         //MISEREND űRLAP
        
-        $boundaryIds =  \Request::StringArray('boundaries', []);                
+        $boundaryIds =  \Request::StringArray('boundaries', []);
         if (!empty($boundaryIds)) {
             $this->boundaryDataJson = json_encode(\Eloquent\Boundary::whereIn('id', $boundaryIds)->get()->map->toSimpleArray());
+        }
+
+        // Pre-populate selected church badges for back-navigation state
+        $churchIds = \Request::IntegerArray('church_ids') ?: [];
+        if (!empty($churchIds)) {
+            $this->churchDataJson = json_encode(
+                \Eloquent\Church::select('id', 'nev', 'varos')
+                    ->whereIn('id', $churchIds)
+                    ->get()
+                    ->map(fn($c) => ['id' => $c->id, 'name' => $c->nev, 'city' => $c->varos])
+            );
         }
          
 
