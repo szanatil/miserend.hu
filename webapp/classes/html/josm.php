@@ -170,9 +170,11 @@ class Josm extends Html {
             }
             
             // #410: ugyanaz a robusztusabb regex mint az osm.php/churchesinboundary.php-ban:
-            // uj. subdomain, http/https/www (nem horgonyzott), opcionális `?`, =/ szeparátor,
+            // http/https/www (nem horgonyzott), opcionális `?`, =/ szeparátor,
             // 6+ jegyű ID, trailing path engedélyezve.
-            preg_match('#(?:uj\.)?miserend\.hu/?\??templom(?:=|/)(\d+)#i', $element->tags->{'url:miserend'} ?? '', $match);
+            // #510: az uj.miserend.hu-t NEM matcheljük (negatív lookbehind) ->
+            // $osmWBadTag-ba kerül, borazslo kézzel javítja azt a néhányat.
+            preg_match('#(?<!uj\.)miserend\.hu/?\??templom(?:=|/)(\d+)#i', $element->tags->{'url:miserend'} ?? '', $match);
             if(!isset($match[1])) {
                 $osmWBadTag[] = $element;
             } else {

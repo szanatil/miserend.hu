@@ -185,12 +185,14 @@ class OSM {
             $c++;
             if($c > 10000) exit;
             // #410: robusztusabb match. A mintát nem horgonyozzuk, így a
-            // http/https/www prefix nem számít; kezeli az uj.miserend.hu
-            // aldomaint, az opcionális `?`-et és a path-suffixeket (pl.
-            // /templom/5/calendar). Mindkét útvonal-formát elfogadja:
-            // templom/N és (?)templom=N. A korábbi {1,5} helyett \d+ (nincs
-            // 5-jegyű felső korlát az ID-n).
-            preg_match('#(?:uj\.)?miserend\.hu/?\??templom(?:=|/)(\d+)#i', $element->tags->{'url:miserend'} ?? '', $match);
+            // http/https/www prefix nem számít; kezeli az opcionális `?`-et és
+            // a path-suffixeket (pl. /templom/5/calendar). Mindkét útvonal-
+            // formát elfogadja: templom/N és (?)templom=N. A korábbi {1,5}
+            // helyett \d+ (nincs 5-jegyű felső korlát az ID-n).
+            // #510: az uj.miserend.hu-t szándékosan NEM matcheljük (negatív
+            // lookbehind) - hibás adat, így a "van url:miserend, de nem
+            // használható" ágba esik, amit borazslo kézzel javít.
+            preg_match('#(?<!uj\.)miserend\.hu/?\??templom(?:=|/)(\d+)#i', $element->tags->{'url:miserend'} ?? '', $match);
             if(!isset($match[1])) {
                 /*
                  * TODO: Van url:miserend, de az értéke vacak.

@@ -44,9 +44,10 @@ class ChurchesInBoundary extends Ajax {
             foreach ($elements as $element) {
                 // #410: ugyanaz a robusztus mintázat mint az osm.php/josm.php-ban.
                 // Nem horgonyzott, így a http/https/www prefix nem számít; kezeli az
-                // uj. subdomaint, az opcionális `?`-et, a =/ szeparátort és a
-                // tetszőleges hosszú id-t. Az id az 1. csoportba kerül -> $match[1].
-                preg_match('#(?:uj\.)?miserend\.hu/?\??templom(?:=|/)(\d+)#i', $element->tags->{'url:miserend'} ?? '', $match);
+                // opcionális `?`-et, a =/ szeparátort és a tetszőleges hosszú id-t.
+                // Az id az 1. csoportba kerül -> $match[1].
+                // #510: az uj.miserend.hu-t NEM matcheljük (negatív lookbehind, hibás adat).
+                preg_match('#(?<!uj\.)miserend\.hu/?\??templom(?:=|/)(\d+)#i', $element->tags->{'url:miserend'} ?? '', $match);
                 if(!isset($match[1])) {
                     /*
                     * TODO: Van url:miserend, de az értéke vacak.
