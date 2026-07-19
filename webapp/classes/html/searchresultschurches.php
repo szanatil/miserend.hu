@@ -11,6 +11,7 @@ class SearchResultsChurches extends Html {
     public $filters;
     public $churches;
     public $boundaryDataJson;
+    public $churchDataJson;
 
     public function __construct() {
         parent::__construct();
@@ -20,12 +21,13 @@ class SearchResultsChurches extends Html {
 
         //Data for pagination        
 		$params = [
-            'q' => 'SearchResultsChurches',
-            'kulcsszo' => \Request::Text('kulcsszo'),
-            'boundaries' => \Request::StringArray('boundaries', []),
-            'lang' => \Request::StringArray('lang'),
-            'ehm' => \Request::IntegerwDefault('ehm', 0)
-        ];
+		    'q' => 'SearchResultsChurches',
+		    'kulcsszo' => \Request::Text('kulcsszo'),
+		    'boundaries' => \Request::StringArray('boundaries', []),
+		    'church_ids' => \Request::IntegerArray('church_ids') ?: [],
+		    'lang' => \Request::StringArray('lang'),
+		    'ehm' => \Request::IntegerwDefault('ehm', 0)
+		];
                         
         $search = new \Search('churches');
         
@@ -41,6 +43,17 @@ class SearchResultsChurches extends Html {
         if (!empty($params['boundaries'])) {
             $search->boundaries($params['boundaries']);
             $this->boundaryDataJson = json_encode(\Eloquent\Boundary::whereIn('id', $params['boundaries'])->get()->map->toSimpleArray());
+        }
+
+        // Church ID filter (one or more specific churches)
+        if (!empty($params['church_ids'])) {
+            $search->churchIds($params['church_ids']);
+            $this->churchDataJson = json_encode(
+                \Eloquent\Church::select('id', 'nev', 'varos')
+                    ->whereIn('id', $params['church_ids'])
+                    ->get()
+                    ->map(fn($c) => ['id' => $c->id, 'name' => $c->nev, 'city' => $c->varos])
+            );
         }
         
         // Diocese filter

@@ -49,7 +49,7 @@
     </style>
     <link rel="stylesheet" href="/node_modules/clockpicker/dist/jquery-clockpicker.css">
     <script src="/node_modules/clockpicker/dist/jquery-clockpicker.js"></script>
-    <script src="/js/boundary-autocomplete.js"></script>
+    <script src="/js/unified-autocomplete.js"></script>
     
 {% endblock %}
 
@@ -902,17 +902,19 @@
 	   </script>
 
 	   <script>
-	       // Inject boundary data from PHP backend           
+	       // Inject pre-selected boundaries and churches from PHP backend (for back-navigation)
 	       window.boundaryDataFromUrl = {{ boundaryDataJson ? boundaryDataJson|raw : '[]' }};
+	       window.churchDataFromUrl   = {{ churchDataJson   ? churchDataJson|raw   : '[]' }};
 	   </script>
 
 	   <script>
 	   (function() {
-	       // Initialize boundary autocomplete for the keyword field
 	       document.addEventListener('DOMContentLoaded', function() {
-	           if (typeof BoundaryAutocomplete !== 'undefined') {
-	               var boundaryDataFromUrl = window.boundaryDataFromUrl || [];
-	               BoundaryAutocomplete.init('#keyword', '#kereses', boundaryDataFromUrl);
+	           if (typeof UnifiedAutocomplete !== 'undefined') {
+	               UnifiedAutocomplete.init('#keyword', '#kereses', {
+	                   initialBoundaries: window.boundaryDataFromUrl || [],
+	                   initialChurches:   window.churchDataFromUrl   || []
+	               });
 	           }
 	       });
 	   })();
