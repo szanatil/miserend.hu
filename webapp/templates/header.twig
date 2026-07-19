@@ -24,7 +24,7 @@
                     <img src="/img/logo-icon.png" alt="Miserend oldal" loading="lazy" class="logo-icon"/>
                 </a>
                 <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1;">
-                    {% if title %}<h3 style="margin: 0; white-space: nowrap; color: #fff; overflow: hidden; text-overflow: ellipsis;">{{ title|raw }}</h3>{% endif %}
+                    {% if title %}<h3 style="margin: 0; white-space: nowrap; color: #fff; overflow: hidden; text-overflow: ellipsis;">{{ title|raw }}</h3>{% elseif pageTitle %}<h3 style="margin: 0; white-space: nowrap; color: #fff; overflow: hidden; text-overflow: ellipsis;">{{ pageTitle|raw }}</h3>{% endif %}
                     {# Church metadata for mobile header: favorites + alternative names #}
                     {% if id and favorite is defined %}
                         <div style="display: flex; align-items: center; gap: 6px; color: #fff; font-size: 12px; overflow: hidden;">

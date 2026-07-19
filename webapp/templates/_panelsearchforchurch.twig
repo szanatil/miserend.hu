@@ -24,9 +24,12 @@
     <script>
     (function() {
         document.addEventListener('DOMContentLoaded', function() {
-            if (typeof BoundaryAutocomplete !== 'undefined') {
-                var boundaryDataFromUrl = window.boundaryDataFromUrl || [];
-                BoundaryAutocomplete.init('#keyword', '#panel-search-church-form', boundaryDataFromUrl);
+            // Initialize UnifiedAutocomplete if available
+            if (typeof UnifiedAutocomplete !== 'undefined') {
+                UnifiedAutocomplete.init('#keyword', '#panel-search-church-form', {
+                    initialBoundaries: window.boundaryDataFromUrl || [],
+                    initialChurches: window.churchDataFromUrl || []
+                });
             }
 
             // #356: ha a felhasználó az eredmény-oldalról elnavigál (pl. egy
