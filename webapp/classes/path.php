@@ -41,6 +41,7 @@ class Path {
             ["^templom\/([0-9]{1,5})\/eszrevetelek$", "remark/list/$1"],
             ["^templom\/([0-9]{1,5})\/ujeszrevetel$", "remark/addform/$1"],
             ["^templom\/([0-9]{1,5})\/ujkep$", "uploadimage/$1"],
+            ["^templom\/([0-9]{1,5})\/hierarchia$", "church/hierarchia/$1"],
             ["^templom\/([0-9]{1,5})", "church/$1"],
             ["^templom\/list$", "church/catalogue"],
             ["^templom\/new", "church/edit"],

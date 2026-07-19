@@ -391,7 +391,7 @@ class EditOsm extends \Html\Html {
 		];
 		
 		$this->form['religious_administration'] = [
-			'title' => 'Egyházigazgatási beosztás',			
+			'title' => 'Egyházigazgatási beosztás',
 			'inputs' => [
 				'amenity' => [
 					'title' => 'Elsődleges címke (mindig place_of_worship)',
@@ -400,8 +400,8 @@ class EditOsm extends \Html\Html {
 				'religion' => [
 					'title' => 'Vallás (mindig christian)',
 					'help' => 'Minden helyünk keresztény. Pont.',
-					'options' => [ 
-						'christian' => 'keresztény' 
+					'options' => [
+						'christian' => 'keresztény'
 					]
 					
 				],
@@ -413,12 +413,22 @@ class EditOsm extends \Html\Html {
 						'greek_catholic' => 'görögkatolikus'
 					]
 				],
+				'church:type' => [
+					'title' => 'Misézőhely rangja',
+					'help' => 'A misézőhely saját besorolása az egyházi hierarchiában.',
+					'options' => [
+						'parish' => 'plébánia',
+						'auxiliary' => 'oldallagosan ellátott plébánia',
+						'filial' => 'fília',
+						'' => 'nincs információ / egyszerű misézőhely'
+					]
+				],
 				'operator' => [
 					'title' => 'Üzemeltető (szerzetesrend)'
 				],
 				'diocese' => [
 					'title' => 'Egyházmegye (opcionális)',
-					'help' => 'Csak akkor kell kitölteni, hogy ha a terület alapján nem tudjuk meghatározni az egyházmegyét, vagy ha valami miatt mégsem ahhoz az egyházmegyéhez tartozik: pl. a katonai ordinariátus templom mint egy enklávé.'					
+					'help' => 'Csak akkor kell kitölteni, hogy ha a terület alapján nem tudjuk meghatározni az egyházmegyét, vagy ha valami miatt mégsem ahhoz az egyházmegyéhez tartozik: pl. a katonai ordinariátus templom mint egy enklávé.'
 				],
 				'deanery' => [
 					'title' => 'Espereskerület (opcionális)',
@@ -430,7 +440,7 @@ class EditOsm extends \Html\Html {
 				]
 				
 			]
-		];		
+		];
 		
 		$this->form['fyi'] = [
 			'title' => 'Információk',			
