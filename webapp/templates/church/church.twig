@@ -218,7 +218,8 @@
 
     {% include 'church/_panelrelationships.twig' with {
         ancestors: ancestors,
-        descendants: descendants
+        descendants: descendants,
+        churchType: church['church:type']
     } %}
 {% endblock %}
 

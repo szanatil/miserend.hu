@@ -1,6 +1,11 @@
 {% if ancestors|length > 0 or descendants|length > 0 %}
 <div class="panel panel-default">
-    <div class="panel-heading"><strong>Egyházi kapcsolatok</strong></div>
+    <div class="panel-heading">
+        <strong>Egyházi kapcsolatok</strong>
+        {% if churchType %}
+            <span class="label label-default" style="margin-left: 10px;">{{ ('CHURCH_RANK.' ~ churchType)|trans }}</span>
+        {% endif %}
+    </div>
     <div class="panel-body">
 
         {% if ancestors|length > 0 %}
