@@ -46,6 +46,12 @@ class AutocompleteCombined extends Ajax {
             ? array_filter(array_map('intval', explode(',', $excludedChurchIds)))
             : [];
 
+        // Aktív határterületek – ha vannak, a templomkeresést ezekre szűkítjük
+        $boundaryIds = \Request::Text('boundary_ids');
+        $boundaryIds = !empty($boundaryIds)
+            ? array_filter(array_map('intval', explode(',', $boundaryIds)))
+            : [];
+
         $results = [];
 
         // ── 1. Határterületek ────────────────────────────────────────────────
@@ -92,6 +98,12 @@ class AutocompleteCombined extends Ajax {
 
         if (!empty($excludedChurchIds)) {
             $churchSearch->addMustNot(['terms' => ['id' => array_values($excludedChurchIds)]]);
+        }
+
+        // Ha van kiválasztott határterület, a templomkeresést arra szűkítjük
+        // (a határterület-találatokra ez nem vonatkozik)
+        if (!empty($boundaryIds)) {
+            $churchSearch->boundaries(array_values($boundaryIds));
         }
 
         $churchResults = $churchSearch->getResults(0, $churchLimit, false);

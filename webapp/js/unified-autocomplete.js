@@ -311,6 +311,8 @@ const UnifiedAutocomplete = (function () {
         let url = state.apiUrl + '?text=' + encodeURIComponent(text);
         if (excludedBoundaryIds) url += '&excluded_ids=' + encodeURIComponent(excludedBoundaryIds);
         if (excludedChurchIds)   url += '&excluded_church_ids=' + encodeURIComponent(excludedChurchIds);
+        // If boundaries are already selected, restrict church suggestions to those boundaries
+        if (excludedBoundaryIds) url += '&boundary_ids=' + encodeURIComponent(excludedBoundaryIds);
 
         fetch(url)
             .then(function (r) { return r.json(); })
