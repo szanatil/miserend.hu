@@ -215,6 +215,11 @@
     {% if leiras %}
         {% include "panel.twig" with {title:'Bemutatkozás','body': leiras } %}
     {% endif %}
+
+    {% include 'church/_panelrelationships.twig' with {
+        ancestors: ancestors,
+        descendants: descendants
+    } %}
 {% endblock %}
 
 {% set selfAdvertisement = true %}

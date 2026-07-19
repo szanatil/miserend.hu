@@ -43,8 +43,23 @@
                 vertical-align: top;
             }
         </style>
-        <table cellpadding=4">            
+        <table cellpadding=4">
            
+            <tr>
+                <td class=kiscim align=right>Misézőhely rangja:</td>
+                <td>
+                    <select name="church[rank]" class="form-control" style="width:auto;display:inline-block;">
+                        <option value="">– ismeretlen –</option>
+                        {% for rankKey in ['parish','assisted_parish','filial_church','mass_station','rectorate'] %}
+                            <option value="{{ rankKey }}" {% if church.rank == rankKey %}selected{% endif %}>
+                                {{ ('CHURCH_RANK.' ~ rankKey)|trans }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td></td>
+            </tr>
+
             <tr>
                 <td bgcolor=#ECE5C8 class=kiscim align=right>Megjegyzés:</td>
                 <td bgcolor=#ECE5C8>
@@ -270,10 +285,78 @@
             </tr>
             {{ _self.helptr(15,help) }}            
             <tr>
+                <td colspan="3"><hr/><h4>Kapcsolat más misézőhelyekkel</h4></td>
+            </tr>
+
+            {# Meglévő kapcsolatok listája (szülő irányban) #}
+            {% if church.parentRelationships|length > 0 %}
+            <tr>
+                <td class=kiscim align=right>Fölötte álló misézőhelyek:</td>
+                <td colspan="2">
+                    <table class="table table-condensed">
+                        {% for rel in church.parentRelationships %}
+                        <tr>
+                            <td>
+                                <a href="/templom/{{ rel.parent.id }}">{{ rel.parent.names.0 }}</a>
+                                ({{ rel.parent.varos }})
+                                – <em>{{ ('CHURCH_RELATIONSHIP_TYPE.' ~ rel.type)|trans }}</em>
+                            </td>
+                            <td>
+                                <button type="submit" class="btn btn-xs btn-danger"
+                                    name="relationship[delete]" value="{{ rel.id }}"
+                                    onclick="return confirm('Biztosan törlöd ezt a kapcsolatot?');">
+                                    Törlés
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </td>
+            </tr>
+            {% endif %}
+
+            {# Új kapcsolat hozzáadása #}
+            <tr>
+                <td class=kiscim align=right>Új kapcsolat hozzáadása:</td>
+                <td colspan="2">
+                    {% if nearbyChurches|length > 0 %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <select name="relationship[parent_id]" class="form-control">
+                                <option value="">– válassz templomot –</option>
+                                {% for nearby in nearbyChurches %}
+                                    <option value="{{ nearby.id }}">
+                                        {{ nearby.varos }} – {{ nearby.names.0 }}
+                                        (~{{ nearby.distance_km|round(1) }} km)
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <select name="relationship[type]" class="form-control">
+                                {% for typeKey in ['subordinate','associated','territorially_independent'] %}
+                                    <option value="{{ typeKey }}">{{ ('CHURCH_RELATIONSHIP_TYPE.' ~ typeKey)|trans }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" name="relationship[add]" value="1" class="btn btn-primary">
+                                Hozzáadás
+                            </button>
+                        </div>
+                    </div>
+                    <small class="text-muted">A legközelebbi 20 misézőhely jelenik meg. A jelenlegi misézőhely lesz az alárendelt (gyerek).</small>
+                    {% else %}
+                    <em class="text-muted">Koordináta szükséges a közeli templomok megjelenítéséhez.</em>
+                    {% endif %}
+                </td>
+            </tr>
+
+            <tr>
                 <td>
                     <div align=right><input type=submit name='submit' value=Mehet class=urlap>&nbsp;</div>
                 </td>
-                <td>					
+                <td>
                     <input type=radio name=modosit value=i class=urlap checked><span class=alap> és újra módosít</span><br/>
                     <input type=radio name=modosit value=m class=urlap><span class=alap> és tovább a miserendre</span><br/>
                     <input type=radio name=modosit value=n class=urlap><span class=alap> és vissza a listába</span><br/>
@@ -282,7 +365,7 @@
                 <td></td>
             </tr>
         </table>
-    </form>                
+    </form>
     <script language="javascript" type="text/javascript" src="/vendor/tinymce/tinymce/tinymce.min.js"></script>
     <script language="javascript" type="text/javascript" src="/js/tiny_mce_init.js"></script>
     

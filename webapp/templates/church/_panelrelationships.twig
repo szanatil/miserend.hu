@@ -1,0 +1,36 @@
+{% if ancestors|length > 0 or descendants|length > 0 %}
+<div class="panel panel-default">
+    <div class="panel-heading"><strong>Egyházi kapcsolatok</strong></div>
+    <div class="panel-body">
+
+        {% if ancestors|length > 0 %}
+        <h5>Fölötte áll:</h5>
+        {{ _self.renderTree(ancestors) }}
+        {% endif %}
+
+        {% if descendants|length > 0 %}
+        <h5>Alá tartozik:</h5>
+        {{ _self.renderTree(descendants) }}
+        {% endif %}
+
+    </div>
+</div>
+{% endif %}
+
+{% macro renderTree(nodes) %}
+<ul class="church-relationships-tree">
+    {% for node in nodes %}
+    <li>
+        <a href="/templom/{{ node.church.id }}">{{ node.church.names.0 }}</a>
+        {% if node.church.varos %}({{ node.church.varos }}){% endif %}
+        {% if node.church.rank %}
+            – <span class="label label-default">{{ ('CHURCH_RANK.' ~ node.church.rank)|trans }}</span>
+        {% endif %}
+        – <em>{{ ('CHURCH_RELATIONSHIP_TYPE.' ~ node.type)|trans }}</em>
+        {% if node.children|length > 0 %}
+            {{ _self.renderTree(node.children) }}
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+{% endmacro %}

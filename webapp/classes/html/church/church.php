@@ -64,6 +64,8 @@ class Church extends \Html\Html {
     public $isChurchHolder;
     public $favorite;
     public $alert;
+    public $ancestors;
+    public $descendants;
 
     public function __construct($path) {
         global $user;
@@ -162,12 +164,16 @@ class Church extends \Html\Html {
             $this->favorite = 1;
         }
                         
-		$this->alert = (new \ExternalApi\NapilelkibatyuApi())->LiturgicalAlert();
+  $this->alert = (new \ExternalApi\NapilelkibatyuApi())->LiturgicalAlert();
         
-        $this->isChurchHolder = $user->getHoldingData($this->id);                
-		
+        $this->isChurchHolder = $user->getHoldingData($this->id);
 
-		
+        // Hierarchikus kapcsolatok
+        $this->ancestors   = $church->ancestors;
+        $this->descendants = $church->descendants;
+  
+
+  
     }
 
     static function factory($path) {
