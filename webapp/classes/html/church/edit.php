@@ -349,7 +349,7 @@ class Edit extends \Html\Html {
                 ->where('id', '!=', $this->tid)
                 ->whereRaw('NOT (lat = 0 AND lon = 0)')
                 ->orderBy('distance_km', 'ASC')
-                ->limit(20)
+                ->limit(40)
                 ->get();
 
             foreach ($nearbyChurches as $nearby) {
