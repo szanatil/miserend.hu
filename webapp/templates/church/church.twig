@@ -216,11 +216,7 @@
         {% include "panel.twig" with {title:'Bemutatkozás','body': leiras } %}
     {% endif %}
 
-    {% include 'church/_panelrelationships.twig' with {
-        ancestors: ancestors,
-        descendants: descendants,
-        churchType: church['church:type']
-    } %}
+    
 {% endblock %}
 
 {% set selfAdvertisement = true %}
@@ -243,13 +239,19 @@
     <div id="church-panel-contact-wrap">
         {% include 'church/_panelcontact.twig' %}
     </div>
-
+    {% include 'church/_panelrelationships.twig' with {
+        fullNetwork: fullNetwork,
+        churchType: church['church:type'],
+        city: location.city
+    } %}
     {# FAB – lebegő hívás gomb, csak ha van telefonszám, csak mobilon látható #}
+    <!--
     {% if religious_administration.parish.description %}
         <a class="church-fab-call" href="tel:{{ religious_administration.parish.description|striptags|trim }}" title="Hívás">
             <i class="fa fa-phone"></i>
         </a>
     {% endif %}
+    -->
 
     {# FAB – útvonaltervezés gomb, csak ha van koordináta, csak mobilon látható #}
     {% if location.lat %}
