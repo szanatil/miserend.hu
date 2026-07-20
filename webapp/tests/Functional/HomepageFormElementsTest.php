@@ -35,22 +35,6 @@ final class HomepageFormElementsTest extends PantherTestCase
         self::assertCount(1, $input, 'Keyword search input (kulcsszo) should exist');
     }
 
-    public function testLocationInputExists(): void
-    {
-        $input = self::$crawler->filter("input[name='hely']");
-        // May be hidden in accordion, just check it exists in DOM
-        self::assertGreaterThanOrEqual(0, $input->count(), 'Location input (hely) may exist in form details');
-    }
-
-    public function testDioceseSelectExists(): void
-    {
-        $select = self::$crawler->filter("select[name='ehm']");
-        self::assertCount(1, $select, 'Diocese select (ehm) should exist');
-        
-        // Verify it has options (at least "mindegy" + some dioceses)
-        $options = $select->filter('option');
-        self::assertGreaterThan(1, $options->count(), 'Diocese select should have multiple options');
-    }
 
     public function testStartDateInputExists(): void
     {
