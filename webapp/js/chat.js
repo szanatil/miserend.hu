@@ -54,18 +54,25 @@
 
 		$("body").on('click', '#chat_loadnext', function() {
 			$.post( "/ajax/chat", { action: "load", date: $( this ).prev().data("date"), rev: true }, function( data ) {
-	  			if(data.result === "loaded") {  
-	  				var index;
+		 			if(data.result === "loaded") {
+		 				var index;
 					for (index = 0; index < data.comments.length; ++index) {
 					 	$('#chat_loadnext').before(data.comments[index].html);
 				    }
-	  			}
-	  			else {
+				    // Check if there are more comments to load
+				    if(data.hasMore === false || data.hasMore === 0) {
+				    	$('#chat_loadnext').html('<span class="kicsi"><i>Minden üzenet betöltve</i></span>').off('click');
+				    	$("#chat_comments").data('hasmore', 0);
+				    } else {
+				    	$("#chat_comments").data('hasmore', 1);
+				    }
+		 			}
+		 			else {
 					$("#chat_text").html('<i>Hiba történt betöltés közben.</i>');
-	  				return false;
-	  			} 
+		 				return false;
+		 			}
 		},'json');
- 		});
+			});
 
     });
 
