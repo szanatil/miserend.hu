@@ -273,67 +273,12 @@
                 <td colspan="3"><hr/><h4>Kapcsolat más misézőhelyekkel</h4></td>
             </tr>
 
-            {# Meglévő kapcsolatok listája (szülő irányban) #}
-            {% if church.parentRelationships|length > 0 %}
+            {# Szülő templom kiválasztása #}
             <tr>
-                <td class=kiscim align=right>Fölötte álló misézőhelyek:</td>
+                <td class=kiscim align=right>Honnan látják el:</td>
                 <td colspan="2">
-                    <table class="table table-condensed">
-                        {% for rel in church.parentRelationships %}
-                        <tr>
-                            <td>
-                                <a href="/templom/{{ rel.parent.id }}">{{ rel.parent.names.0 }}</a>
-                                ({{ rel.parent.varos }})
-                                – <em>{{ ('CHURCH_RELATIONSHIP_TYPE.' ~ rel.type)|trans }}</em>
-                            </td>
-                            <td>
-                                <button type="submit" class="btn btn-xs btn-danger"
-                                    name="relationship[delete]" value="{{ rel.id }}"
-                                    onclick="return confirm('Biztosan törlöd ezt a kapcsolatot?');">
-                                    Törlés
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </table>
-                </td>
-            </tr>
-            {% endif %}
-
-            {# Új kapcsolat hozzáadása #}
-            <tr>
-                <td class=kiscim align=right>Új kapcsolat hozzáadása:</td>
-                <td colspan="2">
-                    {% if nearbyChurches|length > 0 %}
-                    <div class="row">
-                        <div class="col-md-6">
-                            <select name="relationship[parent_id]" class="form-control">
-                                <option value="">– válassz templomot –</option>
-                                {% for nearby in nearbyChurches %}
-                                    <option value="{{ nearby.id }}">
-                                        {{ nearby.varos }} – {{ nearby.names.0 }}
-                                        (~{{ nearby.distance_km|round(1) }} km)
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <select name="relationship[type]" class="form-control">
-                                {% for typeKey in ['subordinate','associated','territorially_independent'] %}
-                                    <option value="{{ typeKey }}">{{ ('CHURCH_RELATIONSHIP_TYPE.' ~ typeKey)|trans }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="submit" name="relationship[add]" value="1" class="btn btn-primary">
-                                Hozzáadás
-                            </button>
-                        </div>
-                    </div>
-                    <small class="text-muted">A legközelebbi 20 misézőhely jelenik meg. A jelenlegi misézőhely lesz az alárendelt (gyerek).</small>
-                    {% else %}
-                    <em class="text-muted">Koordináta szükséges a közeli templomok megjelenítéséhez.</em>
-                    {% endif %}
+                    {{ forms.select(form.parent_id) }}
+                    <small class="text-muted">Ez a misézőhely mely templomnak van alárendelve. A legközelebbi 20 misézőhely jelenik meg.</small>
                 </td>
             </tr>
 
@@ -509,10 +454,7 @@ function deleteOsmId(tid) {
 {% endblock %}
 
 {% block rightsidebar %}    
-    {% include 'church/_panelholders.twig' %}
-	{% if church.osm and user.isadmin %}
-        {% include 'church/_panelosm.twig' %}
-    {% endif %}
+    {% include 'church/_panelholders.twig' %}	
 	{% include 'church/_panelhistory.twig' %}
 {% endblock %}
 

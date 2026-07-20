@@ -36,20 +36,13 @@
     {% endif %}
 
     <div id="maptext">
-    {% if not user.isadmin %}
-        <span class=alap>
-            {% if location.country and location.country.name != 'Magyarország' %}{{ location.country.name }} <br/>{% endif %}
-            {% if location.county and location.county.name != location.country.name  %} {{ location.county.name }}<br/>{% endif %}
-            {% if location.city %}{{ location.city.name }}{% endif %}{% if location.district %}, {{ location.district.name }}{% endif %}<br/>
-            {% if location.address %}{{ location.address }}{% endif %}
-        </span><br/>
-    {% else %}
-        <span class=alap>
-        {% for loc in [location.country, location.county, location.city, location.district] %}
-           <a href="/collection/{{ loc.osmtype }}:{{ loc.osmid }}">{{ loc.name }}</a><br/>
-        {% endfor %}
-        </span><br/>
-    {% endif %}
+    
+    <span class=alap>
+    {% for loc in [location.country, location.county, location.city, location.district] %}
+        <a href="/collection/{{ loc.osmtype }}:{{ loc.osmid }}">{{ loc.name }}</a><br/>
+    {% endfor %}
+    </span>
+
         
     {% if location.osm is not null %}
         <span class=alap>            

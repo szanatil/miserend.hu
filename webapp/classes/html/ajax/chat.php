@@ -24,7 +24,7 @@ class Chat extends Ajax {
                     else
                         $comments = $chat->loadComments(array('first' => $date));
 
-                    $this->content = json_encode(array('result' => 'loaded', 'comments' => $chat->comments, 'new' => count($chat->comments), 'alert' => $chat->alert));
+                    $this->content = json_encode(array('result' => 'loaded', 'comments' => $chat->comments, 'new' => count($chat->comments), 'alert' => $chat->alert, 'hasMore' => $chat->hasMoreComments));
 
                 break;
 

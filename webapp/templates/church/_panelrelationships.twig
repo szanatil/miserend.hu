@@ -1,41 +1,45 @@
-{% if ancestors|length > 0 or descendants|length > 0 %}
+{% if fullNetwork|length > 1 %}
 <div class="panel panel-default">
     <div class="panel-heading">
         <strong>Egyházi kapcsolatok</strong>
-        {% if churchType %}
-            <span class="label label-default" style="margin-left: 10px;">{{ ('CHURCH_RANK.' ~ churchType)|trans }}</span>
-        {% endif %}
     </div>
     <div class="panel-body">
+        <ul class="church-relationships-tree" style="list-style: none; padding-left: 0; margin: 0;">
+            {% for item in fullNetwork %}
+            <li >
+                {# L-alakú nyíl és behúzás #}
+                {% if item.level > 0 %}
+                    <span style="display: inline-block; width: {{ (item.level - 1) * 20 }}px;"></span>
+                    <span style="display: inline-block; margin-right: 5px;">
+                        {% if item.isLast %}
+                            └─>
+                        {% else %}
+                            ├─>
+                        {% endif %}
+                    </span>
+                {% endif %}
+                
+                {# A templom link és adatai #}
+                {% if item.church['church:type'] %}
+                    <span class="label label-default" style="margin-left: 5px;">{{ ('CHURCH_RANK.' ~ item.church['church:type'])|trans }}</span>
+                {% endif %}
 
-        {% if ancestors|length > 0 %}
-        <h5>Fölötte áll:</h5>
-        {{ _self.renderTree(ancestors) }}
-        {% endif %}
-
-        {% if descendants|length > 0 %}
-        <h5>Alá tartozik:</h5>
-        {{ _self.renderTree(descendants) }}
-        {% endif %}
-
+                {% if item.isCurrent %}
+                    <strong class="current-church" style="background-color: #fff3cd; padding: 2px 6px; border-radius: 3px;">
+                        <a href="/templom/{{ item.church.id }}">{{ item.church.names.0 }}</a>
+                    </strong>
+                {% else %}
+                    <a href="/templom/{{ item.church.id }}">{{ item.church.names.0 }}</a>
+                {% endif %}
+                
+                {% if item.church.varos and item.church.varos != city.name  %}
+                    <span style="color: #666;">({{ item.church.varos }})</span>
+                {% endif %}
+                
+                
+            </li>
+            {% endfor %}
+        </ul>
     </div>
 </div>
 {% endif %}
-
-{% macro renderTree(nodes) %}
-<ul class="church-relationships-tree">
-    {% for node in nodes %}
-    <li>
-        <a href="/templom/{{ node.church.id }}">{{ node.church.names.0 }}</a>
-        {% if node.church.varos %}({{ node.church.varos }}){% endif %}
-        {% if node.church['church:type'] %}
-            – <span class="label label-default">{{ ('CHURCH_RANK.' ~ node.church['church:type'])|trans }}</span>
-        {% endif %}
-        – <em>{{ ('CHURCH_RELATIONSHIP_TYPE.' ~ node.type)|trans }}</em>
-        {% if node.children|length > 0 %}
-            {{ _self.renderTree(node.children) }}
-        {% endif %}
-    </li>
-    {% endfor %}
-</ul>
-{% endmacro %}

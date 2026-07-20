@@ -420,6 +420,7 @@ class EditOsm extends \Html\Html {
 						'parish' => 'plébánia',
 						'auxiliary' => 'oldallagosan ellátott plébánia',
 						'filial' => 'fília',
+						'recotral' => 'templomigazgatóság',
 						'' => 'nincs információ / egyszerű misézőhely'
 					]
 				],

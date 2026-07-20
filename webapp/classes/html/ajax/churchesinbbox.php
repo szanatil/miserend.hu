@@ -20,7 +20,11 @@ class ChurchesInBBox extends Ajax {
             if (isset($church->photos[0])) $thumbnail = $church->photos[0]->smallUrl;
             else $thumbnail = false;
             
-
+            $church->loadAttributes();
+            
+            // Hétvégi miserendet lekérése (szombat 17:00-tól, vasárnap összes)
+            $weekendMasses = $church->getWeekendMasses();
+            
             $return[] = [
                 'id' => $church->id,
                 'nev' => $church->names[0],
@@ -28,7 +32,9 @@ class ChurchesInBBox extends Ajax {
                 'denomination' => $church->denomination,
                 'active' => $church->miseaktiv,
                 'lat'=> $church->location->lat,
-                'lon'=> $church->location->lon              
+                'lon'=> $church->location->lon,
+                'church_type' => $church->{'church:type'} ?? 'other',
+                'weekend_masses' => $weekendMasses
             ];
         }
         echo json_encode($return);        

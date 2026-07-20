@@ -66,6 +66,7 @@ class Church extends \Html\Html {
     public $alert;
     public $ancestors;
     public $descendants;
+    public $fullNetwork;
 
     public function __construct($path) {
         global $user;
@@ -171,6 +172,7 @@ class Church extends \Html\Html {
         // Hierarchikus kapcsolatok
         $this->ancestors   = $church->ancestors;
         $this->descendants = $church->descendants;
+        $this->fullNetwork = $church->fullNetwork;
   
 
   
