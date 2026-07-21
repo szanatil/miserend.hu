@@ -119,6 +119,10 @@
     {%  endif  %}
 
 
+  <style>
+    /* #529: a nagy parent-lista legördülője kapjon görgetőt (jobbra) */
+    .ui-autocomplete { max-height: 320px; overflow-y: auto; overflow-x: hidden; }
+  </style>
   <script>
   $( function() {
     $.widget( "custom.combobox", {
@@ -175,13 +179,14 @@
 
       _source: function( request, response ) {
         var matcher = new RegExp( $.ui.autocomplete.escapeRegex(request.term), "i" );
-        // #529: ne rendereljünk több ezer opciót a legördülőbe (belassul minden) -
-        // legfeljebb az első 50 találatot adjuk vissza.
-        var results = [], limit = 50;
+        // #529: üres fókuszra a legközelebbi 10-et adjuk (az opciók távolság szerint
+        // rendezettek elöl), gépelésre max 30-at - ne rendereljünk több ezret.
+        // A "0" értékű placeholder ("– válassz –") opciót kihagyjuk.
+        var results = [], limit = request.term ? 30 : 10;
         this.element.children( "option" ).each(function() {
           if ( results.length >= limit ) return false;
           var text = $( this ).text();
-          if ( this.value && ( !request.term || matcher.test(text) ) ) {
+          if ( this.value && this.value !== "0" && ( !request.term || matcher.test(text) ) ) {
             results.push({ label: text, value: text, option: this });
           }
         });
@@ -237,9 +242,13 @@
       $( "#selectParentChurch" ).combobox();
       var $parentInput = $( "#selectParentChurch" ).next( ".custom-combobox" ).find( "input" );
       $parentInput.attr( "placeholder", "Kezdd el gépelni a települést vagy a templom nevét…" );
-      // #529: sok ezer opció van - csak a 2. karaktertől nyíljon a lista (ne dumpolja
-      // az egészet), a _source pedig max 50 találatot ad -> nem lassul be.
-      $parentInput.autocomplete( "option", "minLength", 2 );
+      // #529: üres mezőbe kattintva rögtön jöjjön a legközelebbi 10 (a _source üres
+      // termre 10-et ad, az opciók távolság szerint elöl). Gépelésre a _source szűr,
+      // a hosszú lista görgethető (CSS lent). minLength=0 + focus-trigger kell hozzá.
+      $parentInput.autocomplete( "option", "minLength", 0 );
+      $parentInput.on( "focus", function() {
+        if ( !this.value ) { $( this ).autocomplete( "search", "" ); }
+      });
     }
 
   } );
