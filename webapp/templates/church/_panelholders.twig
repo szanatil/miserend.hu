@@ -229,6 +229,14 @@
 
     $( "#combobox" ).combobox();
 
+    // #522: az ellátó-plébánia választót is kereshetővé tesszük (ugyanez a widget).
+    // Graceful: ha a widget nem futna le, a plain select minden aktív templommal ott marad.
+    if ( $( "#selectParentChurch" ).length ) {
+      $( "#selectParentChurch" ).combobox();
+      $( "#selectParentChurch" ).next( ".custom-combobox" ).find( "input" )
+        .attr( "placeholder", "Kezdd el gépelni a települést vagy a templom nevét…" );
+    }
+
   } );
   </script>
 
