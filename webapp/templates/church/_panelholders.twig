@@ -119,6 +119,10 @@
     {%  endif  %}
 
 
+  <style>
+    /* #529: a nagy parent-lista legördülője kapjon görgetőt (jobbra) */
+    .ui-autocomplete { max-height: 320px; overflow-y: auto; overflow-x: hidden; }
+  </style>
   <script>
   $( function() {
     $.widget( "custom.combobox", {
@@ -175,15 +179,18 @@
 
       _source: function( request, response ) {
         var matcher = new RegExp( $.ui.autocomplete.escapeRegex(request.term), "i" );
-        response( this.element.children( "option" ).map(function() {
+        // #529: üres fókuszra a legközelebbi 10-et adjuk (az opciók távolság szerint
+        // rendezettek elöl), gépelésre max 30-at - ne rendereljünk több ezret.
+        // A "0" értékű placeholder ("– válassz –") opciót kihagyjuk.
+        var results = [], limit = request.term ? 30 : 10;
+        this.element.children( "option" ).each(function() {
+          if ( results.length >= limit ) return false;
           var text = $( this ).text();
-          if ( this.value && ( !request.term || matcher.test(text) ) )
-            return {
-              label: text,
-              value: text,
-              option: this
-            };
-        }) );
+          if ( this.value && this.value !== "0" && ( !request.term || matcher.test(text) ) ) {
+            results.push({ label: text, value: text, option: this });
+          }
+        });
+        response( results );
       },
 
       _removeIfInvalid: function( event, ui ) {
@@ -228,6 +235,21 @@
     });
 
     $( "#combobox" ).combobox();
+
+    // #522: az ellátó-plébánia választót is kereshetővé tesszük (ugyanez a widget).
+    // Graceful: ha a widget nem futna le, a plain select minden aktív templommal ott marad.
+    if ( $( "#selectParentChurch" ).length ) {
+      $( "#selectParentChurch" ).combobox();
+      var $parentInput = $( "#selectParentChurch" ).next( ".custom-combobox" ).find( "input" );
+      $parentInput.attr( "placeholder", "Kezdd el gépelni a települést vagy a templom nevét…" );
+      // #529: üres mezőbe kattintva rögtön jöjjön a legközelebbi 10 (a _source üres
+      // termre 10-et ad, az opciók távolság szerint elöl). Gépelésre a _source szűr,
+      // a hosszú lista görgethető (CSS lent). minLength=0 + focus-trigger kell hozzá.
+      $parentInput.autocomplete( "option", "minLength", 0 );
+      $parentInput.on( "focus", function() {
+        if ( !this.value ) { $( this ).autocomplete( "search", "" ); }
+      });
+    }
 
   } );
   </script>
