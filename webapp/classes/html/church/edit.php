@@ -380,6 +380,20 @@ class Edit extends \Html\Html {
             }
         }
 
+        // #522: a legközelebbi 40 marad gyors javaslatnak (távolsággal), de MINDEN
+        // aktív templomot felveszünk, hogy autocomplete-tel messziről is választható
+        // legyen (gépelhető a település / név). A meglévő javaslatokat nem duplikáljuk.
+        // Így JS nélkül is elérhető minden templom (a combobox csak a gépelést adja rá).
+        $allActive = \Eloquent\Church::where('ok', 'i')
+            ->where('id', '!=', $this->tid)
+            ->orderBy('varos')->orderBy('nev')
+            ->get(['id', 'varos', 'nev']);
+        foreach ($allActive as $c) {
+            if (!isset($options[$c->id])) {
+                $options[$c->id] = $c->varos . ' – ' . $c->nev;
+            }
+        }
+
         $this->form['parent_id'] = array(
             'type' => 'select',
             'name' => 'church[parent_id]',
