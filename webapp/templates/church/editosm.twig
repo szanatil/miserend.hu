@@ -38,7 +38,7 @@
 
 	<div class="alert alert-info">Misézőhelyeink össze vannak kötve a nyilvános OpenStreetMap adatbázissal. Ezen az oldalon az ebben az adatbázisban fellelhető adatokat kezelhetjük és módosíthatjuk.</div>
 	
-	<div class="alert alert-warning">Az alábbi adatok közül honlapunkon még csak az <a href="#accessibility">akadálymentesség</a> adatait használjuk és jelenítjük meg. Idővel majdnem minden adatot itt fogunk kezelni.</div>
+	<div class="alert alert-warning">Az alábbi adatok közül honlapunkon még még nem használ fel minden adatot.</div>
 	
     <FORM ENCTYPE='multipart/form-data' method=post>
         <input type=hidden name=church[id] value={{ church.id }}>
@@ -62,18 +62,24 @@
 			<tbody>
 			{% for key, item in section.inputs %}
 				<tr>
-					<td class="align-middle col-md-3" align="right">{{ item['title'] }}:</td>
+					<td class="align-middle col-md-3" align="right" >
+						{{ item['title'] }}:<br/>
+						<small><a href="https://wiki.openstreetmap.org/wiki/{% if item['wiki_hu'] %}HU:{% endif %}Key:{{ item['id'] }}" target="_blank">{{ item['id'] }}</a></small>
+					</td>
 					<td >
 						{% if item['type'] == 'input' %}
 							{{ forms.input(item) }}
 						{% elseif item['type'] == 'textarea' %}
-							{{ forms.textarea(item) }}							
+							{{ forms.textarea(item) }}
 						{% else %}
 						 juj
 						 
-						{% endif %}						
+						{% endif %}
 					</td>
-					<td>{% if item.help %}{{ _self.helplink(key|replace({':': '_'}), ICONS_INFO ) }}{% endif %}</td>
+					<td>
+						{% if item.help %}{{ _self.helplink(key|replace({':': '_'}), ICONS_INFO ) }}{% endif %}
+						<small title="Ez a mező {{ item.occurrences }} misézőhelyen van kitöltve">{{ item.occurrences }}</small>
+					</td>
 				</tr>
 				{% if item.help %}{{ _self.helptr(key|replace({':': '_'}),item.help) }}{% endif %}
 			{% endfor %}

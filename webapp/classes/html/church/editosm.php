@@ -44,6 +44,7 @@ class EditOsm extends \Html\Html {
 			addMessage('Az OSM-hez írási joggal nem tudunk hozzáférni, ezért nincsenek szerkeszthető adataink.','danger');
 			$this->readingAccessOnly = true;
 			//return;
+			
 		}
 		
 		// Letöltjük a legfrissebb saját OSM adatait
@@ -89,23 +90,22 @@ class EditOsm extends \Html\Html {
 		$this->administration = $groupedBoundaries;
 		
 		// Letöltjük a teljes listát az OSM-ről, hogy az autocomplete boldogan üzemelhessen
-		if($this->readingAccessOnly == false) {
-			try {
-				$overpassapi = new \ExternalApi\OverpassApi();
-				$overpassapi->downloadUrlMiserend();
-				if ($overpassapi->hasError() || !isset($overpassapi->jsonData->elements)) {
-					addMessage($overpassapi->getErrorMessageHtml('Az OSM url:miserend adatok lekérése nem sikerült.'), 'warning');
-					$this->autocomplete = [];
-				} else {
-					$this->autocomplete = $this->prepareAutocomplete($overpassapi->jsonData);
-				}
-			} catch (\Exception $e) {
-				addMessage('Az OSM url:miserend adatok lekérése nem sikerült. <details><summary>Részletek</summary><pre>'
-					. htmlspecialchars($e->getMessage()) . '</pre></details>', 'warning');
+		
+		try {
+			$overpassapi = new \ExternalApi\OverpassApi();
+			$overpassapi->downloadUrlMiserend();
+			if ($overpassapi->hasError() || !isset($overpassapi->jsonData->elements)) {
+				addMessage($overpassapi->getErrorMessageHtml('Az OSM url:miserend adatok lekérése nem sikerült.'), 'warning');
 				$this->autocomplete = [];
+			} else {
+				$this->autocomplete = $this->prepareAutocomplete($overpassapi->jsonData);
 			}
-		} else
+		} catch (\Exception $e) {
+			addMessage('Az OSM url:miserend adatok lekérése nem sikerült. <details><summary>Részletek</summary><pre>'
+				. htmlspecialchars($e->getMessage()) . '</pre></details>', 'warning');
 			$this->autocomplete = [];
+		}
+			
 		
 				
 		// Előkészítjük a FORM-ot, hogy megtaláljuk, mik a mezők amiket okés változtatni
@@ -285,23 +285,29 @@ class EditOsm extends \Html\Html {
 			'description' => 'Nem kötelező mindet kitölteni, de határon túli misézőhelyeknél figyeljünk erre!',
 			'inputs' => [
 				'name' => [
-					'title' => 'Név (a helyi nyelven)'
+					'title' => 'Név (a helyi nyelven)',
+					'wiki_hu' => true
 				],
 				'name:hu' => [
-					'title' => 'Név magyarul (ha a helyi nyelv nem magyar)'
+					'title' => 'Név magyarul (ha a helyi nyelv nem magyar)',
+					'wiki_hu' => true
 				],
 				'alt_name' => [
-					'title' => 'Közismert név (a helyi nyelven)'
+					'title' => 'Közismert név (a helyi nyelven)',
+					'wiki_hu' => false
 				],
 				'alt_name:hu' => [
-					'title' => 'Közismert név (ha a helyi nyelv nem magyar)'
+					'title' => 'Közismert név (ha a helyi nyelv nem magyar)',
+					'wiki_hu' => false
 				],
 				'old_name' => [
-					'title' => 'Régi elnevezés (helyi nyelven)'
+					'title' => 'Régi elnevezés (helyi nyelven)',
+					'wiki_hu' => false
 				],
 				'official_name' => [
 					'title' => 'Hivatalos elnevezés (ha az eltér)',
-					'help' => 'Olykor nem hajlandó a világ elfogadni névnek a hivatalos nevet, ezért létezik ez a hivatalos név mező. Lehetőség szerint ez legyen üres.'
+					'help' => 'Olykor nem hajlandó a világ elfogadni névnek a hivatalos nevet, ezért létezik ez a hivatalos név mező. Lehetőség szerint ez legyen üres.',
+					'wiki_hu' => false
 				],
 			]
 		];
@@ -314,18 +320,21 @@ class EditOsm extends \Html\Html {
 			'inputs' => [
 				'wheelchair' => [
 					'title' => 'Kerekesszékkel hozzáférhetőség',
+					'wiki_hu' => true,
 					'options' => array(
 						'' => 'Nincs információ',
 						'yes' => 'Akadálymentes',
-						'limited' => 'Részben akadálymentes',				
+						'limited' => 'Részben akadálymentes',
 						'no' => 'Egyáltalán nem akadálymentes'
-					)					
+					)
 				],
 				'wheelchair:description' => [
-					'title' => 'Kiegészítés, ha szükséges'
+					'title' => 'Kiegészítés, ha szükséges',
+					'wiki_hu' => false
 				],
 				'toilets:wheelchair' => [
 					'title' => 'Akadálymentes mosdó',
+					'wiki_hu' => false,
 					'options' => array(
 						'' => 'Nincs információ vagy nincs mosdó',
 						'yes' => 'Kerekesszékkel hozzáférhető a mosdó',
@@ -334,19 +343,22 @@ class EditOsm extends \Html\Html {
 				],
 				'hearing_loop' => [
 					'title' => 'Hallást segítő indukciós hurok',
+					'wiki_hu' => false,
 					'options' => array(
 						'' => 'Nincs információ',
 						'no' => 'Nincs indukciós hurok',
-						'limited' => 'Van indukciós hurok, de tenni kell érte, hogy működjön',				
-						'yes' => 'Van indukciós hurok'                
+						'limited' => 'Van indukciós hurok, de tenni kell érte, hogy működjön',
+						'yes' => 'Van indukciós hurok'
 					)
 				],
 				# https://wiki.openstreetmap.org/wiki/How_to_map_for_the_needs_of_people_with_disabilities
 				'disabled:description' => [
-					'title' => 'További leírás bármilyen akadálymentesség kapcsán'
+					'title' => 'További leírás bármilyen akadálymentesség kapcsán',
+					'wiki_hu' => false
 				],
 				'diet:gluten_free' =>[
 					'title' => 'Csökkentett gluténtartalmú szentáldozás lehetősége',
+					'wiki_hu' => false,
 					'options' => array(
 						'' => 'Nincs információ.',
 						'yes' => 'Legalább ünnepnapokon lehetséges. Lehet, hogy külön sorban vagy az áldozás elején/végén.',
@@ -362,29 +374,32 @@ class EditOsm extends \Html\Html {
 		
 		
 		$this->form['location'] = [
-			'title' => 'Elhelyezkedés',			
+			'title' => 'Elhelyezkedés',
 			'inputs' => [
 				'addr:country' => [
 					'title' => 'Ország rövidítése (ha nem Magyarország)',
-					'help' => 'Magyarország esetében nem kell kitölteni a magyar OSM szerkesztési hagyományoknak megfelelően. De minden más országban két betűs kód való ide.'
+					'help' => 'Magyarország esetében nem kell kitölteni a magyar OSM szerkesztési hagyományoknak megfelelően. De minden más országban két betűs kód való ide.',
+					'wiki_hu' => false
 				],
 				'addr:postcode' => [
-					'title' => 'Irányítószám'
+					'title' => 'Irányítószám',
+					'wiki_hu' => false
 				],
 				'addr:city' => [
-					'title' => 'Település'
+					'title' => 'Település',
+					'wiki_hu' => false
 				],
 				'addr:street' => [
-					'title' => 'Közterület (utca/stb.)'
+					'title' => 'Közterület (utca/stb.)',
+					'wiki_hu' => false
 				],
 				'addr:housenumber' => [
-					'title' => 'Házszám'
-				],
-				'addr:postbox' => [
-					'title' => 'Postafiók'
+					'title' => 'Házszám',
+					'wiki_hu' => false
 				],
 				'addr:conscriptionnumber' => [
-					'title' => 'Helyrajziszám'
+					'title' => 'Helyrajziszám',
+					'wiki_hu' => false
 				]
 				
 			]
@@ -395,11 +410,13 @@ class EditOsm extends \Html\Html {
 			'inputs' => [
 				'amenity' => [
 					'title' => 'Elsődleges címke (mindig place_of_worship)',
-					'help' => 'Minden hely, ahol szentmisék vannak, azok vallási helyek, ezért szükséges, hogy az elsődleges címke (amenity) mindig vallási hely (place_of_worship) kell legyen.'
+					'help' => 'Minden hely, ahol szentmisék vannak, azok vallási helyek, ezért szükséges, hogy az elsődleges címke (amenity) mindig vallási hely (place_of_worship) kell legyen.',
+					'wiki_hu' => true
 				],
 				'religion' => [
 					'title' => 'Vallás (mindig christian)',
 					'help' => 'Minden helyünk keresztény. Pont.',
+					'wiki_hu' => false,
 					'options' => [
 						'christian' => 'keresztény'
 					]
@@ -408,6 +425,7 @@ class EditOsm extends \Html\Html {
 				'denomination' => [
 					'title' => 'Felekezet',
 					'help' => 'Bár a görögkatolikus és a római katolikus az nem két külön felekezet, de az OSM története miatt ezek felekezetek. Ha itt más van, akkor bizony gond van.',
+					'wiki_hu' => true,
 					'options' => [
 						'roman_catholic' => 'római katolikus',
 						'greek_catholic' => 'görögkatolikus'
@@ -416,6 +434,7 @@ class EditOsm extends \Html\Html {
 				'church:type' => [
 					'title' => 'Misézőhely rangja',
 					'help' => 'A misézőhely saját besorolása az egyházi hierarchiában.',
+					'wiki_hu' => false,
 					'options' => [
 						'parish' => 'plébánia',
 						'auxiliary' => 'oldallagosan ellátott plébánia',
@@ -425,59 +444,97 @@ class EditOsm extends \Html\Html {
 					]
 				],
 				'operator' => [
-					'title' => 'Üzemeltető (szerzetesrend)'
+					'title' => 'Üzemeltető (szerzetesrend)',
+					'wiki_hu' => false
 				],
 				'diocese' => [
 					'title' => 'Egyházmegye (opcionális)',
-					'help' => 'Csak akkor kell kitölteni, hogy ha a terület alapján nem tudjuk meghatározni az egyházmegyét, vagy ha valami miatt mégsem ahhoz az egyházmegyéhez tartozik: pl. a katonai ordinariátus templom mint egy enklávé.'
+					'help' => 'Csak akkor kell kitölteni, hogy ha a terület alapján nem tudjuk meghatározni az egyházmegyét, vagy ha valami miatt mégsem ahhoz az egyházmegyéhez tartozik: pl. a katonai ordinariátus templom mint egy enklávé.',
+					'wiki_hu' => false
 				],
 				'deanery' => [
 					'title' => 'Espereskerület (opcionális)',
-					'help' => 'Csak akkor kell kitölteni, hogy ha a terület alapján nem tudjuk meghatározni az esperekerületet, mert nincs feltérképezve. Még.'
+					'help' => 'Csak akkor kell kitölteni, hogy ha a terület alapján nem tudjuk meghatározni az esperekerületet, mert nincs feltérképezve. Még.',
+					'wiki_hu' => false
 				],
 				'parish' => [
-					'title' => 'Plébánia (ajánlott)',
-					'help' => 'Egy-két esetben a térképen be van jelölve egy plébánia határa és akkor nem kell kitölteni ezt. De a legtöbb esetben ide kel a plébánia nevét pontosan beírni.'
+					'title' => 'Plébánia (opcionális)',
+					'help' => 'Egy-két esetben a térképen be van jelölve egy plébánia határa és akkor nem kell kitölteni ezt. De a legtöbb esetben ide kel a plébánia nevét pontosan beírni.',
+					'wiki_hu' => false
 				]
 				
 			]
 		];
 		
 		$this->form['fyi'] = [
-			'title' => 'Információk',			
+			'title' => 'Információk',
 			'inputs' => [
 				'description' => [
 					'title' => 'Leírás (max. 255 karakter)',
-					'help' => 'A templomról, stílusáról, történetéről lehet itt írni. Maximum 255 karakterben!'
+					'help' => 'A templomról, stílusáról, történetéről lehet itt írni. Maximum 255 karakterben!',
+					'wiki_hu' => false
 				],
 				'note' => [
 					'title' => 'Megjegyzés (más térképszerkesztőknek)',
-					'help' => 'Az Open Street Map-en munkálkodó más önkéntesek számára lehet itt nyilvános üzenetet "küldeni". Maximum 255 karakterben.'
+					'help' => 'Az Open Street Map-en munkálkodó más önkéntesek számára lehet itt nyilvános üzenetet "küldeni". Maximum 255 karakterben.',
+					'wiki_hu' => false
 				]
 			]
 		];
 		
 		$this->form['contact'] = [
-			'title' => 'Kapcsolattartási adatok',
-			'description' => 'Itt azokat az adatokat gyűjtjük, amik segítenek elérni ezt a helyet. Vagyis itt meg lehet adni olyan telefonszámot és címet, ami nem a templomé magáé, hanem pl. a helyi plébániájé. <br/>
+			'title' => 'Elérhetőségek',
+			'description' => 'Itt azokat az adatokat gyűjtjük, amik segítenek elérni ezt a misézőhelyet. Vagyis itt meg lehet adni például olyan telefonszámot, ami nem a templomé magáé, hanem pl. a helyi plébániához tartozik. <br/>
+			Ha ez egy másik plébánia alá/mellé tartozik, akkor a fölöttes misézőhely adatiat nem kell itt megadni, mert a megjelenítőnk majd megtalálja azt úgyis.<br/>
 			Egyéb social media cucc megadható az openstreetmap saját szerkesztői felületén.',
 			'inputs' => [
 				'phone' => [
 					'title' => 'Telefonszám',
-					'help' => 'Nyilvánosan elérhető telefonszám. Mobiltelenfonszámot csak az éritett személyes jóváhagyásával adjunk meg itt!<br/>Legyen benne az országhívü: +36 30 1231212'
+					'help' => 'Nyilvánosan elérhető telefonszám. Mobiltelenfonszámot csak az éritett személyes jóváhagyásával adjunk meg itt!<br/>Legyen benne az országhívü: +36 30 1231 212',
+					'wiki_hu' => false
+				],
+				'contact:phone' => [
+					'title' => '(Telefonszám)',
+					'help' => 'Elég az egyiket kitölteni. Inkább az előbbit. ',
+					'wiki_hu' => false
 				],
 				'email' => [
-					'title' => 'Email cím'
+					'title' => 'Email cím',
+					'wiki_hu' => false
+				],
+				'contact:email' => [
+					'title' => '(Email cím)',
+					'help' => 'Elég az egyiket kitölteni. Inkább az előbbit. ',
+					'wiki_hu' => false
 				],
 				'website' => [
-					'title' => 'Honlap'
+					'title' => 'Honlap',
+					'wiki_hu' => false
+				],
+				'contact:website' => [
+					'title' => '(Honlap)',
+					'help' => 'Elég az egyiket kitölteni. Inkább az előbbit. ',					
+					'wiki_hu' => false
 				],
 				'facebook' => [
-					'title' => 'Facebook oldal'
+					'title' => 'Facebook oldal',
+					'wiki_hu' => false
 				],
+				'contact:facebook' => [
+					'title' => '(Facebook oldal)',
+					'help' => 'Elég az egyiket kitölteni. Inkább az előbbit. ',					
+					'wiki_hu' => false
+				],				
 				'youtube' => [
-					'title' => 'Youtube felhasználó/csatorna'
-				]							
+					'title' => 'Youtube felhasználó/csatorna',
+					'wiki_hu' => false
+				],
+				'contact:youtube' => [
+					'title' => '(Youtube felhasználó/csatorna)',
+					'help' => 'Elég az egyiket kitölteni. Inkább az előbbit. ',					
+					'wiki_hu' => false
+				]
+
 			]
 		];
 		
@@ -487,28 +544,34 @@ class EditOsm extends \Html\Html {
 			'inputs' => [
 				'contact:country' => [
 					'title' => 'Ország rövidítése (ha nem Magyarország)',
-					'help' => 'Magyarország esetében nem kell kitölteni a magyar OSM szerkesztési hagyományoknak megfelelően. De minden más országban két betűs kód való ide.'
+					'help' => 'Magyarország esetében nem kell kitölteni a magyar OSM szerkesztési hagyományoknak megfelelően. De minden más országban két betűs kód való ide.',
+					'wiki_hu' => false
 				],
 				'contact:postcode' => [
-					'title' => 'Irányítószám'
+					'title' => 'Irányítószám',
+					'wiki_hu' => false
 				],
 				'contact:city' => [
-					'title' => 'Település'
+					'title' => 'Település',
+					'wiki_hu' => false
 				],
 				'contact:street' => [
-					'title' => 'Közterület (utca/stb.)'
+					'title' => 'Közterület (utca/stb.)',
+					'wiki_hu' => false
 				],
 				'contact:housenumber' => [
-					'title' => 'Házszám'
-				]								
+					'title' => 'Házszám',
+					'wiki_hu' => false
+				]
 			]
 		];
 
-		$this->form['other'] = [		
+		$this->form['other'] = [
 			'title' => 'Egyéb',
-			'inputs' => [		
+			'inputs' => [
 				'payment:credit_cards' =>[
 					'title' => 'Bankkártyás adományozási lehetőség',
+					'wiki_hu' => false,
 					'options' => array(
 						'' => 'Nincs információ.',
 						'yes' => 'Bankkártyás, digitális persely is elérhető.',
@@ -521,8 +584,12 @@ class EditOsm extends \Html\Html {
 			]
 		];
    
+		
+
 		foreach( $this->form as $sid => $section) {
 			foreach( $section['inputs'] as $key => $input ) {
+				if(isset($this->autocomplete[$key])) 
+					$this->form[$sid]['inputs'][$key]['occurrences'] = array_sum($this->autocomplete[$key]);
 				if ( isset($input['options']) )  {
 					$array = $input['options'];
 					if ( array_keys($array) !== range(0, count($array) - 1)) {
