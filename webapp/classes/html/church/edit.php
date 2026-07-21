@@ -63,10 +63,17 @@ class Edit extends \Html\Html {
             $parentId = (int) $this->input['church']['parent_id'];
             // Kapcsolat csak akkor kerül mentésre, ha érvényes parent ID van és nem önmagára mutat
             if ($parentId !== 0 && $parentId !== (int)$this->tid) {
-                \Eloquent\ChurchRelationship::updateOrCreate(
-                    ['parent_church_id' => $parentId, 'child_church_id' => $this->tid],
-                    ['type' => 'subordinate'] // Alapértelmezett típus
-                );
+                // #521: egy templomnak egy ellátó plébániája (parent) van a formon
+                // keresztül. A korábbi updateOrCreate a (parent,child) PÁRRA matchelt,
+                // ezért új plébánia választásakor ÚJ sort hozott létre, a régit meghagyva
+                // ("hozzáadja, de nem cserél"). Előbb töröljük a meglévő parent-kapcsolatot,
+                // hogy a választás CSERÉLJEN (és a korábbi duplikátumok is kitakarodjanak).
+                \Eloquent\ChurchRelationship::where('child_church_id', $this->tid)->delete();
+                \Eloquent\ChurchRelationship::create([
+                    'parent_church_id' => $parentId,
+                    'child_church_id' => $this->tid,
+                    'type' => 'subordinate',
+                ]);
             }
         } else {
             // Ha üres a kiválasztás, törlődnek az összes parent kapcsolat
