@@ -483,13 +483,14 @@ class EditOsm extends \Html\Html {
 		];
 		
 		$this->form['contact'] = [
-			'title' => 'Kapcsolattartási adatok',
-			'description' => 'Itt azokat az adatokat gyűjtjük, amik segítenek elérni ezt a helyet. Vagyis itt meg lehet adni olyan telefonszámot és címet, ami nem a templomé magáé, hanem pl. a helyi plébániájé. <br/>
+			'title' => 'Elérhetőségek',
+			'description' => 'Itt azokat az adatokat gyűjtjük, amik segítenek elérni ezt a misézőhelyet. Vagyis itt meg lehet adni például olyan telefonszámot, ami nem a templomé magáé, hanem pl. a helyi plébániához tartozik. <br/>
+			Ha ez egy másik plébánia alá/mellé tartozik, akkor a fölöttes misézőhely adatiat nem kell itt megadni, mert a megjelenítőnk majd megtalálja azt úgyis.<br/>
 			Egyéb social media cucc megadható az openstreetmap saját szerkesztői felületén.',
 			'inputs' => [
 				'phone' => [
 					'title' => 'Telefonszám',
-					'help' => 'Nyilvánosan elérhető telefonszám. Mobiltelenfonszámot csak az éritett személyes jóváhagyásával adjunk meg itt!<br/>Legyen benne az országhívü: +36 30 1231212',
+					'help' => 'Nyilvánosan elérhető telefonszám. Mobiltelenfonszámot csak az éritett személyes jóváhagyásával adjunk meg itt!<br/>Legyen benne az országhívü: +36 30 1231 212',
 					'wiki_hu' => false
 				],
 				'contact:phone' => [

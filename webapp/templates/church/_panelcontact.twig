@@ -23,6 +23,98 @@
             </div>
         {% endif %}
 
+
+        <!-- OSM Phone -->
+        {% if _context['phone'] %}
+        <div class="contact-icon-row">
+            <div class="icon-col"><i class="fa fa-phone"></i></div>
+            <div class="text-col">
+                <a href="tel:{{ _context['phone'] }}">{{ _context['phone'] }}</a>
+            </div>
+        </div>
+        {% endif %}
+        {% if _context['contact:phone'] and _context['phone'] != _context['contact:phone'] %}
+        <div class="contact-icon-row">
+            <div class="icon-col"><i class="fa fa-phone"></i></div>
+            <div class="text-col">
+              <a href="tel:{{ _context['contact:phone'] }}">{{ _context['contact:phone'] }}</a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- OSM Email -->
+        {% if _context['email'] %}
+        <div class="contact-icon-row">
+            <div class="icon-col"><i class="fa fa-envelope"></i></div>
+            <div class="text-col">
+              <a href="mailto:{{ _context['email'] }}">{{ _context['email'] }}</a>
+            </div>
+        </div>
+        {% endif %}
+        {% if _context['contact:email'] and _context['email'] != _context['contact:email'] %}
+        <div class="contact-icon-row">
+            <div class="icon-col"><i class="fa fa-envelope"></i></div>
+            <div class="text-col">
+              <a href="mailto:{{ _context['contact:email'] }}">{{ _context['contact:email'] }}</a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- OSM website -->
+        {% if _context['website'] %}
+        <div class="contact-icon-row">
+            <div class="icon-col"><i class="fa fa-globe"></i></div>
+            <div class="text-col">
+                <a href="{{ _context['website'] }}" target="_blank">{{ _context['website']|strip_protocol }}</a>
+            </div>
+        </div>
+        {% endif %}
+        {% if _context['contact:website'] and _context['website'] != _context['contact:website'] %}
+        <div class="contact-icon-row">
+            <div class="icon-col"><i class="fa fa-globe" ></i></div>
+            <div class="text-col">
+                <a href="{{ _context['contact:website'] }}" target="_blank">{{ _context['contact:website']|strip_protocol }}</a>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- OSM facebook -->
+        {% if _context['facebook'] %}
+        <div class="contact-icon-row">
+            <div class="icon-col"><i class="fa-brands fa-facebook"></i></div>
+            <div class="text-col">
+                <a href="{{ _context['facebook'] }}" target="_blank">{{ _context['facebook']|facebook_path }}</a>
+            </div>
+        </div>
+        {% endif %}
+        {% if _context['contact:facebook'] and _context['facebook'] != _context['contact:facebook'] %}
+        <div class="contact-icon-row">
+            <div class="icon-col"><i class="fa-brands fa-facebook" ></i></div>
+            <div class="text-col">
+                <a href="{{ _context['contact:facebook'] }}" target="_blank">{{ _context['contact:facebook']|facebook_path }}</a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- OSM youtube -->
+        {% if _context['youtube'] %}
+        <div class="contact-icon-row">
+            <div class="icon-col"><i class="fa-brands fa-youtube"></i></div>
+            <div class="text-col">
+                <a href="{{ _context['youtube'] }}" target="_blank">{{ _context['youtube']|strip_protocol }}</a>
+            </div>
+        </div>
+        {% endif %}
+        {% if _context['contact:youtube'] and _context['youtube'] != _context['contact:youtube'] %}
+        <div class="contact-icon-row">
+            <div class="icon-col"><i class="fa-brands fa-youtube" ></i></div>
+            <div class="text-col">
+                <a href="{{ _context['contact:youtube'] }}" target="_blank">{{ _context['contact:youtube']|strip_protocol }}</a>
+            </div>
+        </div>
+        {% endif %}
+
+
         {% if links %}
             {% for link in links %}
                 <div class="contact-icon-row">

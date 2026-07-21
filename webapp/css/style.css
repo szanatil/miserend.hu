@@ -226,7 +226,7 @@ span.toggle.active {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 10px 0;
+  padding: 2px 0;
   border-bottom: 1px solid #ebebeb;
 }
 
@@ -254,6 +254,10 @@ span.toggle.active {
   color: #6d3c8d;
   font-weight: 500;
   text-decoration: none;
+  display: block;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .contact-icon-row .text-col .label-small {
@@ -564,6 +568,10 @@ span.toggle.active {
     color: var(--ch-purple);
     font-weight: 500;
     text-decoration: none;
+    display: block;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
   }
 
   .contact-icon-row .text-col .label-small {

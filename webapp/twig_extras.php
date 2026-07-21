@@ -174,3 +174,36 @@ function twig_phone_links($html) {
     return new \Twig\Markup(implode('', $parts), 'UTF-8');
 }
 
+/**
+ * Strip http/https protocol from URLs
+ * Usage: {{ url|strip_protocol }}
+ * Example: 'https://example.com' becomes 'example.com'
+ */
+function twig_strip_protocol($url) {
+    if (empty($url)) {
+        return $url;
+    }
+    return preg_replace('#^https?://#i', '', $url);
+}
+
+/**
+ * Extract Facebook user/page path from URL
+ * Usage: {{ facebook_url|facebook_path }}
+ * Example: 'https://www.facebook.com/mypage' becomes 'mypage'
+ * Example: 'https://www.facebook.com/pages/MyPage/123456789' becomes 'pages/MyPage/123456789'
+ */
+function twig_facebook_path($url) {
+    if (empty($url)) {
+        return $url;
+    }
+    // Remove protocol
+    $url = preg_replace('#^https?://#i', '', $url);
+    // Remove www. prefix
+    $url = preg_replace('#^www\.#i', '', $url);
+    // Remove facebook.com domain
+    $url = preg_replace('#^facebook\.com/#i', '', $url);
+    // Remove trailing slash
+    $url = rtrim($url, '/');
+    return $url;
+}
+
