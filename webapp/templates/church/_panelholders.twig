@@ -175,15 +175,17 @@
 
       _source: function( request, response ) {
         var matcher = new RegExp( $.ui.autocomplete.escapeRegex(request.term), "i" );
-        response( this.element.children( "option" ).map(function() {
+        // #529: ne rendereljünk több ezer opciót a legördülőbe (belassul minden) -
+        // legfeljebb az első 50 találatot adjuk vissza.
+        var results = [], limit = 50;
+        this.element.children( "option" ).each(function() {
+          if ( results.length >= limit ) return false;
           var text = $( this ).text();
-          if ( this.value && ( !request.term || matcher.test(text) ) )
-            return {
-              label: text,
-              value: text,
-              option: this
-            };
-        }) );
+          if ( this.value && ( !request.term || matcher.test(text) ) ) {
+            results.push({ label: text, value: text, option: this });
+          }
+        });
+        response( results );
       },
 
       _removeIfInvalid: function( event, ui ) {
@@ -233,8 +235,11 @@
     // Graceful: ha a widget nem futna le, a plain select minden aktív templommal ott marad.
     if ( $( "#selectParentChurch" ).length ) {
       $( "#selectParentChurch" ).combobox();
-      $( "#selectParentChurch" ).next( ".custom-combobox" ).find( "input" )
-        .attr( "placeholder", "Kezdd el gépelni a települést vagy a templom nevét…" );
+      var $parentInput = $( "#selectParentChurch" ).next( ".custom-combobox" ).find( "input" );
+      $parentInput.attr( "placeholder", "Kezdd el gépelni a települést vagy a templom nevét…" );
+      // #529: sok ezer opció van - csak a 2. karaktertől nyíljon a lista (ne dumpolja
+      // az egészet), a _source pedig max 50 találatot ad -> nem lassul be.
+      $parentInput.autocomplete( "option", "minLength", 2 );
     }
 
   } );
