@@ -39,10 +39,34 @@
     
     <span class=alap>
     {% for loc in [location.country, location.county, location.city, location.district] %}
-        <a href="/collection/{{ loc.osmtype }}:{{ loc.osmid }}">{{ loc.name }}</a><br/>
+        <a href="/collection/{{ loc.osmtype }}:{{ loc.osmid }}">{{ loc.name }}</a>{% if not loop.last %}<br/>{% endif %}
     {% endfor %}
     </span>
 
+     <!-- Postal Address (Levelezési cím) -->
+    {% if _context['addr:county'] or _context['addr:postcode'] or _context['addr:city'] or _context['addr:street'] or _context['addr:housenumber'] %}
+            
+        {% if _context['contact:street'] or _context['addr:housenumber'] %}
+        <div class="contact-address-line">
+            {% if _context['addr:street'] %}{{ _context['addr:street'] }}{% endif %}
+            {% if _context['addr:housenumber'] %} {{ _context['addr:housenumber'] }}{% endif %}
+        </div>
+        {% endif %}
+        <!--
+        {% if _context['addr:postcode'] or _context['addr:city'] %}
+        <div class="contact-address-line">
+            {% if _context['addr:postcode'] %}{{ _context['addr:postcode'] }}{% endif %}
+            {% if _context['addr:city'] %} {{ _context['addr:city'] }}{% endif %}
+        </div>
+        {% endif %}
+        
+        {% if _context['addr:county'] %}
+        <div class="contact-address-line">
+            {{ _context['addr:county'] }}
+        </div>
+        {% endif %}
+        -->
+    {% endif %}
         
     {% if location.osm is not null %}
         <span class=alap>            
