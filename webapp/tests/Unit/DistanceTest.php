@@ -50,6 +50,9 @@ class DistanceTest extends TestCase {
         $from = ['lat' => 47.4979, 'lon' => 19.0402];
         $to   = ['lat' => 47.5079, 'lon' => 19.0402];
         $raw  = $this->d()->getRawDistance($from, $to);
-        $this->assertSame($raw, $this->d()->resolveDistance($from, $to, $raw));
+        $resolved = $this->d()->resolveDistance($from, $to, $raw);
+        // #526: légvonalra esik vissza, és jelzi a minőséget (road=false -> toupdate=1).
+        $this->assertSame($raw, $resolved['distance']);
+        $this->assertFalse($resolved['road']);
     }
 }
