@@ -229,7 +229,7 @@ A projekt háromféle tesztet használ: **ng-test** (Angular), **PHPUnit** (PHP 
 | `dev.miserend.hu` | Karbantartási tartalék-oldal (best-effort, a `webapp/0index.html` ide irányít leállás alatt; működése nem garantált) | — (nincs saját config-bejegyzés) |
 | `http://localhost:8000` | Helyi fejlesztés (Docker, `docker/compose.dev.yml`) | `development` |
 
-A környezetet a `MISEREND_WEBAPP_ENVIRONMENT` env-változó választja ki (alapértelmezés: `staging`). A `development` env nem ír felül `domain`-t, így a `default` (`https://miserend.hu`) öröklődik — helyi dev-en a `http://localhost:8000` már *secure context*, l. [CONTRIBUTING.md](CONTRIBUTING.md).
+A környezetet a `MISEREND_WEBAPP_ENVIRONMENT` env-változó választja ki (alapértelmezés: `staging`). A `development` env a `domain`-t `http://localhost:8000`-re állítja (hogy a mailcatcher-levelekben is jó legyen a domain teszteléskor); helyi dev-en ez már *secure context*, l. [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Éles / staging / UAT build
 Fejlesztés végén azonban egy megfelelő környezetbe való build kell, például:
