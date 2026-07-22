@@ -24,7 +24,7 @@ class Chat extends Ajax {
                     else
                         $comments = $chat->loadComments(array('first' => $date));
 
-                    $this->content = json_encode(array('result' => 'loaded', 'comments' => $chat->comments, 'new' => count($chat->comments), 'alert' => $chat->alert));
+                    $this->content = json_encode(array('result' => 'loaded', 'comments' => $chat->comments, 'new' => count($chat->comments), 'alert' => $chat->alert, 'hasMore' => $chat->hasMoreComments));
 
                 break;
 
@@ -49,6 +49,10 @@ class Chat extends Ajax {
                   ) {
                     $this->content = json_encode(array('result' => 'error', 'text' => 'Hiba a mysql küldésben!'));
                 } else {
+                    // Delete chat messages older than 30 days
+                    $chat = new \Chat;
+                    $chat->deleteOldMessages();
+                    
                     $this->content = json_encode(array('result' => 'saved', 'text' => $text));
                 }
 

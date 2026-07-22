@@ -8,9 +8,10 @@ class Chat {
     public $comments;
     public $lastcomment;
     public $users;
+    public $hasMoreComments = true;
     
     function load() {
-        $this->loadComments();		
+        $this->loadComments();
         $this->lastcomment = isset($this->comments[0]['datum_raw']) ? $this->comments[0]['datum_raw'] : false;
         $this->getUsers('html');
     }
@@ -29,15 +30,25 @@ class Chat {
                           ->orWhere('kinek', $user->login)
                           ->orWhere('user', $user->login);
                 })
-                ->orderBy('datum','DESC')
-                ->limit($this->limit);
-        if (isset($args['last']))
+                ->orderBy('datum','DESC');
+        
+        // Check if there are more comments beyond the limit
+        if (isset($args['last'])) {
             $comments = $comments->where('datum','>',$args['last']);
-        if (isset($args['first']))
+        }
+        if (isset($args['first'])) {
             $comments = $comments->where('datum','<',$args['first']);
-
-        $comments = $comments->get();
-        $comments = collect($comments)->map(function($x){ return (array) $x; })->toArray();
+        }
+        
+        // Get one extra to check if there are more
+        $allComments = $comments->limit($this->limit + 1)->get();
+        $allComments = collect($allComments)->map(function($x){ return (array) $x; })->toArray();
+        
+        // If we got more than limit, there are more comments
+        $this->hasMoreComments = count($allComments) > $this->limit;
+        
+        // Use only the limit number of comments
+        $comments = array_slice($allComments, 0, $this->limit);
 
         foreach($comments as $row) {
 
@@ -84,6 +95,11 @@ class Chat {
         }
         return $this->comments;
         
+    }
+
+    function deleteOldMessages() {
+        // Delete chat messages older than 30 days
+        DB::table('chat')->where('datum', '<', date('Y-m-d H:i:s', strtotime('-30 days')))->delete();
     }
 
     function getUsers($format = false) {

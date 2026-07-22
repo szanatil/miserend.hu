@@ -15,6 +15,8 @@
 {% set ICONS_ADD = 'fas fa-plus-square' %}
 {% set ICONS_INFO = 'fas fa-question-circle' %}
 {% set ICONS_WHEELCHAIR = 'fa fa-wheelchair' %}
+{% set ICONS_GLUTENFREE = 'fa-solid fa-wheat-awn-circle-exclamation' %}
+{% set ICONS_AUTOMATE = 'fa-regular fa-credit-card' %}
 {% set ICONS_REMARKS_NO = 'far fa-envelope' %}
 {% set ICONS_REMARKS_ALLDONE = 'far fa-envelope-open' %}
 {% set ICONS_REMARKS_PROCESSING = 'fa fa-envelope-open-text' %}
@@ -93,31 +95,21 @@
         
 
 		{# ### calendar-css ### #}
-		<link rel="stylesheet" href="/css/styles-NNL2P6L4.css">
+		<link rel="stylesheet" href="/css/styles-OAIIC3MK.css">
 
         {% block extraHead %}{% endblock %}
     </head>
     <body>
         {% block body%}
             
-           	<div class="container">
-	        	<div class="col-md-3 nopadding logo"><a href="/"><img src="/img/logo.png" alt="Miserend oldal" loading="lazy"/></a></div>
-	        	<div class="col-md-9 nopadding text-right">
-	        		<a href="https://kozossegek.hu" target="_blank" class="tarsoldal tkozossegek">kozossegek.hu</a>
-	        	</div>
-            </div>
-            <div class="menusav">
-	            <div class="container">
-    	            {% include 'navbar.twig' %}
-    	        </div>
-           </div>
+            {% include 'header.twig' %}
            <div class="container">
                 <div class="row church-site-sidebar-holder">
                     <div class="col-md-3  col-sm-3 church-site-left-sidebar">                        
                         {% block leftsidebar %}{% endblock %}
                         {% if chat %}{% include 'chat/chatbox.twig' with chat %}{% endif %}
                         {% if mychurches %}{% include "panel.twig" with {'title':'Módosítás','body': mychurches|raw } %}{% endif %}
-                        {% if selfAdvertisement %}{% include "_panelselfadvertisement.twig"  %}{% endif %}
+                        <!-- {% if selfAdvertisement %}{% include "_panelselfadvertisement.twig"  %}{% endif %} -->
                     </div>
                     <div class="col-md-{% if columns2 %}9{% else %}6{% endif %} col-sm-6 church-site-main-content">
                         {% block pageHeader %}

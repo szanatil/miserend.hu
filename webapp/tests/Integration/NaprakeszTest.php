@@ -165,4 +165,28 @@ class NaprakeszTest extends TestCase {
         $single = DB::table('church_update_tokens')->where('token', $singleToken)->first();
         $this->assertNotNull($single->used_at);
     }
+
+    public function testNaprakeszPageWorksWhenLoggedInSessionCookieSharesNameWithLinkToken() {
+        $churchId = $this->createChurch();
+        $batchId  = 'batch_loggedin_' . uniqid();
+        $this->createToken($churchId, $batchId);
+        $allToken = $this->createToken(0, $batchId, null);
+
+        // A bejelentkezési session-cookie neve is 'token' (webapp/classes/token.php),
+        // ami ütközik az emailben küldött link query-paraméterének nevével. Az "összes
+        // templom naprakész" linket használjuk, mert az sikeres beváltás esetén nem
+        // redirectel (exit-tel), hanem a churches listát rendereli.
+        $_COOKIE['token'] = 'valamilyen-session-token-ami-nem-egyezik-a-link-tokennel';
+        $_GET['token'] = $allToken;
+
+        try {
+            $page = new \Html\Naprakesz([]);
+        } finally {
+            unset($_COOKIE['token'], $_GET['token']);
+        }
+
+        $this->assertNotEquals('exception.twig', $page->template);
+        $church = DB::table('templomok')->where('id', $churchId)->first();
+        $this->assertEquals(date('Y-m-d'), $church->frissites);
+    }
 }

@@ -2,35 +2,72 @@
 
 {% set title = 'Adatkezelési tájékoztató' %}
 
-{% block content %}
-    <h3>Nem bejelentkezett felhasználók számára</h3>
-    <p>A miserend.hu közvetlenül nem gyűjt semmilyen személyes adatot a be nem jelentkezett felhasználóktól. Sütiket (cookie) sem tárolunk a látogató gépén.</p>
-    <h4>Észrevételek beküldése</h4>
-    <p>Honlapunkon lehetőség van egy-egy misézőhelyhez észrevétel beküldésére, hogy az észrevétel alapján pontosítani tudjuk a nyilvános adatokat.</p>
-    <p>Észrevétel beküldésénél csak email cím megadása kötelező. Ezt a címet tovább adhatjuk a honlapon regisztrált adminisztrátoroknak, egyházmegyei felelősöknek, és templom gondnokoknak, hogy például kérdés esetén fel tudják venni a kapcsolatot az észrevétel beküldőjével.
-        Az email címet a konkrét észrevétellel kapcsolatos kommunikáción kívül másra (hírlevelek, reklám, stb.) nem használjuk fel.</p>        
-    <p>Kérjük az észrevétel beküldőjét, hogy az észrevétel szövegében személyes információt (például a plébános magántelefonszámát) csak akkor adja meg, ha ahhoz az a személy konkrétan hozzájárult.</p>
+{% block content %}    
+    <p>A miserend.hu célja, hogy mindenki számára ingyenesen és szabadon elérhetővé tegye a magyarországi és határon túli magyar nyelvű katolikus misék és liturgikus események rendjét. Az oldalt a <strong>Szent Jószef Hackathon</strong> önkéntes közössége üzemelteti a PPKE (Pázmány Péter Katolikus Egyetem) szerverparkján.</p>
+    <p>A miserend.hu közösségi adatbázis: az adatokat templomgondnokok, egyházmegyei felelősök és adminisztrátorok közösen szerkesztik. A regisztrált felhasználók által végzett módosítások és hozzászólások a közösségi szerkesztés működéséhez szükségesek, ezért azok a megfelelő jogosultsággal rendelkező szerkesztők számára láthatók. Egyes személyes adatok (például felhasználónév, szerkesztési előzmények) megosztása nem mellékes, hanem a szolgáltatás lényegi része.</p>
+    <p>Adatkezeléssel kapcsolatos megkereséseket az <strong>info kukac miserend pont hu</strong> email címre várjuk.</p>
+
+    <h3>Nem bejelentkezett felhasználók</h3>
+
+    <h4>Sütik és IP-cím</h4>
+    <p>Nem használunk sütiket (cookie) a nem bejelentkezett látogatók követésére. A miserend.hu alkalmazása nem tárolja és nem használja fel a látogatók IP-címét.</p>
+    <p>Megjegyzés: az alkalmazást futtató Apache webszerver saját hozzáférési naplókat (access log) tárolhat – ezek az alkalmazástól független, technikai naplók. A szervert üzemeltető PPKE szerverparkja szintén saját üzemeltetési szabályzata szerint kezelheti az infrastrukturális naplókat, amelyekre nincs közvetlen ráhatásunk.</p>
+    <p>A beágyazott külső tartalmakra (lásd lent) szintén külön adatvédelmi szabályzatok vonatkoznak.</p>
+
+    <h4>Helymeghatározás (geolokáció)</h4>
+    <p>A honlap opcionálisan kérheti a böngésző hozzáférését a látogató tartózkodási helyéhez – a közeli misézőhelyek listájának megjelenítéséhez és a jobb térképélményhez. Ez csak a látogató kifejezett hozzájárulásával történik. A helyadatot kizárólag a keresés elvégzéséhez használjuk fel, <strong>semmilyen formában nem rögzítjük</strong> és nem tároljuk – sem azonosítva, sem anonim módon. <em>(Jogalap: hozzájárulás – GDPR 6. cikk (1) a))</em></p>
+
+    <h4>Észrevételek és javaslatok beküldése</h4>
+    <p>Honlapunkon lehetőség van egy-egy misézőhelyhez észrevétel vagy javaslat beküldésére, hogy az alapján pontosítani tudjuk a nyilvános adatokat, vagy javítsunk a honlap működésén.</p>
+    <p>Beküldéskor csak az email cím megadása kötelező. Az email cím és a beküldött szöveg az adatbázisunkban megőrződik. Ezt az email címet megoszthatjuk a honlapon regisztrált adminisztrátorokkal, egyházmegyei felelősökkel és templomgondnokokkal, hogy szükség esetén fel tudják venni a kapcsolatot a beküldővel. Az email címet kizárólag az adott észrevétellel vagy javaslattal kapcsolatos kommunikációra használjuk fel – hírlevélre, reklámra vagy egyéb célra nem. <em>(Jogalap: jogos érdek – GDPR 6. cikk (1) f), illetve hozzájárulás – GDPR 6. cikk (1) a))</em></p>
+    <p>Kérjük, hogy az észrevétel vagy javaslat szövegében mások személyes adatait (például a plébános magántelefonszámát) csak akkor adja meg, ha az érintett ehhez kifejezetten hozzájárult.</p>
+    <p>Nem regisztrált beküldő esetén nem tudjuk ellenőrizni, hogy a megadott email cím valódi és az illető sajátja-e, ezért törlési igény esetén nem áll módunkban ezeket az adatokat visszakeresni és kiadni.</p>
+
     <h4>Fényképek beküldése</h4>
-    <p>Lehetőség van minden misézőhelyhez fénykép beküldésére is.<p>
-    <p>Fontos, hogy csak olyan fényképet töltsön fel mindenki aminek teljes jogával rendelkezik. Valamint ha a képen felismerhetőek személyek, akkor ők is hozzájárultak a kép publikálásához.</p>
-    <p>A kép beküldésével a beküldő ill. szerző hozzájárul, hogy a miserend.hu és a hozzá tartozó mobil alkalmazások a képeket a beküldéskor megadott szerző nevében <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.hu">„Nevezd meg! - Ne add el! - Így add tovább! 4.0 Nemzetközi (CC BY-NC-SA 4.0)”</a> licensz alapján publikálja és felhasználja.</p> 
-    
-    <h3>Bejelentkezett felhasználók számára</h4>
-    <p>Regisztrált és bejelentkezett felasználóinkról tároljuk a regisztrációkor megadott személyes adatokat, mint a név, becenév, email cím. </p>
-    <p>Valamint gyűjtünk az oldal használata közben létrejött adatokat mint 
-            kedvenc templomok, 
-            belépések és aktivitások és azok ideje, 
-            misézőhelyek adatinak módosítása,
-            hozzászólások, 
-            észrevételek és azokra reakciók,
-            templomok zárt admin szekciójába írt megjegyzések,
-            stb.
-     Ezeket a miserend.hu pontos működése érdekében felhasználjuk, tároljuk, és megosztjuk az oldal többi regisztrált felhasználójával rangja és hozzáférése szerint. 
-     A miserend.hu-n kívülre nem adunk meg ezek közül semmilyen azonosítható személyes adatot.</p>
-    <p>A regisztrált email címen értesítéseket küldünk a gondozott misézőhelyekkel kapcsolatban. Ez az értesítés kikapcsolható. Továbbá a regisztráció ill. regisztráció törlése kapcsán küldünk emaileket. Reklámozás céljára nem használjuk. Külső / harmadik félnek az email címeket nem adjuk át.</p>
-    <p>Az észrevételek beküldésére és fényképek beküldésére a nem regisztrált felhasználóknál írt részletek az érvényesek annyi különbséggel, hogy a beküldőt a regisztrált email címe alapján automatikusan azonosítjuk.</p>
-    <h4>Személyes adatok kikérése és törlése</h4>
-    <p>Jelenleg nincs automatikus rendszerünk egy-egy felhasználó minden személyes adatának kiadására vagy törlésére. 
-        Ha ilyen kérése van, akkor írjon nekünk az info kukac miserend pont hu email címre és igyekszünk pár napon belül eleget tenni törvényi kötelezettségünknek.</p>
-                        
+    <p>Lehetőség van minden misézőhelyhez fénykép beküldésére.</p>
+    <p>Fontos, hogy csak olyan fényképet töltsön fel mindenki, amelynek teljes jogával rendelkezik, és ha a képen személyek ismerhetők fel, ők is hozzájárultak a kép nyilvános publikálásához.</p>
+    <p>A kép beküldésével a beküldő, illetve szerző hozzájárul, hogy a miserend.hu és a hozzá tartozó mobil alkalmazások a képeket a megadott szerző nevében <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.hu">„Nevezd meg! – Ne add el! – Így add tovább! 4.0 Nemzetközi (CC BY-NC-SA 4.0)"</a> licenc alapján publikálja és felhasználja.</p>
+
+    <h3>Bejelentkezett felhasználók</h3>
+
+    <h4>Regisztrációkor megadott adatok</h4>
+    <p>Regisztráció során a megadott személyes adatokat (név, becenév, email cím) tároljuk. Ezeket az adatokat kizárólag a honlap működéséhez használjuk fel, harmadik félnek nem adjuk át. <em>(Jogalap: szerződés teljesítése – GDPR 6. cikk (1) b))</em></p>
+    <p>A regisztrált email címre a gondozott misézőhelyekkel kapcsolatos értesítéseket küldünk, amelyek kikapcsolhatók. Emellett a regisztrációval és a fiók törlésével kapcsolatos rendszer-emaileket küldünk. Az email cím reklámozásra nem kerül felhasználásra.</p>
+
+    <h4>Süti a belépve maradáshoz</h4>
+    <p>Bejelentkezett felhasználók esetén a böngészőben egy <strong>„token" nevű sütit</strong> tárolunk a belépve maradás funkciójához. Ez a süti törlődik, ha a felhasználó kijelentkezik. <em>(Jogalap: szerződés teljesítése – GDPR 6. cikk (1) b))</em></p>
+
+    <h4>Használat közben keletkező adatok</h4>
+    <p>Az oldal használata közben keletkező adatokat is tároljuk és a miserend.hu pontos működéséhez felhasználjuk, beleértve:</p>
+    <ul>
+        <li>kedvenc templomok listája,</li>
+        <li>belépések és aktivitások időpontja,</li>
+        <li>misézőhelyek adatainak módosítása,</li>
+        <li>hozzászólások,</li>
+        <li>észrevételek, javaslatok és azokra adott reakciók.</li>
+    </ul>
+    <p>Ezeket az adatokat megosztjuk az oldal többi regisztrált felhasználójával a felhasználó rangja és hozzáférési szintje szerint. A miserend.hu-n kívülre azonosítható személyes adatot nem adunk ki. <em>(Jogalap: szerződés teljesítése – GDPR 6. cikk (1) b))</em></p>
+
+    <h4>Admin chat</h4>
+    <p>A misézőhelyek adminisztrátorainak, egyházmegyei felelősöknek és templomgondnokoknak elérhető egy zárt admin chat felület, ahol az egyes misézőhelyekhez kapcsolódóan kommunikálhatnak egymással. Az itt írt üzenetek adatbázisunkban megőrződnek. A chat üzenetek automatikusan törlésre kerülnek 30 nap után. IP-cím az üzenetekhez nem kerül rögzítésre. <em>(Jogalap: jogos érdek – GDPR 6. cikk (1) f))</em></p>
+
+    <h4>OpenStreetMap adatmódosítás</h4>
+    <p>Templomgondnokok, egyházmegyei felelősök és adminisztrátorok a miserend.hu felületéről indíthatnak OpenStreetMap-es adatfrissítést. Az ilyen módosítások a miserend.hu saját OpenStreetMap-fiókja alatt kerülnek rögzítésre. A changeset megjegyzésébe az adott módosítást kezdeményező miserend.hu-s felhasználónév kerül bele – más személyes adat nem kerül átadásra az OpenStreetMap felé.</p>
+
+    <h3>Beágyazott külső tartalmak</h3>
+    <p>Az oldal tartalmaz beágyazott külső tartalmakat (pl. OpenStreetMap / Leaflet térkép, Facebook widget). Ezek az elemek saját adatvédelmi és sütiszabályzatuk szerint működnek. A miserend.hu ezeknek külön személyes adatot nem ad át, de ezek a widgetek – jellegükből adódóan – rögzíthetik a látogató IP-címét és sütiket tárolhatnak a böngészőjében.</p>
+
+    <h3>Adatfeldolgozók</h3>
+    <p>A miserend.hu szerverinfrastruktúráját a <strong>Pázmány Péter Katolikus Egyetem (PPKE)</strong> biztosítja a Magyar Katolikus Püspöki Konferencia (MKPK) megbízásából. Az adatok fizikailag a PPKE szerverparkján találhatók, Magyarországon. Az EU-n kívülre személyes adat nem kerül továbbításra.</p>
+
+    <h3>Megőrzési idők</h3>
+    <p>Adatokat általában a honlap működéséig megőrzünk, de nem vállalunk kötelezettséget arra, hogy minden adat örökre megmarad. A régebbi vagy feleslegessé vált adatokat szükség esetén töröljük.</p>
+
+    <h3>Személyes adatok kikérése és törlése</h3>
+    <p>Ha szeretné megtudni, milyen adatokat tárolunk Önről, vagy kéri azok törlését, írjon nekünk az <strong>info kukac miserend pont hu</strong> email címre. Regisztrált felhasználók esetén igyekszünk néhány napon belül eleget tenni a törvényi kötelezettségünknek, és összegyűjtjük, illetve kiadjuk vagy töröljük a kért adatokat.</p>
+    <p>Nem regisztrált (anonim) beküldők esetén – mivel a megadott email cím valódiságát nem tudjuk ellenőrizni – az adatok visszakeresésére és kiadására nincs lehetőségünk.</p>
+
+    <h3>Felügyeleti hatóság</h3>
+    <p>Adatkezeléssel kapcsolatos panasszal a Nemzeti Adatvédelmi és Információszabadság Hatósághoz (NAIH) fordulhat: <a href="https://naih.hu">naih.hu</a>.</p>
+
 {% endblock %}

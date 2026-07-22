@@ -64,6 +64,9 @@ class Church extends \Html\Html {
     public $isChurchHolder;
     public $favorite;
     public $alert;
+    public $ancestors;
+    public $descendants;
+    public $fullNetwork;
 
     public function __construct($path) {
         global $user;
@@ -134,7 +137,7 @@ class Church extends \Html\Html {
         } else {
             $this->hasWorkAccess = true;
         }
-		$this->church = ['hasPendingSuggestionPackage' => $church->hasPendingSuggestionPackage, 'remarksicon' => $church->remarksicon, 'id' => $church->id]; // A church/_adminlinks.twig számára kell ez. Bocsi.
+		$this->church = ['hasPendingSuggestionPackage' => $church->hasPendingSuggestionPackage, 'remarksicon' => $church->remarksicon, 'id' => $church->id, 'church:type' => $church['church:type'] ?? null]; // A church/_adminlinks.twig számára kell ez. Bocsi.
         $this->neighbours = $church->neighbours;
         
         
@@ -162,12 +165,17 @@ class Church extends \Html\Html {
             $this->favorite = 1;
         }
                         
-		$this->alert = (new \ExternalApi\NapilelkibatyuApi())->LiturgicalAlert();
+  $this->alert = (new \ExternalApi\NapilelkibatyuApi())->LiturgicalAlert();
         
-        $this->isChurchHolder = $user->getHoldingData($this->id);                
-		
+        $this->isChurchHolder = $user->getHoldingData($this->id);
 
-		
+        // Hierarchikus kapcsolatok
+        $this->ancestors   = $church->ancestors;
+        $this->descendants = $church->descendants;
+        $this->fullNetwork = $church->fullNetwork;
+  
+
+  
     }
 
     static function factory($path) {

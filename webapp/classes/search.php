@@ -125,6 +125,38 @@ class Search {
         }
     }
 
+    /**
+     * Filter by one or more church IDs.
+     * Uses a "term" query for a single ID and "terms" for multiple IDs.
+     * Works for both the churches index (field: "id") and the mass index (field: "church.id").
+     *
+     * @param int[] $ids Array of integer church IDs
+     */
+    function churchIds(array $ids): void {
+        $ids = array_values(array_filter(array_map('intval', $ids)));
+        if (empty($ids)) {
+            return;
+        }
+
+        if ($this->massOrChurch === 'mass') {
+            $field = 'church.id';
+        } else {
+            $field = 'id';
+        }
+
+        if (count($ids) === 1) {
+            $this->query['bool']['must'][] = ['term' => [$field => $ids[0]]];
+        } else {
+            $this->query['bool']['must'][] = ['terms' => [$field => $ids]];
+        }
+
+        if (count($ids) === 1) {
+            $this->filters[] = "Adott templom";
+        } else {
+            $this->filters[] = count($ids) . " kiválasztott templom";
+        }
+    }
+
     function keyword($keyword) {
         if (empty($keyword)) return;
         $this->filters[] = "Kulcsszó: " . htmlspecialchars($keyword);

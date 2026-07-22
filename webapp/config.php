@@ -15,8 +15,15 @@ $environment['default'] = [
         'useitforsearch' => false
     ],
 	'openstreetmap' => [
-		'apiUrl' => 'https://api.openstreetmap.org/'	
-    ],	
+		'apiUrl' => 'https://api.openstreetmap.org/'
+    ],
+    // #376: konfigurálható Overpass-endpoint. A fő overpass-api.de instabil lehet;
+    // prod átállhat egy stabil, EU-s mirrorra az OVERPASS_API_URL env-vel. Ajánlott:
+    //   https://overpass.kumi.systems/api/interpreter  (Kumi Systems, Ausztria — EU, GDPR-OK)
+    // NE orosz mirror (openstreetmap.ru): nem EU, GDPR/megbízhatósági kockázat.
+    'overpass' => [
+        'apiUrl' => env('OVERPASS_API_URL', 'https://overpass-api.de/api/interpreter')
+    ],
     'token' => [
         'web' => "2 weeks",
 		'API' => "15 minutes"
@@ -70,7 +77,10 @@ $environment['development'] = [
     'mail' => [
         'debug' => 0
     ],
-	'openstreetmap' => false,
+    'path' => [
+        'domain' => 'http://localhost:8000'
+    ],
+	'openstreetmap' => [], # => false: semmit nem használ ami OMS ; [] => adatot letölt, de nem nyúl hozzá
     'error_reporting' => E_ALL
 ];
 

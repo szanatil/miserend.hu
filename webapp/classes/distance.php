@@ -76,16 +76,15 @@ class Distance {
                     $pointTo = ['lat' => $churchTo->location->lat, 'lon' => $churchTo->location->lon];
                     $rawDistance = $this->getRawDistance($pointFrom, $pointTo);
                     if ($rawDistance < $maxDistance AND $rawDistance > 0) {
-                        $mapquest = new \ExternalApi\MapquestApi();
-                        $mapquestDistance = $mapquest->distance($pointFrom, $pointTo);
-                        if ($mapquestDistance == -2) {
-                            return;
-                        } elseif ($mapquestDistance > 0) {
-                            $processingDistance->distance = $mapquestDistance;
-                            if($mapquestDistance > $highestDistance)
-                                $highestDistance = $mapquestDistance;
-                            $processingDistance->save();
-                        }
+                        // #172: nem dőlünk el a Mapquesten - road-distance ha van,
+                        // egyébként a légvonalbeli (haversine) rawDistance.
+                        $resolved = $this->resolveDistance($pointFrom, $pointTo, $rawDistance);
+                        $processingDistance->distance = $resolved['distance'];
+                        // #526: légvonal-fallback -> toupdate=1 (később útvonalra frissítendő); road -> 0.
+                        $processingDistance->toupdate = $resolved['road'] ? 0 : 1;
+                        if ($resolved['distance'] > $highestDistance)
+                            $highestDistance = $resolved['distance'];
+                        $processingDistance->save();
                     } else {
                         //Pontatlant inkább soha senem mentünk el.
                         //$processingDistance->distance = $rawDistance;
@@ -122,21 +121,18 @@ class Distance {
                         }
                         $highestDistance = 0;
                         if ($churchFrom->updated_at > $processingDistance->updated_at
-                                OR $churchTo->updated_at > $processingDistance->updated_at OR 4 == 4) {
+                                OR $churchTo->updated_at > $processingDistance->updated_at) {
 
                             $pointFrom = ['lat' => $churchFrom->location->lat, 'lon' => $churchFrom->location->lon];
                             $pointTo = ['lat' => $churchTo->location->lat, 'lon' => $churchTo->location->lon];
                             $rawDistance = $this->getRawDistance($pointFrom, $pointTo);
 
                             if ($rawDistance < $maxDistance AND $rawDistance > 0) {
-                                $mapquest = new \ExternalApi\MapquestApi();
-                                $mapquestDistance = $mapquest->distance($pointFrom, $pointTo);
-                                if ($mapquestDistance == -2) {
-                                    return;
-                                } elseif ($mapquestDistance > 0) {
-                                    $processingDistance->distance = $mapquestDistance;
-                                    $processingDistance->save();
-                                }
+                                // #172: road-distance ha elérhető, egyébként légvonal.
+                                $resolved = $this->resolveDistance($pointFrom, $pointTo, $rawDistance);
+                                $processingDistance->distance = $resolved['distance'];
+                                $processingDistance->toupdate = $resolved['road'] ? 0 : 1; // #526
+                                $processingDistance->save();
                             } else {
                                 //Pontatlant inkább soha senem mentünk el.
                                 //$processingDistance->distance = $rawDistance;
@@ -148,6 +144,26 @@ class Distance {
                 
             }
             return $counter;
+    }
+
+    // #172: a szomszédság-számítás ne dőljön el a Mapquesten. Ha a road-distance
+    // elérhető (van kulcs, nincs rate-limit), azt adjuk vissza; egyébként a
+    // légvonalbeli (haversine) rawDistance-re esünk vissza. Így a feature mindig
+    // frissül, a Mapquest csak opcionális felminősítés.
+    // #526: visszaadja a távolságot ÉS a minőségét ('road' => true, ha Mapquest
+    // útvonal-távolság; false, ha csak légvonal). A hívó ez alapján állítja a
+    // distances.toupdate flaget (1 = később útvonalra frissítendő).
+    function resolveDistance($pointFrom, $pointTo, $rawDistance) {
+        try {
+            $mapquest = new \ExternalApi\MapquestApi();
+            $mapquestDistance = $mapquest->distance($pointFrom, $pointTo);
+            if ($mapquestDistance > 0) {
+                return ['distance' => $mapquestDistance, 'road' => true];
+            }
+        } catch (\Throwable $e) {
+            // nincs Mapquest-kulcs vagy bármilyen hiba -> marad a légvonal
+        }
+        return ['distance' => $rawDistance, 'road' => false];
     }
 
     function getRawDistance($pointFrom, $pointTo) {

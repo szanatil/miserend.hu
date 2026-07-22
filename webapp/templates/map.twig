@@ -1,18 +1,53 @@
-{% extends "layout_simple.twig" %}
+{% extends "layout.twig" %}
 
-        {% block content %}
-            <style>
-                #mapid {
-                    position: relative;
-                    width: 100%;
-                    height: calc(100vh - 50px); /* A menusav magassága */
-                    margin-bottom: 20px;
-                }
-                #menusav {
-                    margin-bottom: 0 ;
-                }
-            </style>
-          
-            {% include '_map_leaflet.twig' with {'enableAutoGeoLocation': true} %}
-        {% endblock %}        
+{% block body %}
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+        
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #header-desktop, #header-mobile {
+            flex-shrink: 0;
+        }
+        
+        .map-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            width: 100%;
+        }
+        
+        #mapid {
+            position: relative;
+            width: 100%;
+            flex: 1;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .menusav {
+            margin-bottom: 0 !important;
+        }
+        
+        .footer {
+            flex-shrink: 0;
+        }
+    </style>
+    
+    {% include 'header.twig' %}
+    
+    <div class="map-container">
+        {% include '_map_leaflet.twig' with {'enableAutoGeoLocation': true} %}
+    </div>
+    
+    {% block footer %}{% include 'footer.twig' %}{% endblock %}
+{% endblock %}
     

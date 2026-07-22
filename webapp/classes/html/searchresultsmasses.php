@@ -20,6 +20,7 @@ class SearchResultsMasses extends Html {
         $params = [
             'q' => 'SearchResultsMasses',
             'boundaries' => \Request::StringArray('boundaries', []),
+            'church_ids' => \Request::IntegerArray('church_ids') ?: [],
             'varos' => \Request::Text('varos'),
             'tavolsag' => \Request::IntegerwDefault('tavolsag', 4),
             'hely' => \Request::Text('hely'),
@@ -65,6 +66,11 @@ class SearchResultsMasses extends Html {
             if (!empty($params['boundaries'])) {
                 $search->boundaries($params['boundaries']);
                 $this->boundaryDataJson = json_encode(\Eloquent\Boundary::whereIn('id', $params['boundaries'])->get()->map->toSimpleArray());
+            }
+
+            // Church ID filter (one or more specific churches)
+            if (!empty($params['church_ids'])) {
+                $search->churchIds($params['church_ids']);
             }
 
             // egyhazmegye filter

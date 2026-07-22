@@ -2,28 +2,37 @@
 
 {% import "forms.twig" as forms %}
 
+{# Provide church metadata for mobile header #}
+{% set id = church.id %}
+{% set alternative_names = church.alternative_names %}
 
 {% block pageHeader %}
     <div class="page-header">
-        <h2>            
+        <h2 style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
             Adatlap szerkesztése: {{ church.names.0 }}
-			<div style="float:right" class="text-end">{% include "church/_adminlinks.twig" %}</div>
-            {% if church.alternative_names|length > 0 %}
-                <br/>
+        </h2>
+        
+        {# Alternative names - Desktop only #}
+        {% if church.alternative_names|length > 0 %}
+            <div class="page-header-alt-names-desktop">
                 <small>
                     <span class="hidden-xs hidden-sm">
-                       {{ church.alternative_names.0|raw }}{% if church.alternative_names|length > 1 %}, <a href="#" onclick="this.style.display='none'; document.getElementById('all-names').style.display='inline'; return false;">...</a><span id="all-names" style="display:none;" onclick="document.getElementById('all-names').style.display='none'; this.previousElementSibling.style.display='inline'; return false;">
-                            {{ church.alternative_names|slice(1)|join(", ")|raw }}                            
+                       {{ church.alternative_names.0|raw }}{% if church.alternative_names|length > 1 %}, <a href="#" onclick="this.style.display='none'; document.getElementById('all-names-desk').style.display='inline'; return false;">...</a><span id="all-names-desk" style="display:none;" onclick="document.getElementById('all-names-desk').style.display='none'; this.previousElementSibling.style.display='inline'; return false;">
+                            {{ church.alternative_names|slice(1)|join(", ")|raw }}
                         </span>
                     {% endif %}
                     </span>
                 </small>
-            {% endif %}
-        </h2>
+            </div>
+        {% endif %}
     </div>
 {%  endblock %}
 
 {% block content %}
+    {# Admin links section #}
+    {% set writeAcess = true %}
+    {% include 'church/_adminlinks-section.twig' %}
+    
     <FORM ENCTYPE='multipart/form-data' method=post>
         <input type=hidden name=church[id] value={{ church.id }}>
         <style>
@@ -34,7 +43,7 @@
                 vertical-align: top;
             }
         </style>
-        <table cellpadding=4">            
+        <table cellpadding=4">
            
             <tr>
                 <td bgcolor=#ECE5C8 class=kiscim align=right>Megjegyzés:</td>
@@ -261,10 +270,23 @@
             </tr>
             {{ _self.helptr(15,help) }}            
             <tr>
+                <td colspan="3"><hr/><h4>Kapcsolat más misézőhelyekkel</h4></td>
+            </tr>
+
+            {# Szülő templom kiválasztása #}
+            <tr>
+                <td class=kiscim align=right>Honnan látják el:</td>
+                <td colspan="2">
+                    {{ forms.select(form.parent_id) }}
+                    <small class="text-muted">Ez a misézőhely mely templomnak van alárendelve. Kezdd el gépelni a települést vagy a templom nevét – bármelyik aktív misézőhely kereshető (a legközelebbiek távolsággal a lista tetején).</small>
+                </td>
+            </tr>
+
+            <tr>
                 <td>
                     <div align=right><input type=submit name='submit' value=Mehet class=urlap>&nbsp;</div>
                 </td>
-                <td>					
+                <td>
                     <input type=radio name=modosit value=i class=urlap checked><span class=alap> és újra módosít</span><br/>
                     <input type=radio name=modosit value=m class=urlap><span class=alap> és tovább a miserendre</span><br/>
                     <input type=radio name=modosit value=n class=urlap><span class=alap> és vissza a listába</span><br/>
@@ -273,7 +295,7 @@
                 <td></td>
             </tr>
         </table>
-    </form>                
+    </form>
     <script language="javascript" type="text/javascript" src="/vendor/tinymce/tinymce/tinymce.min.js"></script>
     <script language="javascript" type="text/javascript" src="/js/tiny_mce_init.js"></script>
     
@@ -432,10 +454,7 @@ function deleteOsmId(tid) {
 {% endblock %}
 
 {% block rightsidebar %}    
-    {% include 'church/_panelholders.twig' %}
-	{% if church.osm and user.isadmin %}
-        {% include 'church/_panelosm.twig' %}
-    {% endif %}
+    {% include 'church/_panelholders.twig' %}	
 	{% include 'church/_panelhistory.twig' %}
 {% endblock %}
 

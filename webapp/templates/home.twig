@@ -49,13 +49,13 @@
     </style>
     <link rel="stylesheet" href="/node_modules/clockpicker/dist/jquery-clockpicker.css">
     <script src="/node_modules/clockpicker/dist/jquery-clockpicker.js"></script>
-    <script src="/js/boundary-autocomplete.js"></script>
+    <script src="/js/unified-autocomplete.js"></script>
     
 {% endblock %}
 
 {% block pageHeader %}
-    <div class="page-header hidden-xs">
-        <h1>Miserend<small><span class="hidden-sm"> és templom keresés</span></small></h1>
+    <div class="page-header">
+        <h1>Miserend<small><span class="hidden-xs"> és templom keresés</span></small></h1>
     </div>
 {%  endblock %}
 
@@ -75,43 +75,11 @@
         </div>
 
             <div id="form_church"  style="margin-top:12px;">
-                <div class="form-group row">
-                    <label class="col-sm-4 control-label">Templom</label>
-                    <div class="col-sm-6">{{ forms.input(searchform.kulcsszo) }}</div>
-                    <div class="cols-sm-2" style="text-align:right"><span id="form_church_getdetails">{{ icons.icon('fa-plus', 'fa-2xs circle') }}</span></div>
+                <div class="search-field-group">
+                    <label class="search-label">Templom</label>
+                    <div class="search-input-wrap">{{ forms.input(searchform.kulcsszo) }}</div>                    
                 </div>
-                <!--<div class="form-group row">
-                    <label class="col-sm-4 control-label" ><span class="form_church_details" style="display:none">település</span></label>
-                    <div class="col-sm-8">{{ forms.input(searchform.varos) }} </div>
-                </div>-->
             </div>
-
-            <div id="form_church_details"  style="display:none">
-			<!--
-                <div class="form-group row">
-                    <label class="col-sm-4 control-label" >adott helyszín körül:</label>
-                    <div class="col-sm-8">
-                        <div class="form-inline">
-                            <div class="form-group">
-                                {{ forms.input(searchform.hely) }}
-                            </div>
-                            <div class="form-group">
-                                <div class="input-group">
-                                    <div class="input-group-addon">+</div>
-                                    {{ forms.input(searchform.tavolsag) }}
-                                    <div class="input-group-addon">km</div>
-                                </div>
-                            </div>
-                        </div>    
-                    </div>
-                </div>
-				-->
-                <div class="form-group row">
-                    <label class="col-sm-4 control-label" >egyházmegye</label>
-                    <div class="col-sm-8">{{ forms.select(searchform.ehm) }} </div>
-                </div>                
-            </div>
-
 
             <div id="form_mass_details" style="">
                 {# Mise date/time picker section #}
@@ -801,7 +769,7 @@
 
             </div>
 
-            <div align=center class="form-group" style="margin-top:12px">
+            <div class="home-cta-buttons form-group" style="margin-top:12px">
                 <button type=submit name="q" value="SearchResultsMasses"  class="btn btn-primary" id="search_masses_btn"></button>
                 <button type=submit name="q" value="SearchResultsChurches"  class="btn btn-primary">Templom keresése</button>
             </div>
@@ -874,45 +842,22 @@
 		{% endif %}
     </div>
 	
-	<div id="nearby" style="display:none"></div>
-	<script>
-		if (navigator.geolocation) {
-			
-			navigator.geolocation.getCurrentPosition(function(position) {
-
-				$.ajax({
-					url: '/api/v4/nearby',
-					type: "POST",
-					dataType: "json",
-					data: JSON.stringify( {'lat': position.coords.latitude, 'lon': position.coords.longitude } ),
-					contentType: "application/json",
-					 success: function(data) {
-						if(data.error == 0) {
-							$('#nearby').show();
-							$('#nearby').append('<h3>Közeli templomok</h3>');
-							if(data.templomok.length == 0) {
-								$('#nearby').append('<p><i>Nem találtunk közeli templomokat.</i></p>');
-							} else {
-								$('#nearby').append('<ul>');
-								for (let i = 0; i < data.templomok.length; i++) {
-									if(data.templomok[i].tavolsag < 1000) {
-										var distance = ( Math.round(data.templomok[i].tavolsag /100)*100 ) + " m";
-									} else {
-										var distance = ( Math.round(data.templomok[i].tavolsag / 100)/10 ) + " km";
-									}
-                                    // FIXME for Issue #257
-									$('#nearby > ul').append('<li><a href="/templom/' + data.templomok[i].id + '">' + data.templomok[i].nev + (data.templomok[i].ismertnev ? ' (' + data.templomok[i].ismertnev + ')' : '') + '</a>, ' + data.templomok[i].varos + ' - ' + distance + '</li>');
-									// console.log(data.templomok[i]);
-								}								
-								$('#nearby').append('</ul>');
-							}
-						}
-					}
-				}); 
-				
-			});  
-		}
-	</script>
+	{# #311: a geolokáció-alapú "közeli templomok" eddig automatikusan futott
+	   minden oldalbetöltéskor: a böngésző azonnal kérdezte a felhasználót
+	   (legtöbbször elutasították), és tagadás esetén némán elcsendesedett.
+	   Most explicit gombbal indul, és van hibaüzenet, ha nincs hozzáférés. #}
+	<div id="nearby" style="margin-top:12px">
+        <h3>Közeli templomok</h3>
+		<button id="nearby-trigger" class="btn btn-default" type="button">
+			<i class="fa fa-location-arrow"></i> Közeli templomok mutatása
+		</button>
+		<small id="nearby-hint" class="text-muted" style="display:block;margin-top:4px">
+			A böngésződ pozíció-engedélyt fog kérni. Ezt csak a kérés idejére használjuk.
+		</small>
+		<div id="nearby-status" style="margin-top:8px"></div>
+		<div id="nearby-results"></div>
+	</div>
+	<script src="/js/nearby-churches.js"></script>
 	
 	  <script src="/node_modules/jquery-ui/ui/i18n/datepicker-hu.js"></script>
 	   <script>
@@ -925,17 +870,19 @@
 	   </script>
 
 	   <script>
-	       // Inject boundary data from PHP backend           
+	       // Inject pre-selected boundaries and churches from PHP backend (for back-navigation)
 	       window.boundaryDataFromUrl = {{ boundaryDataJson ? boundaryDataJson|raw : '[]' }};
+	       window.churchDataFromUrl   = {{ churchDataJson   ? churchDataJson|raw   : '[]' }};
 	   </script>
 
 	   <script>
 	   (function() {
-	       // Initialize boundary autocomplete for the keyword field
 	       document.addEventListener('DOMContentLoaded', function() {
-	           if (typeof BoundaryAutocomplete !== 'undefined') {
-	               var boundaryDataFromUrl = window.boundaryDataFromUrl || [];
-	               BoundaryAutocomplete.init('#keyword', '#kereses', boundaryDataFromUrl);
+	           if (typeof UnifiedAutocomplete !== 'undefined') {
+	               UnifiedAutocomplete.init('#keyword', '#kereses', {
+	                   initialBoundaries: window.boundaryDataFromUrl || [],
+	                   initialChurches:   window.churchDataFromUrl   || []
+	               });
 	           }
 	       });
 	   })();

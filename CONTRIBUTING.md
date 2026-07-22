@@ -172,6 +172,17 @@ Ha tesztelni szeretnéd, állítsd át a `docker/compose.dev.yml`-ben a `miseren
 
 Adatbázis dump-hoz: `docker/mysql/dump.sh`. A szkript elején lévő változókat env-ben lehet felülbírálni — kényes adatokat előre takarít.
 
+### HTTPS a dev környezetben (geolokáció / location API)
+
+A böngésző [Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API)-ja (és minden „secure context"-hez kötött funkció) csak biztonságos eredetről működik. **Jó hír: a `http://localhost:8000` (és a `127.0.0.1`) a böngészők szerint már secure context**, TLS nélkül is — a dev app pont ott fut, tehát a saját gépeden a geolokáció minden extra nélkül megy.
+
+HTTPS csak akkor kell, ha **fizikai eszközön, a gép LAN-IP-jén** teszteled (`http://192.168.x.x:8000`) — az nem secure context. Ilyenkor a legegyszerűbb sorrendben:
+
+1. **Tunnel** ([cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) vagy [ngrok](https://ngrok.com/)) — azonnali publikus HTTPS-URL, nulla cert-menedzsment.
+2. **Helyi megbízható HTTPS**: [mkcert](https://github.com/FiloSottile/mkcert) (egy paranccsal helyileg megbízható cert) + egy pici Caddy/nginx reverse-proxy a `:8000` elé.
+
+Saját CA-t kézzel generálni nem érdemes — a fentiek ugyanezt adják karbantartás nélkül. (Lásd #185.)
+
 ---
 
 Ha bármi kérdésed van vagy elakadnál, nyiss issue-t bátran. Köszi az időt és a munkát! 🙏

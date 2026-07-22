@@ -8,6 +8,7 @@ class Edit extends \Html\Html {
     public $form;
     public $help;
     public $input;
+    public $nearbyChurches;
 
     public function __construct($path) {
         global $user;
@@ -26,15 +27,23 @@ class Edit extends \Html\Html {
         }
 
         $isForm = \Request::Text('submit');
-        if ($isForm) {
+        $isRelationshipAction = isset($_REQUEST['relationship']['add']) || isset($_REQUEST['relationship']['delete']);
+        if ($isForm || $isRelationshipAction) {
             $this->modify();
         }
         $this->preparePage();
     }
 
     function modify() {
-        if ($this->input['church']['id'] != $this->tid) {
+        $hasChurchForm = isset($this->input['church']['id']);
+
+        // --- Teljes church form mentése (beleértve a kapcsolat kiválasztást) ---
+        if ($hasChurchForm && $this->input['church']['id'] != $this->tid) {
             throw new \Exception("Gond van a módosítandó templom azonosítójával.");
+        }
+
+        if (!$hasChurchForm) {
+            return; // Nincs church form, nincs mit menteni
         }
 
         $allowedFields = ['adminmegj', 'nev',
@@ -47,6 +56,28 @@ class Edit extends \Html\Html {
             if (array_key_exists($field, $this->input['church'])) {
                 $this->church->$field = $this->input['church'][$field];
             }
+        }
+
+        // --- Kapcsolat kezelése (parent templom kiválasztás) ---
+        if (isset($this->input['church']['parent_id']) && $this->input['church']['parent_id'] !== '') {
+            $parentId = (int) $this->input['church']['parent_id'];
+            // Kapcsolat csak akkor kerül mentésre, ha érvényes parent ID van és nem önmagára mutat
+            if ($parentId !== 0 && $parentId !== (int)$this->tid) {
+                // #521: egy templomnak egy ellátó plébániája (parent) van a formon
+                // keresztül. A korábbi updateOrCreate a (parent,child) PÁRRA matchelt,
+                // ezért új plébánia választásakor ÚJ sort hozott létre, a régit meghagyva
+                // ("hozzáadja, de nem cserél"). Előbb töröljük a meglévő parent-kapcsolatot,
+                // hogy a választás CSERÉLJEN (és a korábbi duplikátumok is kitakarodjanak).
+                \Eloquent\ChurchRelationship::where('child_church_id', $this->tid)->delete();
+                \Eloquent\ChurchRelationship::create([
+                    'parent_church_id' => $parentId,
+                    'child_church_id' => $this->tid,
+                    'type' => 'subordinate',
+                ]);
+            }
+        } else {
+            // Ha üres a kiválasztás, törlődnek az összes parent kapcsolat
+            \Eloquent\ChurchRelationship::where('child_church_id', $this->tid)->delete();
         }
 
         // Handle external calendar URL
@@ -113,10 +144,14 @@ class Edit extends \Html\Html {
         if ($user->checkRole('miserend')) {
             $this->addFormNewHolder();
         }
-  
+   
 
         $this->addFormAdministrative();
         $this->addFormReligiousAdministration();
+        $this->addFormParentChurch();
+
+        // Meglévő kapcsolatok betöltése (szülő irányban)
+        $this->church->load('parentRelationships.parent');
         
         // Add external calendar URL field
         $this->form['external_calendar_url'] = [
@@ -294,6 +329,79 @@ class Edit extends \Html\Html {
             'name' => 'access',
             'value'=> 'allowed'
         );        
+    }
+
+    function addFormParentChurch() {
+        $options = [0 => '– válassz templomot –'];
+        
+        // Meglévő parent kapcsolat lekérése
+        $currentParentId = null;
+        $currentParent = $this->church->parentRelationships()->with('parent')->first();
+        if ($currentParent) {
+            $currentParentId = $currentParent->parent_church_id;
+        }
+
+        // Közeli templomok a kapcsolat hozzáadásához (max 20, koordináta alapján)
+        if ($this->church->lat && $this->church->lon) {
+            $lat = (float) $this->church->lat;
+            $lon = (float) $this->church->lon;
+            $nearbyChurches = \Eloquent\Church::select('templomok.*')
+                ->addSelect(\Illuminate\Database\Capsule\Manager::raw(
+                    "ST_distance_sphere(
+                        ST_GeomFromText('POINT({$lat} {$lon})', 4326),
+                        ST_GeomFromText(CONCAT('POINT(', lat, ' ', lon, ')'), 4326)
+                    ) / 1000 as distance_km"
+                ))
+                ->where('ok', 'i')
+                ->where('id', '!=', $this->tid)
+                ->whereRaw('NOT (lat = 0 AND lon = 0)')
+                ->orderBy('distance_km', 'ASC')
+                ->limit(40)
+                ->get();
+
+            foreach ($nearbyChurches as $nearby) {
+                $options[$nearby->id] = $nearby->varos . ' – ' . $nearby->names[0] . ' (~' . round($nearby->distance_km, 1) . ' km)';
+            }
+
+            // Ha van meglévő parent kapcsolat de nincs a common listában, hozzáadunk
+            if ($currentParentId && !isset($options[$currentParentId])) {
+                $parentChurch = \Eloquent\Church::find($currentParentId);
+                if ($parentChurch) {
+                    $options[$currentParentId] = '⭐ ' . $parentChurch->varos . ' – ' . $parentChurch->names[0] . ' (kiválasztott)';
+                }
+            }
+        } else {
+            // Ha nincs koordináta, de van meglévő parent, akkor csak az jelenjen meg
+            if ($currentParentId) {
+                $parentChurch = \Eloquent\Church::find($currentParentId);
+                if ($parentChurch) {
+                    $options[$currentParentId] = '⭐ ' . $parentChurch->varos . ' – ' . $parentChurch->names[0] . ' (kiválasztott)';
+                }
+            }
+        }
+
+        // #522: a legközelebbi 40 marad gyors javaslatnak (távolsággal), de MINDEN
+        // aktív templomot felveszünk, hogy autocomplete-tel messziről is választható
+        // legyen (gépelhető a település / név). A meglévő javaslatokat nem duplikáljuk.
+        // Így JS nélkül is elérhető minden templom (a combobox csak a gépelést adja rá).
+        $allActive = \Eloquent\Church::where('ok', 'i')
+            ->where('id', '!=', $this->tid)
+            ->orderBy('varos')->orderBy('nev')
+            ->get(['id', 'varos', 'nev']);
+        foreach ($allActive as $c) {
+            if (!isset($options[$c->id])) {
+                $options[$c->id] = $c->varos . ' – ' . $c->nev;
+            }
+        }
+
+        $this->form['parent_id'] = array(
+            'type' => 'select',
+            'name' => 'church[parent_id]',
+            'id' => 'selectParentChurch',
+            'class' => 'form-control',
+            'options' => $options,
+            'selected' => $currentParentId
+        );
     }
 
 }

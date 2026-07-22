@@ -22,6 +22,20 @@ img {max-width: 100%;max-height: 100%;}
 .navbar-default {background: none;border: none;}
 .navbar-default .navbar-nav>li>a { color: #fff; }
 
+/* Navbar toggler styling for white icon on purple background */
+.navbar-toggler {
+    border-color: #fff;
+}
+
+.navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='white' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+.navbar-toggler:focus {
+    border-color: #fff;
+    box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25);
+}
+
 .footer {
     padding: 40px 0;
     color: #efefef;
@@ -126,3 +140,1117 @@ span.toggle.active {
         width: 100%
     }
 }
+
+/* Responsive Header and Footer - 576px breakpoint */
+
+/* Desktop Header - visible at 576px and above */
+#header-desktop {
+    display: block;
+}
+
+#header-mobile {
+    display: none;
+}
+
+#header-mobile .menusav {
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+/* Desktop Footer - visible at 576px and above */
+#footer-full {
+    display: block;
+}
+
+#footer-minimal {
+    display: none;
+}
+
+/* Mobile View - below 576px */
+@media (max-width: 575.98px) {
+    #header-desktop {
+        display: none;
+    }
+
+    #header-mobile {
+        display: block;
+    }
+
+    #footer-full {
+        display: none;
+    }
+
+    #footer-minimal {
+        display: block;
+    }
+    
+    /* Hide desktop-only pageHeader elements on mobile */
+    .desktop-only {
+        display: none !important;
+    }
+        
+    /* Show mobile-only elements */
+    .page-header-meta-mobile {
+        display: block !important;
+        margin-bottom: 12px;
+        padding: 8px 0;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    /* Ensure admin links section displays properly */
+    .admin-links-section {
+        display: block !important;
+    }
+}
+
+/* Desktop View - 576px and above */
+@media (min-width: 576px) {
+    /* Hide mobile-only elements on desktop */
+    .page-header-meta-mobile {
+        display: none !important;
+    }
+}
+
+/* FAB hívás gomb – alapból rejtett, csak mobilon látható */
+.church-fab-call {
+  display: none;
+}
+
+/* FAB útvonal gomb – alapból rejtett, csak mobilon látható */
+.church-fab-direction {
+  display: none;
+}
+
+/* ── Kontakt – ikon-sor (globális, minden képernyőméreten) ── */
+.contact-icon-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 2px 0;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.contact-icon-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.contact-icon-row .icon-col {
+  width: 28px;
+  flex-shrink: 0;
+  color: #6d3c8d;
+  font-size: 16px;
+  padding-top: 2px;
+  text-align: center;
+}
+
+.contact-icon-row .text-col {
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.contact-icon-row .text-col a {
+  color: #6d3c8d;
+  font-weight: 500;
+  text-decoration: none;
+  display: block;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.contact-icon-row .text-col .label-small {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #767676;
+  margin-bottom: 2px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   2026 Church Mobile Redesign + Home/Search Results Redesign
+   @media (max-width: 575.98px) – desktop nézetet NEM érinti
+   ══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 575.98px) {
+
+  /* ── Design tokenek (:root-ba kell a CSS var() miatt) ── */
+  :root {
+    --ch-radius: 16px;
+    --ch-radius-sm: 10px;
+    --ch-gap: 20px;
+    --ch-px: 16px;
+    --ch-shadow: 0 2px 12px rgba(0,0,0,.08);
+    --ch-border: 1px solid #ebebeb;
+    --ch-purple: #6d3c8d;
+    --ch-purple-soft: #f3eef7;
+    --ch-text: #1a1a1a;
+    --ch-muted: #767676;
+    --ch-success-bg: #e6f4ea;
+    --ch-success-text: #1e7e34;
+    --ch-info-bg: #e8f4fd;
+    --ch-info-text: #0c63a0;
+  }
+
+  /* ── 1. Panel → Modern kártya override ── */
+  .panel-group {
+    margin-bottom: var(--ch-gap);
+  }
+
+  .panel {
+    border: var(--ch-border) !important;
+    border-radius: var(--ch-radius) !important;
+    box-shadow: var(--ch-shadow) !important;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  /* Panel heading: fehér + lila bal border */
+  .panel-heading {
+    background: #fff !important;
+    border-bottom: var(--ch-border) !important;
+    padding: 14px 16px !important;
+    border-left: 3px solid var(--ch-purple);
+  }
+
+  .panel-heading .panel-title {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: var(--ch-text) !important;
+    letter-spacing: -0.01em;
+  }
+
+  .panel-heading .panel-title a {
+    color: var(--ch-text) !important;
+  }
+
+  .panel-body {
+    padding: 16px !important;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ch-text);
+  }
+
+  .panel-group .panel + .panel {
+    margin-top: 12px;
+  }
+
+  /* ── 2. Miserend wrapper ── */
+  .church-miserend-wrap {
+    border-radius: var(--ch-radius);
+    box-shadow: var(--ch-shadow);
+    margin-bottom: var(--ch-gap);
+    overflow: visible;
+  }
+
+  .church-update-meta {
+    font-size: 12px;
+    color: var(--ch-muted);
+    padding: 6px var(--ch-px);
+    letter-spacing: 0.01em;
+  }
+
+  /* ── Frissesség jelzés – közös alap ── */
+  .church-freshness {
+    margin-bottom: var(--ch-gap);
+    padding: 0 !important;
+    /* Desktop: panel kinézet */
+    background: #fff !important;
+    color: var(--ch-text) !important;
+    border: var(--ch-border) !important;
+    border-radius: var(--ch-radius) !important;
+    box-shadow: var(--ch-shadow) !important;
+    /* bal oldali vastag szín-csík, felülírandó per-szint */
+    border-left-width: 4px !important;
+    border-left-style: solid !important;
+  }
+
+  /* Szint-specifikus bal szín desktopra */
+  .church-freshness--fresh  { border-left-color: #28a745 !important; }
+  .church-freshness--medium { border-left-color: #ffc107 !important; }
+  .church-freshness--stale  { border-left-color: #dc3545 !important; }
+
+  /* Desktop: ikonszín */
+  .church-freshness--fresh  .church-freshness__icon { color: #28a745; }
+  .church-freshness--medium .church-freshness__icon { color: #856404; }
+  .church-freshness--stale  .church-freshness__icon { color: #dc3545; }
+
+  /* Desktop: szöveg sötét (panel-szerű), ne az alert-szín legyen */
+  .church-freshness .church-freshness__main { color: var(--ch-text); }
+
+  .church-freshness__main {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+
+  .church-freshness__icon {
+    font-size: 1.3em;
+    flex-shrink: 0;
+  }
+
+  .church-freshness__text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ch-text);
+  }
+
+  .church-freshness__subtitle,
+  .church-freshness__date {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ch-muted);
+  }
+
+  .church-freshness__help-toggle {
+    margin-left: auto;
+    font-size: 13px;
+    white-space: nowrap;
+    font-weight: 600;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--ch-purple);
+  }
+
+  .church-freshness__help-toggle:hover {
+    text-decoration: underline;
+    color: var(--ch-purple);
+  }
+
+  .church-freshness__chevron {
+    transition: transform 0.2s ease;
+  }
+
+  .church-freshness__help-toggle[aria-expanded="true"] .church-freshness__chevron {
+    transform: rotate(180deg);
+  }
+
+  .church-freshness__collapse {
+    border-top: var(--ch-border);
+  }
+
+  .church-freshness__help-body {
+    padding: 12px 16px 14px;
+    font-size: 14px;
+    color: var(--ch-text);
+    line-height: 1.55;
+  }
+
+  .church-freshness__help-body ul {
+    margin: 6px 0 0 0;
+    padding-left: 20px;
+  }
+
+  .church-freshness__help-body li {
+    margin-bottom: 4px;
+  }
+
+  .church-freshness__help-body a {
+    color: var(--ch-purple);
+    font-weight: 600;
+  }
+
+  /* ── Mobil: vissza az alert stílusra (teljes szín, flush szélek) ── */
+  @media (max-width: 575px) {
+    .church-freshness {
+      border-radius: 0 !important;
+      margin-left: calc(-1 * var(--ch-px));
+      margin-right: calc(-1 * var(--ch-px));
+      box-shadow: none !important;
+      border-top: none !important;
+      border-right: none !important;
+      border-bottom: none !important;
+    }
+
+    .church-freshness--fresh {
+      background: #d1e7dd !important;
+      border-left-color: #0f5132 !important;
+    }
+    .church-freshness--medium {
+      background: #fff3cd !important;
+      border-left-color: #664d03 !important;
+    }
+    .church-freshness--stale {
+      background: #f8d7da !important;
+      border-left-color: #842029 !important;
+    }
+
+    .church-freshness--fresh  .church-freshness__icon { color: #0f5132; }
+    .church-freshness--medium .church-freshness__icon { color: #664d03; }
+    .church-freshness--stale  .church-freshness__icon { color: #842029; }
+
+    .church-freshness--fresh  .church-freshness__text { color: #0f5132; }
+    .church-freshness--medium .church-freshness__text { color: #664d03; }
+    .church-freshness--stale  .church-freshness__text { color: #842029; }
+
+    .church-freshness--fresh  .church-freshness__date,
+    .church-freshness--fresh  .church-freshness__subtitle,
+    .church-freshness--medium .church-freshness__date,
+    .church-freshness--medium .church-freshness__subtitle,
+    .church-freshness--stale  .church-freshness__date,
+    .church-freshness--stale  .church-freshness__subtitle {
+      color: inherit;
+      opacity: 0.8;
+    }
+
+    .church-freshness__help-toggle { color: inherit; font-weight: 700; }
+    .church-freshness__help-body   { color: inherit; }
+    .church-freshness__help-body a { color: inherit; text-decoration: underline; }
+  }
+
+  /* ── 3. Térkép – full-bleed ── */
+  #panel-map .panel-body {
+    padding: 0 !important;
+  }
+
+  #panel-map .panel {
+    border-radius: var(--ch-radius) !important;
+    overflow: hidden;
+  }
+
+  #mapid {
+    height: 220px !important;
+  }
+
+  #maptext {
+    padding: 12px 16px;
+    font-size: 14px;
+    color: var(--ch-muted);
+    background: #fafafa;
+    border-top: var(--ch-border);
+  }
+
+  #maptext .alap {
+    font-size: 14px;
+  }
+
+  /* ── 4. Kontakt – ikon-sor ── */
+  .contact-icon-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: var(--ch-border);
+  }
+
+  .contact-icon-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .contact-icon-row .icon-col {
+    width: 28px;
+    flex-shrink: 0;
+    color: var(--ch-purple);
+    font-size: 16px;
+    padding-top: 2px;
+    text-align: center;
+  }
+
+  .contact-icon-row .text-col {
+    flex: 1;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  .contact-icon-row .text-col a {
+    color: var(--ch-purple);
+    font-weight: 500;
+    text-decoration: none;
+    display: block;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+  }
+
+  .contact-icon-row .text-col .label-small {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ch-muted);
+    margin-bottom: 2px;
+  }
+
+  /* ── 5. Fotócsík – horizontal scroll ── */
+  .church-photo-strip {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 12px 16px 16px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .church-photo-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .church-photo-strip a {
+    flex-shrink: 0;
+  }
+
+  .church-photo-strip img {
+    width: 140px !important;
+    height: 100px !important;
+    object-fit: cover !important;
+    border-radius: var(--ch-radius-sm) !important;
+    display: block;
+  }
+
+  /* ── 6. Gyóntás – pill badge státusz ── */
+  .confession-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    margin-bottom: 8px;
+  }
+
+  .confession-badge.on {
+    background: var(--ch-success-bg);
+    color: var(--ch-success-text);
+  }
+
+  .confession-badge.off {
+    background: var(--ch-info-bg);
+    color: var(--ch-info-text);
+  }
+
+  .confession-badge.unknown {
+    background: #f5f5f5;
+    color: var(--ch-muted);
+  }
+
+  .panel-success .panel-heading,
+  .panel-info .panel-heading {
+    background: #fff !important;
+    border-left-color: var(--ch-purple) !important;
+  }
+
+  /* ── 7. Közösségek – kompaktabb lista ── */
+  .kozosseg-item {
+    padding: 10px 0;
+    border-bottom: var(--ch-border);
+  }
+
+  .kozosseg-item:last-child {
+    border-bottom: none;
+  }
+
+  .kozosseg-item h5 {
+    font-size: 14px !important;
+    margin: 0 0 4px !important;
+  }
+
+  .kozosseg-item a {
+    color: var(--ch-purple);
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .kozosseg-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 100px;
+    background: var(--ch-purple-soft);
+    color: var(--ch-purple);
+    font-size: 12px;
+    margin: 2px 2px 0 0;
+  }
+
+  /* ── 8. FAB – lebegő hívás gomb ── */
+  .church-fab-call {
+    position: fixed;
+    bottom: 80px;
+    right: 16px;
+    z-index: 1050;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--ch-purple);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 4px 16px rgba(109,60,141,.35);
+    text-decoration: none;
+    transition: transform .15s, box-shadow .15s;
+  }
+
+  .church-fab-call:active {
+    transform: scale(.93);
+    box-shadow: 0 2px 8px rgba(109,60,141,.3);
+    color: #fff;
+  }
+
+  .church-fab-call:empty,
+  .church-fab-call[href="#"] {
+    display: none;
+  }
+
+  /* ── 8b. FAB – útvonaltervezés gomb ── */
+  .church-fab-direction {
+    position: fixed;
+    bottom: 144px; /* a hívás FAB felett: 80 + 52 + 12 */
+    right: 16px;
+    z-index: 1050;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #1a73e8;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 4px 16px rgba(26,115,232,.35);
+    text-decoration: none;
+    transition: transform .15s, box-shadow .15s;
+  }
+
+  .church-fab-direction:active {
+    transform: scale(.93);
+    box-shadow: 0 2px 8px rgba(26,115,232,.3);
+    color: #fff;
+  }
+
+  .church-fab-direction:hover {
+    color: #fff;
+    text-decoration: none;
+  }
+
+  /* Ha nincs hívás FAB, a direction FAB kerüljön alulra */
+  .church-fab-direction--solo {
+    bottom: 80px;
+  }
+
+  /* ── 9. Update meta + alert kompakt ── */
+  .panel-askingremark {
+    border-left-color: #f59e0b !important;
+    border-left-width: 3px;
+  }
+
+  .alert-warning {
+    font-size: 13px;
+    padding: 10px 14px;
+    border-radius: var(--ch-radius-sm);
+    margin-bottom: var(--ch-gap);
+  }
+
+  /* ── 10. Home oldal: page-header elrejtése ── */
+  .page-header {
+    display: none;
+  }
+
+  .home-context-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ch-purple);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+  }
+
+  /* ── 11. Home: keresési form ── */
+  .search-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .search-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ch-muted);
+  }
+
+  .search-input-wrap .form-control {
+    font-size: 16px !important;
+    border-radius: var(--ch-radius-sm);
+    border: var(--ch-border);
+    padding: 10px 14px;
+  }
+
+  /* ── 12. Időválasztó pill-pár ── */
+  #mass_datetime_group {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    width: 100%;
+  }
+
+  #mass_datetime_group .btn {
+    flex: 1;
+    font-size: 14px;
+    padding: 10px 6px;
+    border-radius: var(--ch-radius-sm) !important;
+    white-space: nowrap;
+  }
+
+  #mass_datetime_group .btn[disabled] {
+    display: none;
+  }
+
+  /* ── 13. Típusgombok ── */
+  .btn-group[data-rite] {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+    width: 100%;
+  }
+
+  .btn-group[data-rite] .special-toggle {
+    flex: 0 0 auto;
+    border-radius: 100px !important;
+    font-size: 13px;
+    padding: 6px 14px;
+  }
+
+  .btn-group[data-rite] .type-toggle:not(.special-toggle) {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border-radius: var(--ch-radius-sm) !important;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── 14. Kategória gombok 2-cols grid ── */
+  #category_group {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px;
+  }
+
+  .category-toggle {
+    flex: 1 1 calc(50% - 4px) !important;
+    min-width: 120px;
+    padding: 10px 6px !important;
+    border-radius: var(--ch-radius-sm) !important;
+    font-size: 14px;
+    text-align: center;
+    min-height: 44px;
+  }
+
+  /* ── 15. CTA gombok – full-width stack ── */
+  .home-cta-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .home-cta-buttons .btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    border-radius: var(--ch-radius-sm);
+    font-weight: 600;
+  }
+
+  /* ── 16. Kedvencek / Közeli templomok kártya ── */
+  #favorites,
+  #nearby {
+    background: #fff;
+    border-radius: var(--ch-radius);
+    box-shadow: var(--ch-shadow);
+    padding: 16px;
+    margin-bottom: var(--ch-gap);
+    border-left: 3px solid var(--ch-purple);
+  }
+
+  #favorites h3,
+  #nearby h3 {
+    font-size: 16px !important;
+    font-weight: 700;
+    margin: 0 0 12px;
+    color: var(--ch-text);
+  }
+
+  #favorites ul,
+  #nearby ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  #favorites li,
+  #nearby li {
+    padding: 10px 0;
+    border-bottom: var(--ch-border);
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  #favorites li:last-child,
+  #nearby li:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  #favorites li a,
+  #nearby li a {
+    color: var(--ch-purple);
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  /* ── 17. Church result cards ── */
+  .church-result-card {
+    background: #fff;
+    border-radius: var(--ch-radius);
+    box-shadow: var(--ch-shadow);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    border-left: 3px solid var(--ch-purple);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .church-result-link {
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .church-result-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ch-text);
+    line-height: 1.35;
+  }
+
+  .church-result-city {
+    font-size: 13px;
+    color: var(--ch-purple);
+    font-weight: 500;
+  }
+
+  .church-result-altname {
+    font-size: 12px;
+    color: var(--ch-muted);
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  .church-result-adminlinks {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: var(--ch-border);
+  }
+
+  .church-result-adminlinks a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    min-height: 36px;
+    margin-right: 4px;
+    color: var(--ch-purple);
+    font-size: 16px;
+  }
+
+  /* ── 18. Search params chip-sor ── */
+  .search-params-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 10px 0;
+    border-bottom: var(--ch-border);
+  }
+
+  .search-params-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ch-muted);
+    font-weight: 600;
+  }
+
+  .search-param-chip {
+    background: var(--ch-purple-soft);
+    color: var(--ch-purple);
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* ── 19. Eredményszám ── */
+  .results-count {
+    font-size: 13px;
+    color: var(--ch-muted);
+    padding: 8px 0 12px;
+  }
+
+  .results-count strong {
+    color: var(--ch-text);
+    font-weight: 700;
+  }
+
+  /* ── 20. Sidebar legalul mobilon (church + mass results) ── */
+  .church-site-left-sidebar {
+    order: 3;
+    width: 100%;
+  }
+
+  /* Keresőpanel kompakt */
+  #panel-search-church-form .row,
+  #panel-search-mass-form .row {
+    display: flex;
+    gap: 8px;
+    padding: 0;
+  }
+
+  #panel-search-church-form input[type="text"],
+  #panel-search-mass-form input[type="text"] {
+    flex: 1;
+    font-size: 16px !important;
+  }
+
+  #panel-search-church-form input[type="submit"],
+  #panel-search-mass-form input[type="submit"] {
+    flex: 0 0 auto;
+    width: auto;
+    padding: 10px 20px;
+    background: var(--ch-purple);
+    color: #fff;
+    border: none;
+    border-radius: var(--ch-radius-sm);
+    font-weight: 600;
+  }
+
+  .church-site-left-sidebar .panel {
+    border-radius: var(--ch-radius-sm) !important;
+    margin-bottom: 12px;
+  }
+
+  /* ── 21. Mass search back link ── */
+  .mass-search-back-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0;
+    color: var(--ch-purple);
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    border-top: var(--ch-border);
+    margin-top: 8px;
+  }
+
+  /* ── 22. Mass results tábla → kártya-layout ── */
+  .mass-results-table {
+    display: block;
+  }
+
+  .mass-results-table thead {
+    display: none;
+  }
+
+  .mass-results-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* Dátum-fejléc sor → sticky section header */
+  .mass-results-table tr.date-header {
+    display: block;
+    position: sticky;
+    top: 56px;
+    z-index: 10;
+    background: var(--ch-purple);
+    color: #fff;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .mass-results-table tr.date-header td {
+    display: block;
+    padding: 0 !important;
+    border: none !important;
+    color: #fff;
+    background: transparent !important;
+    font-weight: 700;
+    text-align: left !important;
+  }
+
+  .date-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .date-header-liturgy {
+    font-size: 11px;
+    opacity: 0.85;
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  /* Esemény sorok → kártyák */
+  .mass-results-table tr:not(.date-header) {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: var(--ch-border);
+    background: #fff;
+    position: relative;
+  }
+
+  .mass-results-table tr:not(.date-header):last-child {
+    border-bottom: none;
+  }
+
+  .mass-results-table tr.table-light {
+    background: #fafafa;
+  }
+
+  /* Összes td display:block */
+  .mass-results-table td {
+    display: block;
+    padding: 0 !important;
+    border: none !important;
+    vertical-align: top;
+  }
+
+  /* 1. oszlop: Időbadge */
+  .mass-results-table td:nth-child(1) {
+    flex: 0 0 auto;
+    align-self: flex-start;
+  }
+
+  .mass-results-table td:nth-child(1) .badge {
+    background: var(--ch-purple) !important;
+    color: #fff !important;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 6px 10px;
+    border-radius: var(--ch-radius-sm);
+    min-width: 52px;
+    text-align: center;
+    display: block;
+  }
+
+  /* 2. oszlop: Rítus ikon + cím */
+  .mass-results-table td:nth-child(2) {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .mass-results-table td:nth-child(2) .mass-list-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ch-text);
+    display: block;
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+
+  .mass-results-table td:nth-child(2) img {
+    height: 1.1em !important;
+    vertical-align: middle;
+  }
+
+  /* 3. oszlop: Nyelv + típusikonok */
+  .mass-results-table td:nth-child(3) {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding-top: 4px !important;
+  }
+
+  .mass-results-table td:nth-child(3) img {
+    height: 1.1em !important;
+  }
+
+  /* 4. oszlop: Templomlink – teljes szélesség */
+  .mass-results-table td:nth-child(4) {
+    flex: 0 0 100%;
+    margin-top: 4px;
+    padding-top: 6px !important;
+    border-top: var(--ch-border) !important;
+  }
+
+  .mass-results-table td:nth-child(4) a {
+    color: var(--ch-purple);
+    font-weight: 500;
+    font-size: 14px;
+    text-decoration: none;
+  }
+
+  /* 5. oszlop: Periódus badge – jobb felső sarok */
+  .mass-results-table td:nth-child(5) {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+
+  .mass-results-table td:nth-child(5) .badge {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 100px;
+    font-weight: 600;
+    max-width: 90px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+  }
+
+  /* ── 23. Lapozó kompakt ── */
+  .pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .pagination .page-item .page-link {
+    min-width: 36px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+} /* end @media (max-width: 575.98px) */

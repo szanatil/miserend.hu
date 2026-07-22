@@ -71,13 +71,7 @@ $(document).ready(function() {
             ga('send','event','Search','mise',data);
             $(this).unbind('submit').submit();
         });
-
-        $('#form_church_getdetails').on('click', function(e) {               
-            $('#form_church_details').toggle('slow');
-            $('.form_church_details').toggle('slow');            
-            $('#form_church_getdetails').find('.fa-minus, .fa-plus').toggleClass('fa-minus fa-plus');
-        });
-    
+            
     $('#password2').on('input', function() { 
         if($('#password1').val() != $(this).val() || $(this).val() == '') {
               $('#password2').parent().find('.form-control-feedback').addClass("fa-solid fa-triangle-exclamation").removeClass("fa-solid fa-check");
@@ -134,39 +128,8 @@ $(document).ready(function() {
       });
 
        
-   $("#keyword").autocomplete({
-        source: function( request, response ) {
-          $.ajax({
-            url: "/ajax/AutocompleteKeyword",
-            dataType: "JSON",
-            data: {
-              text: request.term
-            },
-            success: function( data ) {
-              //console.log(data);
-              //console.log('ok');              
-              response( 
-                $.map( data.results, function( item ) {
-                return {
-                      label: item.label,
-                      value: item.value
-                  }
-              }));
-            } ,
-            error: function( data ) {
-              console.log(data);
-              //console.log('1err');
-            }
-          });
-        },
-        minLength: 2,
-       }).each(function() {
-          $(this).data("ui-autocomplete")._renderItem = function(ul, item) {
-              return $("<li></li>").data("item.ui-autocomplete", item).append(
-              item.label)
-              .appendTo(ul);
-          };
-      });    
+   // NOTE: keyword autocomplete is now handled by unified-autocomplete.js (UnifiedAutocomplete)
+   // The old jQuery UI autocomplete for #keyword was removed in favour of the unified system.
 
 
    $("#varos").autocomplete({
@@ -213,7 +176,7 @@ $(document).ready(function() {
   });
 
   // favorites
-  $(document).on('click','#star',function(){
+  $(document).on('click','.star-favorite',function(){
     var $this= $(this);
 
     if($(this).hasClass('grey')) var method = 'add';
@@ -225,10 +188,13 @@ $(document).ready(function() {
        url:"/ajax/favorite",
        data:"tid="+tid+"&method="+method,
        success:function(response){
-          $("#star").toggleClass("grey yellow");          
-          if($("#star").hasClass('grey')) $("#star").attr('title', 'Kattintásra hozzáadás a kedvencekhez.');
-          else $("#star").attr('title', 'Kattintásra törlés a kedvencek közül.');
-      }, 
+          // Frissíts minden star-favorite elemet ugyanannak az objektumnak (data-tid alapján)
+          $(".star-favorite[data-tid='" + tid + "']").each(function() {
+            $(this).toggleClass("grey yellow");
+            if($(this).hasClass('grey')) $(this).attr('title', 'Kattintásra hozzáadás a kedvencekhez.');
+            else $(this).attr('title', 'Kattintásra törlés a kedvencek közül.');
+          });
+       },
     });
   
   });

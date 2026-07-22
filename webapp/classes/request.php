@@ -32,6 +32,12 @@ class Request {
         return $value;
     }
 
+    static function TextFromGet($name) {
+        $value = isset($_GET[$name]) ? $_GET[$name] : false;
+        $value = sanitize($value);
+        return $value;
+    }
+
     static function TextwDefault($name, $default = false) {
         $value = self::getwDefault($name, $default);
         $value = sanitize($value);

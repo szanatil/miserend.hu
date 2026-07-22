@@ -1,46 +1,56 @@
 {% extends "layout.twig" %}
 {% import 'macros/icons.twig' as icons %}
 
+{# Provide church metadata for mobile header #}
+{% set id = id %}
+{% set alternative_names = alternative_names %}
+
 {% block pageHeader %}
-    <div class="page-header">
-        <h2>
-            {% if user.loggedin %}
-                <span 
-                    class="{{ ICONS_FAVORITE }} {% if favorite == 1 %}yellow{% elseif favorite == 0 %}grey{% endif %}" 
-                    style="float:left;font-size:1em;margin-right:3px;width:36px;height:36px" 
-                    id="star" 
-                    title="{% if favorite %}Kattintásra törlés a kedvencek közül.{% else %}Kattintással kedvencek közé emelés.{% endif %}" 
-                    data-tid="{{ id }}">                    
-                </span>
-            {% else %}
-                <span 
-                    class="{{ ICONS_NON_FAVORITE }}  grey" 
-                    style="float:left;font-size:1em;margin-right:3px;width:36px;height:36px" 
-                    title="A kedvencek közé mentéshez be kell jelentkezni.">                    
-                </span>
-            {% endif %}
-            <span title="{{ names|join(",\n ") }}">{{ names.0 }}</span>
-			{% if writeAcess == true %}
-				<div style="float:right" class="text-end">{% include "church/_adminlinks.twig" %}</div>
-			{% endif %}
-            {% if alternative_names|length > 0 %}
-                <br/>
-                <small>
-                    <span class="hidden-xs hidden-sm">
-                       {{ alternative_names.0|raw }}{% if alternative_names|length > 1 %}, <a href="#" onclick="this.style.display='none'; document.getElementById('all-names').style.display='inline'; return false;">...</a><span id="all-names" style="display:none;" onclick="document.getElementById('all-names').style.display='none'; this.previousElementSibling.style.display='inline'; return false;">
-                            {{ alternative_names|slice(1)|join(", ")|raw }}                            
+    <div class="page-header desktop-only">
+        <h2 class="desktop-only" style="display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap;">
+            {# Favorites icon - Desktop only #}
+            <span class="page-header-favorite-desktop">
+                {% if user.loggedin %}
+                    <span
+                        class="star-favorite {{ ICONS_FAVORITE }} {% if favorite == 1 %}yellow{% elseif favorite == 0 %}grey{% endif %}"
+                        style="font-size:1em;width:36px;height:36px;display:inline-block"
+                        title="{% if favorite %}Kattintásra törlés a kedvencek közül.{% else %}Kattintással kedvencek közé emelés.{% endif %}"
+                        data-tid="{{ id }}">
+                    </span>
+                {% else %}
+                    <span
+                        class="{{ ICONS_NON_FAVORITE }} grey"
+                        style="font-size:1em;width:36px;height:36px;display:inline-block"
+                        title="A kedvencek közé mentéshez be kell jelentkezni.">
+                    </span>
+                {% endif %}
+            </span>
+            
+            {# Title - desktop only #}
+            <span style="flex: 1;" title="{{ names|join(",\n ") }}">{{ names.0 }}</span>
+            
+        </h2>
+        
+        {# Alternative names - Desktop only #}
+        {% if alternative_names|length > 0 %}
+            <div class="page-header-alt-names-desktop">
+                
+                    <span>
+                       {{ alternative_names.0|raw }}{% if alternative_names|length > 1 %}, <a href="#" onclick="this.style.display='none'; document.getElementById('all-names-desk').style.display='inline'; return false;">...</a><span id="all-names-desk" style="display:none;" onclick="document.getElementById('all-names-desk').style.display='none'; this.previousElementSibling.style.display='inline'; return false;">
+                            {{ alternative_names|slice(1)|join(", ")|raw }}
                         </span>
                     {% endif %}
                     </span>
-                </small>
-            {% endif %}
-            
-        </h2>
+                
+            </div>
+        {% endif %}
     </div>
 {%  endblock %}
 
 
 {% block content %}
+    {# Admin links section #}
+    {% include 'church/_adminlinks-section.twig' %}
 
     {{ alert|raw }}
         
@@ -48,11 +58,99 @@
     <div class="alert alert-warning">Ennek a misézőhelynek a liturgikus beosztását sajnos még nem sikerült áthoznunk az új rendszerbe. Elnézést és türelmet kérünk.</div>
     {% endif %}
 
-    <h5><b>Frissítve ill. megerősítve:</b> {{ updated }}</h5>
+    {# ── Frissesség jelzés ── #}
+    {% if frissites and frissites != '0000-00-00' %}
+        {% set frissites_ts = frissites|date("U") %}
+        {% set now_ts = "now"|date("U") %}
+        {% set days_ago = ((now_ts - frissites_ts) / 86400)|round %}
 
-    {% include '_panelcampaign.twig' with { collapsible: 'collapsed' }  %}
+        {% if days_ago < 180 %}
+            {# Friss: < 6 hónap #}
+            {% set collapse_id = 'freshness-help-' ~ id %}
+            <div class="church-freshness church-freshness--fresh alert alert-success">
+                <div class="church-freshness__main">
+                    <span class="church-freshness__icon"><i class="fa fa-check-circle" aria-hidden="true"></i></span>
+                    <span class="church-freshness__text">
+                        <strong>Valószínűleg megbízható, hiszen friss adatok!</strong>
+                        <span class="church-freshness__date">Frissítve: {{ updated }}</span>
+                    </span>
+                    <a class="church-freshness__help-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" href="#{{ collapse_id }}" aria-expanded="false" aria-controls="{{ collapse_id }}">
+                        Ha hibát talál, jelezze! <i class="fa fa-chevron-down church-freshness__chevron" aria-hidden="true"></i>
+                    </a>
+                </div>
+                <div class="collapse church-freshness__collapse" id="{{ collapse_id }}">
+                    <div class="church-freshness__help-body">
+                        <p>Ha valami mégsem stimmel, kérjük jelezd a közösségnek!</p>
+                        <ul>
+                            <li><strong>Naptár szerkesztése:</strong> a miserendnél a naptár elemekre kattintva módosíthatod az egyes alkalmakat, majd egybe beküldheted a javaslatodat.</li>
+                            <li><strong>Észrevétel küldése:</strong> ha nem tudod szerkeszteni, de tudod mi változott,
+                                <a href="javascript:OpenNewWindow('/templom/{{ id }}/ujeszrevetel',450,530);" class="alert-link">küldj be észrevételt</a>.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        {% elseif days_ago < 1825 %}
+            {# Közepes: 6 hónap – 5 év #}
+            {% set collapse_id = 'freshness-help-' ~ id %}
+            <div class="church-freshness church-freshness--medium alert alert-warning">
+                <div class="church-freshness__main">
+                    <span class="church-freshness__icon"><i class="fa fa-exclamation-circle" aria-hidden="true"></i></span>
+                    <span class="church-freshness__text">
+                        <strong>Frissítve: {{ updated }}</strong>
+                        <span class="church-freshness__subtitle">Az adatok egy ideje nem lettek megerősítve.</span>
+                    </span>
+                    <a class="church-freshness__help-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" href="#{{ collapse_id }}" aria-expanded="false" aria-controls="{{ collapse_id }}">
+                        Segítségedet kérjük! <i class="fa fa-chevron-down church-freshness__chevron" aria-hidden="true"></i>
+                    </a>
+                </div>
+                <div class="collapse church-freshness__collapse" id="{{ collapse_id }}">
+                    <div class="church-freshness__help-body">
+                        <p>Ha tudod, hogy pontosak-e még az adatok, kérjük segítsd a közösséget!</p>
+                        <ul>
+                            <li><strong>Naptár szerkesztése:</strong> a miserendnél a naptár elemekre kattintva módosíthatod az egyes alkalmakat, majd egybe beküldheted a javaslatodat.</li>
+                            <li><strong>Észrevétel küldése:</strong> ha nem tudod szerkeszteni, de tudod mi változott,
+                                <a href="javascript:OpenNewWindow('/templom/{{ id }}/ujeszrevetel',450,530);" class="alert-link">küldj be észrevételt</a>.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            {# Elavult: 5+ év #}
+            {% set collapse_id = 'freshness-help-' ~ id %}
+            <div class="church-freshness church-freshness--stale alert alert-danger">
+                <div class="church-freshness__main">
+                    <span class="church-freshness__icon"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></span>
+                    <span class="church-freshness__text">
+                        <strong>Figyelem: valószínűleg elavult adatok!</strong>
+                        <span class="church-freshness__subtitle">Utolsó frissítés: {{ updated }}</span>
+                    </span>
+                    <a class="church-freshness__help-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" href="#{{ collapse_id }}" aria-expanded="false" aria-controls="{{ collapse_id }}">
+                        Segítségedet kérjük! <i class="fa fa-chevron-down church-freshness__chevron" aria-hidden="true"></i>
+                    </a>
+                </div>
+                <div class="collapse church-freshness__collapse" id="{{ collapse_id }}">
+                    <div class="church-freshness__help-body">
+                        <p><strong>Az adatok több mint 5 éve nem lettek frissítve – szinte biztosan megbízhatatlanok.</strong> Kérjük, segíts a közösségnek!</p>
+                        <ul>
+                            <li><strong>Naptár szerkesztése:</strong> a miserendnél a naptár elemekre kattintva módosíthatod az egyes alkalmakat, majd egybe beküldheted a javaslatodat.</li>
+                            <li><strong>Észrevétel küldése:</strong> ha nem tudod szerkeszteni, de tudod mi változott,
+                                <a href="javascript:OpenNewWindow('/templom/{{ id }}/ujeszrevetel',450,530);" class="alert-link">küldj be észrevételt</a>.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="church-update-meta"><b>Frissítve ill. megerősítve:</b> {{ updated }}</div>
+    {% endif %}
+
+    <!--{% include '_panelcampaign.twig' with { collapsible: 'collapsed' }  %}-->
 
     {% if miseaktiv == 1 %}
+    <div class="church-miserend-wrap">
        {% include 'angularjs.twig' %}
     <small class="text-muted">
         A naptár widget egyszerűen beépíthető más honlapba egy iframe segítségével. 
@@ -90,9 +188,13 @@
             </li>
         </ul>
     </div>
+    </div>{# /church-miserend-wrap #}
     {% else %}
         <span class="alap">Nincs rendszeres szentmise.<br/><br/></span>
     {% endif %}
+
+    {# Mobilon ide kerül a Kapcsolat + Elhelyezkedés – JS mozgatja ide a jobb oszlopból #}
+    <div id="church-mobile-panels-placeholder"></div>
 
     {% if misemegj %}
         {% include "panel.twig" with {title:'Kapcsolódó információk','body': misemegj|raw|nl2br } %}    
@@ -113,6 +215,8 @@
     {% if leiras %}
         {% include "panel.twig" with {title:'Bemutatkozás','body': leiras } %}
     {% endif %}
+
+    
 {% endblock %}
 
 {% set selfAdvertisement = true %}
@@ -129,15 +233,76 @@
 {% endblock %}
 
 {% block rightsidebar %}
-    {% include "church/_panellocation.twig" %}
-    {% include 'church/_panelcontact.twig' %}
+    <div id="church-panel-location-wrap">
+        {% include "church/_panellocation.twig" %}
+    </div>
+    <div id="church-panel-contact-wrap">
+        {% include 'church/_panelcontact.twig' %}
+    </div>
+    {% include 'church/_panelrelationships.twig' with {
+        fullNetwork: fullNetwork,
+        churchType: church['church:type'],
+        city: location.city
+    } %}
+    {# FAB – lebegő hívás gomb, csak ha van telefonszám, csak mobilon látható #}
+    <!--
+    {% if religious_administration.parish.description %}
+        <a class="church-fab-call" href="tel:{{ religious_administration.parish.description|striptags|trim }}" title="Hívás">
+            <i class="fa fa-phone"></i>
+        </a>
+    {% endif %}
+    -->
+
+    {# FAB – útvonaltervezés gomb, csak ha van koordináta, csak mobilon látható #}
+    {% if location.lat %}
+        <a class="church-fab-direction{% if not religious_administration.parish.description %} church-fab-direction--solo{% endif %}" href="https://www.google.com/maps/dir/?api=1&destination={{ location.lat }},{{ location.lon }}" target="_blank" rel="noopener noreferrer" title="Útvonaltervezés">
+            <i class="{{ ICONS_MAP_DIRECTION }}"></i>
+        </a>
+    {% endif %}
+
     {% if megjegyzes %}
         {% include "panel.twig" with {title:'Jó tudni','body': megjegyzes } %}
     {% endif %}
 		
     {% if neighbours|length > 1 %}
         {% include 'church/_panelneighbours.twig' %}
-    {% endif %}    
+    {% endif %}
     
 	{% include 'church/_panelfacebookpageplugin.twig' %}
+
+	   <script>
+	   (function() {
+	       var MOBILE_BREAKPOINT = 576;
+
+	       function movePanelsForViewport() {
+	           var isMobile = window.innerWidth < MOBILE_BREAKPOINT;
+	           var placeholder = document.getElementById('church-mobile-panels-placeholder');
+	           var locationWrap = document.getElementById('church-panel-location-wrap');
+	           var contactWrap  = document.getElementById('church-panel-contact-wrap');
+
+	           if (!placeholder || !locationWrap || !contactWrap) return;
+
+	           if (isMobile) {
+	               // Mobilon: mozgasd a placeholder-be a főtartalom után
+	               placeholder.appendChild(locationWrap);
+	               placeholder.appendChild(contactWrap);
+	           } else {
+	               // Asztali: visszahelyezés a jobb oszlopba (legelőre)
+	               var sidebar = document.querySelector('.church-site-right-sidebar');
+	               if (sidebar) {
+	                   sidebar.insertBefore(locationWrap, sidebar.firstChild);
+	                   sidebar.insertBefore(contactWrap, locationWrap.nextSibling);
+	               }
+	           }
+	       }
+
+	       document.addEventListener('DOMContentLoaded', movePanelsForViewport);
+
+	       var resizeTimer;
+	       window.addEventListener('resize', function() {
+	           clearTimeout(resizeTimer);
+	           resizeTimer = setTimeout(movePanelsForViewport, 100);
+	       });
+	   })();
+	   </script>
 {% endblock %}

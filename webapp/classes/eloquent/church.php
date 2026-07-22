@@ -15,7 +15,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
     use \Illuminate\Database\Eloquent\SoftDeletes;
     
     protected $table = 'templomok';
-    protected $appends = array('names', 'alternative_names', 'fullName','location','links');
+    protected $appends = array('names', 'alternative_names', 'fullName','location','links','fullNetwork');
     protected $fillable = [
         'nev', 'cim', 'orszag', 'megye', 'varos', 'plebania', 'pleb_eml', 'leiras',
         'lat', 'lon', 'miseaktiv', 'ok', 'frissites', 'misemegj','osmid','osmtype',
@@ -46,6 +46,209 @@ class Church extends \Illuminate\Database\Eloquent\Model {
     public function adorations()
     {
         return $this->hasMany(Adoration::class);
+    }
+
+    // -------------------------------------------------------------------------
+    // Church relationships (hierarchia)
+    // -------------------------------------------------------------------------
+
+    public function parentRelationships() {
+        return $this->hasMany(ChurchRelationship::class, 'child_church_id');
+    }
+
+    public function childRelationships() {
+        return $this->hasMany(ChurchRelationship::class, 'parent_church_id');
+    }
+
+    /**
+     * Rekurziv felfelé járás: az összes ős-lánc.
+     * Max 10 szint, ciklus-védelem visited set-tel.
+     * Visszatér: [ ['church' => Church, 'type' => '...', 'children' => [...]], ... ]
+     */
+    public function getAncestorsAttribute(): array {
+        return $this->_getAncestors([$this->id]);
+    }
+
+    private function _getAncestors(array $visited, int $depth = 0): array {
+        if ($depth >= 10) return [];
+        $result = [];
+        $rels = ChurchRelationship::where('child_church_id', $this->id)->get();
+        foreach ($rels as $rel) {
+            if (in_array($rel->parent_church_id, $visited)) continue;
+            $parent = Church::find($rel->parent_church_id);
+            if (!$parent) continue;
+            $newVisited = array_merge($visited, [$rel->parent_church_id]);
+            $result[] = [
+                'church'   => $parent,
+                'type'     => $rel->type,
+                'children' => $parent->_getAncestors($newVisited, $depth + 1),
+            ];
+        }
+        return $result;
+    }
+
+    /**
+     * Rekurziv lefelé járás: az összes leszármazott.
+     * Max 10 szint, ciklus-védelem visited set-tel.
+     */
+    public function getDescendantsAttribute(): array {
+        return $this->_getDescendants([$this->id]);
+    }
+
+    private function _getDescendants(array $visited, int $depth = 0): array {
+        if ($depth >= 10) return [];
+        $result = [];
+        $rels = ChurchRelationship::where('parent_church_id', $this->id)->get();
+        foreach ($rels as $rel) {
+            if (in_array($rel->child_church_id, $visited)) continue;
+            $child = Church::find($rel->child_church_id);
+            if (!$child) continue;
+            $newVisited = array_merge($visited, [$rel->child_church_id]);
+            $result[] = [
+                'church'   => $child,
+                'type'     => $rel->type,
+                'children' => $child->_getDescendants($newVisited, $depth + 1),
+            ];
+        }
+        return $result;
+    }
+
+    /**
+     * Egyesített hálózat: felfelé az összes ős, majd a jelenlegi templom, majd lefelé a leszármazottak.
+     * Egy flat lista, amely az indentálást és nyilakat a template-ben jeleníti meg.
+     *
+     * Struktura: [
+     *   ['church' => Church, 'type' => 'type', 'level' => 0, 'isCurrent' => false, 'isLast' => true],
+     *   ...
+     * ]
+     */
+    public function getFullNetworkAttribute(): array {
+        $network = [];
+        $visited = [$this->id];
+        
+        // 1. Gyűjtsük össze az összes őst (fordított sorrendben, hogy felülről induljon)
+        $ancestors = $this->_collectAllAncestors([], $visited);
+        $ancestors = array_reverse($ancestors);
+        
+        // Őseink hozzáadása
+        $level = 0;
+        foreach ($ancestors as $ancestor) {
+            $network[] = [
+                'church' => $ancestor['church'],
+                'type' => $ancestor['type'],
+                'level' => $level,
+                'isCurrent' => false,
+                'isLast' => false
+            ];
+            $level++;
+        }
+        
+        // 2. Hozzáadjuk a jelenlegi templomot
+        $currentChurch = Church::find($this->id);
+        $network[] = [
+            'church' => $currentChurch,
+            'type' => null,
+            'level' => $level,
+            'isCurrent' => true,
+            'isLast' => false
+        ];
+        
+        // 3. Hozzáadjuk a leszármazottakat
+        $descendants = $this->_collectAllDescendants([], $visited);
+        foreach ($descendants as $descendant) {
+            $network[] = [
+                'church' => $descendant['church'],
+                'type' => $descendant['type'],
+                'level' => $descendant['level'],
+                'isCurrent' => false,
+                'isLast' => false
+            ];
+        }
+        
+        // 4. Jelöljük meg az utolsó elemeket az egyes szinteken
+        if (!empty($network)) {
+            for ($i = count($network) - 1; $i >= 0; $i--) {
+                // Az utolsó elem mindig utolsó
+                if ($i === count($network) - 1) {
+                    $network[$i]['isLast'] = true;
+                } else {
+                    // Ha a következő elem szintje <= mint a jelenlegi, akkor ez utolsó
+                    if ($network[$i + 1]['level'] <= $network[$i]['level']) {
+                        $network[$i]['isLast'] = true;
+                    }
+                }
+            }
+        }
+        
+        return $network;
+    }
+    
+    /**
+     * Segéd: összes őst lapos listában gyűjt.
+     */
+    private function _collectAllAncestors(array $result, array &$visited, int $depth = 0): array {
+        if ($depth >= 10) return $result;
+        $rels = ChurchRelationship::where('child_church_id', $this->id)->get();
+        foreach ($rels as $rel) {
+            if (in_array($rel->parent_church_id, $visited)) continue;
+            $visited[] = $rel->parent_church_id;
+            $parent = Church::find($rel->parent_church_id);
+            if (!$parent) continue;
+            
+            // Az ős ancestorjait először gyűjtjük
+            $result = $parent->_collectAllAncestors($result, $visited, $depth + 1);
+            
+            // Majd az őt magát
+            $result[] = [
+                'church' => $parent,
+                'type' => $rel->type
+            ];
+        }
+        return $result;
+    }
+    
+    /**
+     * Segéd: összes leszármazottat lapos listában gyűjt, szintinformációval.
+     */
+    private function _collectAllDescendants(array $result, array &$visited, int $depth = 1): array {
+        if ($depth >= 10) return $result;
+        $rels = ChurchRelationship::where('parent_church_id', $this->id)->get();
+        foreach ($rels as $rel) {
+            if (in_array($rel->child_church_id, $visited)) continue;
+            $visited[] = $rel->child_church_id;
+            $child = Church::find($rel->child_church_id);
+            if (!$child) continue;
+            
+            $result[] = [
+                'church' => $child,
+                'type' => $rel->type,
+                'level' => $depth
+            ];
+            
+            // Az ezt követő leszármazottakat rekurzívan
+            $result = $child->_collectAllDescendants($result, $visited, $depth + 1);
+        }
+        return $result;
+    }
+
+    /**
+     * Lapos ID lista: saját id + összes leszármazott id (Angular hierarchia URL-hez).
+     */
+    public function getDescendantIdsAttribute(): array {
+        $ids = [$this->id];
+        $this->_collectDescendantIds($this->id, $ids, [$this->id]);
+        return $ids;
+    }
+
+    private function _collectDescendantIds(int $churchId, array &$ids, array $visited, int $depth = 0): void {
+        if ($depth >= 10) return;
+        $rels = ChurchRelationship::where('parent_church_id', $churchId)->get();
+        foreach ($rels as $rel) {
+            if (in_array($rel->child_church_id, $visited)) continue;
+            $ids[] = $rel->child_church_id;
+            $visited[] = $rel->child_church_id;
+            $this->_collectDescendantIds($rel->child_church_id, $ids, $visited, $depth + 1);
+        }
     }
     
     public function getConfessionStatusAttribute() {
@@ -310,6 +513,147 @@ class Church extends \Illuminate\Database\Eloquent\Model {
     public function massrules() {
         return $this->hasMany('\Eloquent\CalMass', 'church_id');
     }
+
+    /**
+     * Hétvégi miserendet kérdez le (szombat 17:00-tól, vasárnap összes)
+     * A keresési logika:
+     * - Hétfő-péntek: jövő szombat-vasárnap
+     * - Szombat-vasárnap: aktuális szombat-vasárnap
+     *
+     * @return array ['saturday' => [...masses], 'sunday' => [...masses]]
+     */
+    public function getWeekendMasses(): array
+    {
+        $targetSaturday = $this->getTargetSaturdayDate();
+        $targetSunday = $targetSaturday->copy()->addDay();
+        
+        // Szombati misék: 17:00-tól a szombat végéig
+        $saturdayMasses = $this->searchWeekendMasses(
+            $targetSaturday->toDateString(),
+            '17:00',
+            '23:59'
+        );
+        
+        // Vasárnapi misék: 00:00-tól a vasárnap végéig
+        $sundayMasses = $this->searchWeekendMasses(
+            $targetSunday->toDateString(),
+            '00:00',
+            '23:59'
+        );
+        
+        return [
+            'saturday' => array_slice($saturdayMasses, 0, 4),  // max 4 mise
+            'sunday' => array_slice($sundayMasses, 0, 4),      // max 4 mise
+        ];
+    }
+
+    /**
+     * Meghatározza a keresendő szombat dátumát az aktuális nap alapján
+     */
+    private function getTargetSaturdayDate()
+    {
+        $today = \Carbon\Carbon::now('Europe/Budapest');
+        $dayOfWeek = $today->dayOfWeek; // 0=vasárnap, 1=hétfő, 6=szombat
+        
+        if ($dayOfWeek >= 1 && $dayOfWeek <= 5) {
+            // Hétfő-péntek: jövő szombat
+            return $today->next(\Carbon\Carbon::SATURDAY);
+        } else if ($dayOfWeek == 6) {
+            // Szombat: ma
+            return $today;
+        } else {
+            // Vasárnap: tegnapi szombat
+            return $today->previous(\Carbon\Carbon::SATURDAY);
+        }
+    }
+
+    /**
+     * Hetvégi miserendet kérdez le a Search osztály segítségével
+     *
+     * @param string $date A keresendő dátum (YYYY-MM-DD formátumban)
+     * @param string $minTime A keresés kezdete (HH:MM)
+     * @param string $maxTime A keresés vége (HH:MM)
+     * @return array Az adott napra és időintervallumra talált misék
+     */
+    private function searchWeekendMasses($date, $minTime, $maxTime): array
+    {
+        $search = new \Search('masses');
+        $search->tids([$this->id]);
+        
+        // Időpontok UTC-re konvertálása (Budapest időzóna)
+        $minUtc = \Carbon\Carbon::parse($date . 'T' . $minTime . ':00', 'Europe/Budapest')
+            ->setTimezone('UTC')
+            ->format('Y-m-d\TH:i:s') . 'Z';
+        $maxUtc = \Carbon\Carbon::parse($date . 'T' . $maxTime . ':00', 'Europe/Budapest')
+            ->setTimezone('UTC')
+            ->format('Y-m-d\TH:i:s') . 'Z';
+        
+        // Időpont szűrés
+        $search->addMust([
+            'range' => [
+                'start_date' => [
+                    'gte' => $minUtc,
+                    'lte' => $maxUtc
+                ]
+            ]
+        ]);
+        
+        // Típus szűrés: csak MASS kategóriához tartozó misék
+        $massTypeKeys = self::getMassTypeKeysFromDefinitions();
+        if (!empty($massTypeKeys)) {
+            /* $search->addMust([
+                'terms' => ['types' => $massTypeKeys]
+            ]); */
+            $search->query['bool']['must'][] = [ 'terms' => ['title.keyword' => $massTypeKeys] ];
+        }
+                                
+
+        $results = $search->getResults(0, 4);
+        
+        // Az eredmények konvertálása a frontend számára
+        $formattedMasses = [];
+        if (is_array($results)) {
+            foreach ($results as $mass) {
+                $formattedMasses[] = [
+                    'time' => substr($mass->start_date, 11, 5), // HH:MM format
+                    'date' => substr($mass->start_date, 0, 10), // YYYY-MM-DD format
+                    'title' => $mass->title ?? '',
+                ];
+            }
+        }
+        
+        return $formattedMasses;
+    }
+
+    /**
+     * Betöltödik a MASS kategóriához tartozó misék típusa kulcsait
+     * a mass-definitions.json-ből (ugyanaz, amit home.php és searchresultsmasses.php használ)
+     */
+    private static function getMassTypeKeysFromDefinitions(): array
+    {
+        $massDefinitionsPath = \PATH . 'mass-definitions.json';
+        
+        if (!file_exists($massDefinitionsPath)) {
+            // Fallback: ha nem érhető el a JSON, üres tömb (ne szűrjön)
+            return [];
+        }
+        
+        $massDefinitions = json_decode(file_get_contents($massDefinitionsPath), true);
+        
+        if (!isset($massDefinitions['definitions']) || !is_array($massDefinitions['definitions'])) {
+            return []; // Biztonsági fallback
+        }
+        
+        // Gyűjtödik a MASS kategóriához tartozó definíciókat
+        $massTypeKeys = [];
+        foreach ($massDefinitions['definitions'] as $definition) {
+            if ($definition['category'] === 'MASS') {
+                $massTypeKeys[] = $definition['key'];
+                $massTypeKeys[] = t('MASS_TITLE.' . $definition['key']);
+            }
+        }        
+        return $massTypeKeys;
+    }
     
     public function getLanguagesAttribute() {
         // Grab the 'lang' column from related massrules, remove empty values, unique and return as array
@@ -334,9 +678,10 @@ class Church extends \Illuminate\Database\Eloquent\Model {
     }
 
     public function updateNeighbours() {
-        //TODO: Does not work! 
-        // "Call to undefined method Illuminate\Database\Query\Builder::MupdateChurch()"
-        $distance = new Distance();        
+        // #172: a globális \Distance kell (azon van a MupdateChurch). Az Eloquent
+        // névtérben a sima `new Distance()` a modellt (\Eloquent\Distance) hozná,
+        // ami nem ismeri a metódust -> "Call to undefined method MupdateChurch()".
+        $distance = new \Distance();
         $distance->MupdateChurch($this);
     }
     
@@ -932,18 +1277,31 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         $access = false;
 
         if ($_user->checkRole('miserend'))
-            $access = true;        
+            $access = true;
         
         if(\Eloquent\ChurchHolder::where('church_id',$this->id)->where('user_id',$_user->uid)->where('status','allowed')->first())
             $access = true;
                
-        if(DB::table('egyhazmegye')->where('id',$this->egyhazmegye)->where('felelos',$_user->username)->first())        
+        if(DB::table('egyhazmegye')->where('id',$this->egyhazmegye)->where('felelos',$_user->username)->first())
             $access = true;
+
+        // Örökölt gondnokság: ha a felhasználó bármely ős-templomnak 'allowed' gondnoka
+        if (!$access) {
+            foreach ($this->ancestors as $ancestor) {
+                if (\Eloquent\ChurchHolder::where('church_id', $ancestor['church']->id)
+                    ->where('user_id', $_user->uid)
+                    ->where('status', 'allowed')
+                    ->exists()) {
+                    $access = true;
+                    break;
+                }
+            }
+        }
         
         global $user;
         if($user->uid == $_user->uid) {
             $this->writeAcess = $access;
-        }         
+        }
         return $access;
     }
 
@@ -1052,6 +1410,10 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         #$this->neighbours()->delete();
         #Distance::where('church_to', $this->id)->delete(); fromLat, fromLon
         #Distance::where('church_from', $this->id)->delete(); toLat, toLon
+
+        // Kapcsolatok törlése mindkét irányban (Eloquent eseménykezelők lefussanak)
+        \Eloquent\ChurchRelationship::where('parent_church_id', $this->id)->delete();
+        \Eloquent\ChurchRelationship::where('child_church_id', $this->id)->delete();
         
         \Eloquent\ChurchHolder::where('church_id',$this->id)->delete();
         \Eloquent\Favorite::where('tid',$this->id)->delete();
