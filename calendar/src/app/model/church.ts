@@ -9,4 +9,5 @@ export interface Church {
   timeZone: string;
   masses: Mass[];
   eventsFromSensor?: SensorEvent[];
+  country?: string;
 }

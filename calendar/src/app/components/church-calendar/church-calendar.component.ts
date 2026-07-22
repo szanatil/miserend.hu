@@ -69,6 +69,7 @@ export interface EventViewerDialogData {
   mass: Mass;
   suggestOrEditable: boolean;
   start: Date;
+  country?: string;
 }
 
 export interface DeleteDialogData {
@@ -85,6 +86,7 @@ export interface DialogData {
   // ezeket: olyan miséhez ne ajánljunk új időszakot (pl. húsvét), ha a
   // templomnak van már „illeszthető" rendszeres miserendje (pl. tanítási idő).
   existingPeriodIds?: number[];
+  country?: string;
 }
 
 @Component({
@@ -612,7 +614,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     }
 
     const dialogRef = this.dialog.open(EventViewerDialogComponent, {
-      data: {churchName: this.currentChurch.name, mass: mass, suggestOrEditable: this.editable || this.suggestible, start: this.selectedEventStart}
+      data: {churchName: this.currentChurch.name, mass: mass, suggestOrEditable: this.editable || this.suggestible, start: this.selectedEventStart, country: this.currentChurch.country}
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -855,7 +857,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     }
 
     const dialogRef = this.dialog.open(AddFullEventDialogComponent, {
-      data: {title: title, event: this.dialogEvent, existingPeriodIds: existingPeriodIds}
+      data: {title: title, event: this.dialogEvent, existingPeriodIds: existingPeriodIds, country: this.currentChurch.country}
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -1800,7 +1802,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       const flagMap: Record<string, string> = { hu: '🇭🇺', en: '🇬🇧', de: '🇩🇪', sk: '🇸🇰', ro: '🇷🇴' };
 
       let flagHtml = '';
-      if (lang) {
+      if (lang && this.shouldShowFlag(lang)) {
         const langLower = String(lang).toLowerCase();
         const src = `/cal_images/flags/${langLower}.svg`;
         flagHtml = `<img class="type-icon" style="height:18px; margin-left:6px" title="${escapeAttr(lang)}" src="${src}" alt="${escapeAttr(lang)}" />`;
@@ -1874,7 +1876,7 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
         const detailsHtml = `<span class="material-icons" title="További információ" style="margin-left:6px; height:18px; font-size:18px; vertical-align:top;">info</span>`;
         const monthHtml = `${timeHtml} ${dotHtml} <span class="fc-event-title" style="font-weight:400">${escapeAttr(info.event.title)}</span>`;
         const shouldShowDetails =
-          (lang && String(lang).toLowerCase() !== 'hu') ||
+          (lang && this.shouldShowFlag(lang)) ||
           (Array.isArray(types) && types.length > 0) ||
           !!comment;
         return { html: shouldShowDetails ? `${monthHtml} ${detailsHtml}` : monthHtml };
@@ -2273,5 +2275,26 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
 
   getCategoryLabel(category: MassTitleCategory): string {
     return `MASS_TITLE_CATEGORY.${category}`;
+  }
+
+  /**
+   * Determines if a language flag should be displayed based on country and language.
+   * Returns false only when: country == 'HU' AND language == 'hu'
+   * In all other cases, returns true.
+   *
+   * @param language The language code (e.g., 'hu', 'en', 'de')
+   * @param country Optional country code. Uses currentChurch.country if not provided
+   * @returns true if flag should be displayed, false otherwise
+   */
+  shouldShowFlag(language: string, country?: string): boolean {
+    const churchCountry = country || this.currentChurch?.country;
+    
+    // Hide flag only if: country is 'HU' AND language is 'hu'
+    if (churchCountry === 'HU' && language === 'hu') {
+      return false;
+    }
+    
+    // Show flag in all other cases
+    return true;
   }
 }

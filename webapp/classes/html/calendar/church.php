@@ -54,10 +54,16 @@ class Church extends \Html\Calendar\CalendarApi {
                     $c++;   
                 }
                 
+                if( isset($this->church->location->country['name']) and $this->church->location->country['name'] == 'Magyarország')                    
+                    $country = 'HU';
+                else
+                    $country = false;
+
                 $response = [
                     'id' => $this->tid,
                     'name' => $this->church->nev,
                     'rite' => strtoupper($this->church->denomination),
+                    'country' => $country,
                     'timeZone' => 'Europe/Budapest',
                     'hasExternalCalendar' => $this->church->hasExternalCalendar,
                     'eventsFromSensor' => $confessions,
