@@ -27,19 +27,26 @@
             {# #307: emberi-olvasható „egyszerűsített változások" — magyar mezőnevek,
                fordított nyelv/rítus, formázott időpont. Ismeretlen kulcsnál a nyers kulcs. #}
             {% set fieldLabels = {
-                'title': 'Megnevezés', 'rite': 'Rítus', 'startDate': 'Időpont',
-                'lang': 'Nyelv', 'comment': 'Megjegyzés', 'churchId': 'Templom',
-                'periodId': 'Időszak', 'length': 'Hossz (perc)', 'rrule': 'Ismétlődés'
+                'title': 'Megnevezés', 'rite': 'Rítus', 'startDate': 'Időpont', 'duration' : 'Időtartam', 
+                'lang': 'Nyelv', 'comment': 'Megjegyzés', 'churchId': 'Templom', 'types' : 'Tulajdonságok', 
+                'periodId': 'Időszak', 'length': 'Hossz (perc)', 'rrule': 'Ismétlődés', 'exdate' : 'Kivett alkalom', 'experiod' : 'Kizárt időszak'
             } %}
             <ul style="margin:3px 0; padding-left:18px; color:#555; font-size:90%;">
                 {% for k, v in s.changes %}
-                    {% if k != 'id' %}
+                    {% if k != 'id' and k != 'churchId' %}
                         <li><strong>{{ fieldLabels[k]|default(k) }}:</strong>
                         {%- if v is null or v == '' %} <em>(üres)</em>
                         {%- elseif k == 'lang' %} {{ ('LANGUAGES.' ~ v)|trans }}
                         {%- elseif k == 'rite' %} {{ v|trans }}
                         {%- elseif k == 'startDate' %} {{ v|date('Y-m-d H:i') }}
                         {%- elseif k == 'rrule' %} {{ v|readable_rrule }}
+                        {%- elseif k == 'exdate' %} {{ v|map(item => item|date('Y. m. d.'))|join(', ') }}
+                        {%- elseif k == 'duration' %}
+                            {%- set duration_parts = [] %}
+                            {%- if v.days %} {% set duration_parts = duration_parts|merge([v.days ~ ' nap']) %} {% endif %}
+                            {%- if v.hours %} {% set duration_parts = duration_parts|merge([v.hours ~ ' óra']) %} {% endif %}
+                            {%- if v.minutes %} {% set duration_parts = duration_parts|merge([v.minutes ~ ' perc']) %} {% endif %}
+                            {{- duration_parts|join(', ') }}
                         {%- elseif v is iterable %} {{ v|json_encode }}
                         {%- else %} {{ v }}{% endif %}
                         </li>
