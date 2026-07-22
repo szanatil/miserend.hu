@@ -29,7 +29,7 @@
             {% set fieldLabels = {
                 'title': 'Megnevezés', 'rite': 'Rítus', 'startDate': 'Időpont',
                 'lang': 'Nyelv', 'comment': 'Megjegyzés', 'churchId': 'Templom',
-                'periodId': 'Időszak', 'length': 'Hossz (perc)'
+                'periodId': 'Időszak', 'length': 'Hossz (perc)', 'rrule': 'Ismétlődés'
             } %}
             <ul style="margin:3px 0; padding-left:18px; color:#555; font-size:90%;">
                 {% for k, v in s.changes %}
@@ -39,6 +39,7 @@
                         {%- elseif k == 'lang' %} {{ ('LANGUAGES.' ~ v)|trans }}
                         {%- elseif k == 'rite' %} {{ v|trans }}
                         {%- elseif k == 'startDate' %} {{ v|date('Y-m-d H:i') }}
+                        {%- elseif k == 'rrule' %} {{ v|readable_rrule }}
                         {%- elseif v is iterable %} {{ v|json_encode }}
                         {%- else %} {{ v }}{% endif %}
                         </li>

@@ -323,4 +323,165 @@ class SimpleRRule
         return implode('; ', $parts);
     }
 
+    /**
+     * #307/#536: az RRULE emberi nyelvre fordítása — mert a
+     * „FREQ=WEEKLY;BYDAY=MO,WE,FR;BYSETPOS=-1" éjfél után legfeljebb egy
+     * elszánt naptár-szerzetesnek árul el bármit. A gondnok inkább azt
+     * olvassa: „hétfőn, szerdán, pénteken, minden héten".
+     *
+     * Az Angular getReadableRRule() ikertestvére, statikus és Carbon nélkül
+     * (tiszta tömb→szöveg). Ha ott változik a logika, ITT is pofozd meg,
+     * különben a két oldal szép lassan hazudni kezd egymásnak, és senki nem
+     * érti majd, miért mást mutat a naptár, mint az e-mail. (A húsvét a
+     * period-kontextust igényli, ami itt nincs → csak a karácsonyt fejtjük.)
+     *
+     * @param array|null $rrule freq, byweekday, bysetpos, bymonth, bymonthday,
+     *                          byweekno, count, dtstart
+     * @return string emberi-olvasható magyar leírás, vagy '' ha nincs rrule
+     */
+    static function humanText($rrule): string
+    {
+        if (empty($rrule) || !is_array($rrule)) {
+            return '';
+        }
+        $parts = [];
+
+        $christmas = self::humanChristmas($rrule);
+        if ($christmas !== null) {
+            $parts[] = $christmas;
+        } else {
+            $days = self::humanDays($rrule);
+            if ($days !== '') $parts[] = $days;
+            $week = self::humanWeek($rrule);
+            if ($week !== null) $parts[] = $week;
+            $month = self::humanMonth($rrule);
+            if ($month !== null) $parts[] = $month;
+            $yearCombined = array_filter([
+                self::humanYear($rrule),
+                self::humanMonths($rrule),
+                self::humanMonthDays($rrule),
+            ], fn($p) => $p !== null && $p !== '');
+            if (!empty($yearCombined)) $parts[] = implode(' ', $yearCombined);
+            $simple = self::humanSimpleEvent($rrule);
+            if ($simple !== null) $parts[] = $simple;
+        }
+
+        return implode(', ', $parts);
+    }
+
+    private static function humanDays($rrule): string
+    {
+        $days = $rrule['byweekday'] ?? null;
+        if (empty($days)) return '';
+        if (!is_array($days)) $days = [$days];
+        $map = ['MO' => 'hétfőn', 'TU' => 'kedden', 'WE' => 'szerdán',
+                'TH' => 'csütörtökön', 'FR' => 'pénteken', 'SA' => 'szombaton', 'SU' => 'vasárnap'];
+        $codes = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+        $out = [];
+        foreach ($days as $d) {
+            // Elfogad 'MO'.. kódot és 1..7 (MO=1) számot is.
+            if (is_numeric($d)) {
+                $i = (int) $d;
+                $code = ($i >= 1 && $i <= 7) ? $codes[$i - 1] : null;
+            } else {
+                $u = strtoupper((string) $d);
+                $code = in_array($u, $codes, true) ? $u : null;
+            }
+            if ($code !== null) $out[] = $map[$code];
+        }
+        return implode(', ', $out);
+    }
+
+    private static function humanWeek($rrule): ?string
+    {
+        if (strtolower($rrule['freq'] ?? '') !== 'weekly') return null;
+        $byWeekNo = $rrule['byweekno'] ?? [];
+        if (!empty($byWeekNo)) {
+            if (!is_array($byWeekNo)) $byWeekNo = [$byWeekNo];
+            $allEven = true; $allOdd = true;
+            foreach ($byWeekNo as $n) {
+                if ((int) $n % 2 === 0) $allOdd = false; else $allEven = false;
+            }
+            if ($allEven) return 'páros heteken';
+            if ($allOdd) return 'páratlan heteken';
+            return null;
+        }
+        return 'minden héten';
+    }
+
+    private static function humanMonth($rrule): ?string
+    {
+        if (!isset($rrule['bysetpos']) || $rrule['bysetpos'] === '' || $rrule['bysetpos'] === null) {
+            return null;
+        }
+        $map = [
+            1 => 'minden hónapban az első', 2 => 'minden hónapban a második',
+            3 => 'minden hónapban a harmadik', 4 => 'minden hónapban a negyedik',
+            5 => 'minden hónapban az ötödik', -1 => 'minden hónapban az utolsó',
+        ];
+        return $map[(int) $rrule['bysetpos']] ?? null;
+    }
+
+    private static function humanYear($rrule): ?string
+    {
+        return strtolower($rrule['freq'] ?? '') === 'yearly' ? 'minden évben' : null;
+    }
+
+    private static function humanMonths($rrule): ?string
+    {
+        $byMonth = $rrule['bymonth'] ?? null;
+        if ($byMonth === null || $byMonth === '' || $byMonth === []) return null;
+        if (!is_array($byMonth)) $byMonth = [$byMonth];
+        $names = [1 => 'január', 2 => 'február', 3 => 'március', 4 => 'április',
+                  5 => 'május', 6 => 'június', 7 => 'július', 8 => 'augusztus',
+                  9 => 'szeptember', 10 => 'október', 11 => 'november', 12 => 'december'];
+        $out = [];
+        foreach ($byMonth as $m) {
+            $mi = (int) $m;
+            if (isset($names[$mi])) $out[] = $names[$mi];
+        }
+        return empty($out) ? null : implode(', ', $out);
+    }
+
+    private static function humanMonthDays($rrule): ?string
+    {
+        $md = $rrule['bymonthday'] ?? null;
+        if ($md === null || $md === '' || $md === []) return null;
+        if (!is_array($md)) $md = [$md];
+        $out = [];
+        foreach ($md as $d) {
+            if (is_numeric($d)) $out[] = ((int) $d) . '-én';
+        }
+        return empty($out) ? null : implode(', ', $out);
+    }
+
+    private static function humanChristmas($rrule): ?string
+    {
+        $byMonth = $rrule['bymonth'] ?? null;
+        if (is_array($byMonth)) {
+            $byMonth = count($byMonth) === 1 ? (int) $byMonth[0] : null;
+        }
+        if ((int) $byMonth !== 12) return null;
+
+        $md = $rrule['bymonthday'] ?? null;
+        if (!is_array($md)) $md = ($md === null || $md === '') ? [] : [$md];
+        if (count($md) !== 1) return null;
+
+        $map = [24 => 'Szenteste', 25 => 'Karácsony', 26 => 'Karácsony másnapja'];
+        return $map[(int) $md[0]] ?? null;
+    }
+
+    private static function humanSimpleEvent($rrule): ?string
+    {
+        $count = $rrule['count'] ?? null;
+        $countIsOne = ($count === 1 || $count === '1');
+        if (strtolower($rrule['freq'] ?? '') === 'daily' && $countIsOne && !empty($rrule['dtstart'])) {
+            $ts = strtotime($rrule['dtstart']);
+            if ($ts !== false) {
+                return 'Egyszeri alkalom: ' . date('Y.m.d', $ts);
+            }
+        }
+        return null;
+    }
+
 }
