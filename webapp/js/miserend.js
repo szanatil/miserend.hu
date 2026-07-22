@@ -127,46 +127,6 @@ $(document).ready(function() {
 
       });
 
-       
-   // NOTE: keyword autocomplete is now handled by unified-autocomplete.js (UnifiedAutocomplete)
-   // The old jQuery UI autocomplete for #keyword was removed in favour of the unified system.
-
-
-   $("#varos").autocomplete({
-        source: function( request, response ) {
-          $.ajax({
-            url: "/ajax/AutocompleteCity",
-            dataType: "JSON",
-            data: {
-              text: request.term
-            },
-            success: function( data ) {
-              //console.log(data);
-              //console.log('ok');              
-              response( 
-                $.map( data.results, function( item ) {
-                return {
-                      label: item.label,
-                      value: item.value
-                  }
-              }));
-            } ,
-            error: function( data ) {
-              console.log(data);
-              //console.log('1err');
-            }
-          });
-        },
-        minLength: 2,
-       }).each(function() {
-          $(this).data("ui-autocomplete")._renderItem = function(ul, item) {
-              return $("<li></li>").data("item.ui-autocomplete", item).append(
-              item.label)
-              .appendTo(ul);
-          };
-      });    
-
-
   });
 
   $(document).on('click','.massinfo',function(){    
