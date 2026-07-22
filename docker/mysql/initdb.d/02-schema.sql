@@ -601,7 +601,7 @@ CREATE TABLE IF NOT EXISTS `remarks` (
   KEY `index1` (`id`,`church_id`),
   KEY `FK_church_id` (`church_id`),
   CONSTRAINT `FK_church_id` FOREIGN KEY (`church_id`) REFERENCES `templomok` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
