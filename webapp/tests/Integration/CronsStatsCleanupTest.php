@@ -70,4 +70,40 @@ class CronsStatsCleanupTest extends TestCase
             'A 31 napos sor törlődik.'
         );
     }
+
+    private function insertEmail(string $type, string $createdAt): int
+    {
+        return DB::table('emails')->insertGetId([
+            'type'       => $type,
+            'to'         => 'phpunit@example.test',
+            'subject'    => 'phpunit',
+            'body'       => 'phpunit',
+            'created_at' => $createdAt,
+        ]);
+    }
+
+    public function testCleanNotificationEmailsDeletesReflexKeepsRemark(): void
+    {
+        // #351: régi reflex-értesítő -> törlődik
+        $oldReflex = $this->insertEmail('user_pleaseupdate', date('Y-m-d H:i:s', strtotime('-120 days')));
+        // régi észrevétel-levelezés -> MEGMARAD (nincs a törölhető listában)
+        $oldRemark = $this->insertEmail('remark_admin', date('Y-m-d H:i:s', strtotime('-120 days')));
+        // 90 napon belüli reflex-értesítő -> MEGMARAD
+        $newReflex = $this->insertEmail('user_pleaseupdate', date('Y-m-d H:i:s', strtotime('-10 days')));
+
+        \Crons::cleanNotificationEmails();
+
+        $this->assertNull(
+            DB::table('emails')->where('id', $oldReflex)->first(),
+            'A 120 napos reflex-értesítőnek törlődnie kell.'
+        );
+        $this->assertNotNull(
+            DB::table('emails')->where('id', $oldRemark)->first(),
+            'Az észrevétel-levelezés (remark_*) régen is megmarad.'
+        );
+        $this->assertNotNull(
+            DB::table('emails')->where('id', $newReflex)->first(),
+            'A 90 napon belüli reflex-értesítő megmarad.'
+        );
+    }
 }

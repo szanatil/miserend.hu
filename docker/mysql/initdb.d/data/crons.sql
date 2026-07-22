@@ -40,7 +40,8 @@ INSERT INTO `crons` VALUES
 (38,'\\ExternalApi\\ElasticsearchApi','updateChurches','6 hours',NULL,NULL,'2026-01-26 23:58:05',0,'2026-01-26 17:58:05','0000-00-00 00:00:00','2026-01-26 17:58:05'),
 (39,'\\ExternalApi\\ElasticsearchApi','updateMasses','6 hours',NULL,NULL,'2026-01-26 23:58:39',0,'2026-01-26 17:58:39','0000-00-00 00:00:00','2026-01-26 17:58:39'),
 (40,'\\ExternalCalendarImporter','importAllExternalCalendars','1 day',NULL,NULL,'0000-00-00 00:00:00',0,'0000-00-00 00:00:00','0000-00-00 00:00:00','0000-00-00 00:00:00'),
-(41,'\\Crons','cleanExternalApiStats','1 day',NULL,NULL,'0000-00-00 00:00:00',0,'0000-00-00 00:00:00','0000-00-00 00:00:00','0000-00-00 00:00:00');
+(41,'\\Crons','cleanExternalApiStats','1 day',NULL,NULL,'0000-00-00 00:00:00',0,'0000-00-00 00:00:00','0000-00-00 00:00:00','0000-00-00 00:00:00'),
+(42,'\\Crons','cleanNotificationEmails','1 day',NULL,NULL,'0000-00-00 00:00:00',0,'0000-00-00 00:00:00','0000-00-00 00:00:00','0000-00-00 00:00:00');
 /*!40000 ALTER TABLE `crons` ENABLE KEYS */;
 UNLOCK TABLES;
 commit;
