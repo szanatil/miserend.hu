@@ -24,12 +24,27 @@
             {{ s.massState }} (mass_id: {{ s.massId }})
         {% endif %}
         {% if s.changes %}
-            <br/>
-            <small style="color:#555;">
+            {# #307: emberi-olvasható „egyszerűsített változások" — magyar mezőnevek,
+               fordított nyelv/rítus, formázott időpont. Ismeretlen kulcsnál a nyers kulcs. #}
+            {% set fieldLabels = {
+                'title': 'Megnevezés', 'rite': 'Rítus', 'startDate': 'Időpont',
+                'lang': 'Nyelv', 'comment': 'Megjegyzés', 'churchId': 'Templom',
+                'periodId': 'Időszak', 'length': 'Hossz (perc)'
+            } %}
+            <ul style="margin:3px 0; padding-left:18px; color:#555; font-size:90%;">
                 {% for k, v in s.changes %}
-                    {% if k != 'id' %}{{ k }}: {% if v is iterable %}{{ v|json_encode }}{% else %}{{ v }}{% endif %}{% if not loop.last %}, {% endif %}{% endif %}
+                    {% if k != 'id' %}
+                        <li><strong>{{ fieldLabels[k]|default(k) }}:</strong>
+                        {%- if v is null or v == '' %} <em>(üres)</em>
+                        {%- elseif k == 'lang' %} {{ ('LANGUAGES.' ~ v)|trans }}
+                        {%- elseif k == 'rite' %} {{ v|trans }}
+                        {%- elseif k == 'startDate' %} {{ v|date('Y-m-d H:i') }}
+                        {%- elseif v is iterable %} {{ v|json_encode }}
+                        {%- else %} {{ v }}{% endif %}
+                        </li>
+                    {% endif %}
                 {% endfor %}
-            </small>
+            </ul>
         {% endif %}
     </li>
 {% endfor %}
