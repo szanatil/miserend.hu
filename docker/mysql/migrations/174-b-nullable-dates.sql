@@ -52,8 +52,6 @@ ALTER TABLE `lookup_osm_enclosed` MODIFY COLUMN `updated_at` timestamp NULL DEFA
 ALTER TABLE `osm` MODIFY COLUMN `created_at` timestamp NULL DEFAULT NULL;
 ALTER TABLE `osm` MODIFY COLUMN `updated_at` timestamp NULL DEFAULT NULL;
 
-ALTER TABLE `osmtags` MODIFY COLUMN `created_at` timestamp NULL DEFAULT NULL;
-ALTER TABLE `osmtags` MODIFY COLUMN `updated_at` timestamp NULL DEFAULT NULL;
 
 ALTER TABLE `photos` MODIFY COLUMN `created_at` timestamp NULL DEFAULT NULL;
 ALTER TABLE `photos` MODIFY COLUMN `updated_at` timestamp NULL DEFAULT NULL;
@@ -115,8 +113,6 @@ UPDATE `lookup_osm_enclosed` SET `updated_at` = NULL WHERE `updated_at` IN ('000
 UPDATE `osm` SET `created_at` = NULL WHERE `created_at` IN ('0000-00-00','0000-00-00 00:00:00');
 UPDATE `osm` SET `updated_at` = NULL WHERE `updated_at` IN ('0000-00-00','0000-00-00 00:00:00');
 
-UPDATE `osmtags` SET `created_at` = NULL WHERE `created_at` IN ('0000-00-00','0000-00-00 00:00:00');
-UPDATE `osmtags` SET `updated_at` = NULL WHERE `updated_at` IN ('0000-00-00','0000-00-00 00:00:00');
 
 UPDATE `photos` SET `created_at` = NULL WHERE `created_at` IN ('0000-00-00','0000-00-00 00:00:00');
 UPDATE `photos` SET `updated_at` = NULL WHERE `updated_at` IN ('0000-00-00','0000-00-00 00:00:00');

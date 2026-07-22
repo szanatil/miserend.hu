@@ -197,7 +197,7 @@ class Edit extends \Html\Html {
             'name' => "church[frissites]",
             'value' => date('Y-m-d'),
             'checked' => false,
-            'labelback' => 'Frissítsük a dátumot! (Utoljára frissítve: ' . date('Y.m.d.', strtotime($this->church->frissites)).')'
+            'labelback' => 'Frissítsük a dátumot! (Utoljára frissítve: ' . ($this->church->frissites ? date('Y.m.d.', strtotime($this->church->frissites)) : 'nincs adat').')' // #174-B: frissites nullable
         );
 				
         $this->title = $this->church->fullName;
