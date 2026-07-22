@@ -1,0 +1,67 @@
+name: 🚀 Deploy to staging
+
+# #532: minden master-push után automatikusan frissül a staging.miserend.hu,
+# hogy legyen egy hosztolt, mindig naprakész nézet a legújabb behúzott kódra.
+#
+# Elv (a #532-ben megbeszéltek szerint):
+#  - SOSEM `git pull`, hanem `git fetch` + `git reset --hard origin/master`
+#    (a legyártott Angular-fájlok így sosem ütköznek — mindig tiszta lap).
+#  - MINDEN deploynál friss adatbázis: `docker compose down -v` (volume-törlés →
+#    nulláról seed), hogy a staging reálisan naprakész és teljes legyen.
+#  - A productionhöz EZ SOSEM nyúl (az borazslo külön, kézi folyamata).
+#
+# Előfeltételek (owner-teendő, egyszeri):
+#  1. A repó klónja a szerveren:  git clone <repo> /var/www/staging.miserend.hu
+#  2. GitHub secretek (Settings → Secrets and variables → Actions):
+#       STAGING_SSH_HOST  – a szerver címe (IP/hostname)
+#       STAGING_SSH_USER  – SSH-felhasználó
+#       STAGING_SSH_KEY   – a deploy PRIVÁT SSH-kulcs (publikus párja a szerver
+#                           ~/.ssh/authorized_keys-ében)
+#       STAGING_SSH_PORT  – opcionális; ha üres, 22
+#  3. A szerveren a docker + docker compose telepítve, és a felhasználó a docker
+#     csoport tagja (különben `sudo` kell a scriptben).
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch: {}   # kézzel is indítható (Actions fül → Run workflow)
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: true   # egyszerre csak egy deploy; az újabb dobja a régit
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_SSH_PORT || 22 }}
+          command_timeout: 30m   # a --build + a friss seed sokáig tarthat
+          script: |
+            set -euo pipefail
+
+            DEPLOY_DIR=/var/www/staging.miserend.hu
+            cd "$DEPLOY_DIR"
+
+            # Tiszta lap: fetch + hard reset a master-re (nem 'git pull').
+            git fetch --prune origin master
+            git reset --hard origin/master
+            # A .env-et NEM bántjuk (nincs 'git clean'); a build a konténerben fut,
+            # így host-oldali legyártott fájl nem marad, ami ütközhetne.
+
+            COMPOSE="docker compose -f docker/compose.yml -f docker/compose.dev.yml"
+
+            # Friss adatbázis MINDEN deploynál: volume-ok törlése → nulláról seed.
+            $COMPOSE down -v --remove-orphans
+
+            # Újraépítés + indítás. A multi-stage image Node-fázisa legyártja az
+            # Angular-naptárt is, ezért nincs külön host-oldali `npm build`.
+            $COMPOSE up -d --build
+
+            # Nem-blokkoló egészség-nézet a logban.
+            $COMPOSE ps
