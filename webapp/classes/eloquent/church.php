@@ -678,9 +678,10 @@ class Church extends \Illuminate\Database\Eloquent\Model {
     }
 
     public function updateNeighbours() {
-        //TODO: Does not work! 
-        // "Call to undefined method Illuminate\Database\Query\Builder::MupdateChurch()"
-        $distance = new Distance();        
+        // #172: a globális \Distance kell (azon van a MupdateChurch). Az Eloquent
+        // névtérben a sima `new Distance()` a modellt (\Eloquent\Distance) hozná,
+        // ami nem ismeri a metódust -> "Call to undefined method MupdateChurch()".
+        $distance = new \Distance();
         $distance->MupdateChurch($this);
     }
     
