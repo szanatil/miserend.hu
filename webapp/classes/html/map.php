@@ -21,12 +21,16 @@ class Map extends Html {
             $this->church_id = $tid;
         }
         
-        if(isset($_REQUEST['map'])) {
-            $parts = explode('/',$_REQUEST['map']);
+        // #545: közvetlen $_REQUEST helyett a \Request:: olvasás. A `map` egy
+        // '/'-tagolt numerikus lista (zoom/lat/lon vagy lat/lon); a Text() üres
+        // sztringet ad hiányzáskor, a lenti is_numeric-őr változatlanul kezeli.
+        $mapParam = \Request::Text('map');
+        if($mapParam !== '') {
+            $parts = explode('/', $mapParam);
             foreach($parts as $part) {
                 if(!is_numeric($part)) return;
             }
-            
+
             if(count($parts) == 3) {
                 $this->center = [
                     'zoom' => $parts[0],
@@ -34,18 +38,21 @@ class Map extends Html {
                     'lon' => $parts[2]
                 ];
             }
-            
+
             if(count($parts) == 2) {
                 $this->center = [
                     'lat' => $parts[0],
                     'lon' => $parts[1]
                 ];
             }
-            
+
         }
-        
-        if(isset($_REQUEST['boundary'])) {
-            $this->boundary = $_REQUEST['boundary'];
+
+        // #545: boundary olvasása \Request::Text-tel; csak akkor állítjuk, ha van
+        // (hogy a property null maradjon hiányzáskor, mint eddig).
+        $boundaryParam = \Request::Text('boundary');
+        if($boundaryParam !== '') {
+            $this->boundary = $boundaryParam;
         }
         
         $data = $this->getGeoJsonDioceses();                

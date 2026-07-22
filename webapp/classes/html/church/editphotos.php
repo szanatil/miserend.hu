@@ -11,6 +11,8 @@ class EditPhotos extends \Html\Html {
     public function __construct($path) {
         global $user;
    
+        // #545: kép-szerkesztő nyers inputja. A mezőnkénti \Request:: átírás
+        // staging-tesztet igényel (kép-feltöltés/-törlés), ezért marad.
         $this->input = $_REQUEST;
         $this->tid = $path[0];
         $this->church = \Eloquent\Church::find($this->tid);
