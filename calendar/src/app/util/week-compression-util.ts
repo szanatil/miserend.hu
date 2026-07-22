@@ -194,10 +194,17 @@ export class WeekCompressionUtil {
       }
     }
 
-    // 7. Collapsed slotok: a [slotMin, slotMax) ablakon belül minden slot-kezdet,
-    //    amit egyetlen esemény sem fed le.
+    // 7. Collapsed slotok: CSAK a detektált középső gap-en belül
+    //    (`[morningLatestMin, eveningEarliestMin)`), NEM a teljes [slotMin, slotMax)
+    //    ablakban. Ez a szándék (12-15. sori komment): a reggel↔este közti holt
+    //    sávot húzzuk össze, a reggeli (vagy esti) misék közti apró réseket NEM
+    //    — különben a misék jobban összenyomódnak, mint kéne (#358 review).
+    //    A gap-en belüli FOGLALT slotok (pl. középső Nagyszombat) továbbra is
+    //    kimaradnak, ezért köréjük „törik" a tengely.
+    const gapFirstSlot = Math.ceil(morningLatestMin / slot) * slot;
+    const gapLastSlot = Math.floor(eveningEarliestMin / slot) * slot;
     const collapsedSlotMinutes: number[] = [];
-    for (let s = slotMinMin; s < slotMaxMin; s += slot) {
+    for (let s = gapFirstSlot; s < gapLastSlot; s += slot) {
       if (!occupied.has(s)) {
         collapsedSlotMinutes.push(s);
       }

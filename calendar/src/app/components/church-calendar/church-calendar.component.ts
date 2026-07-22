@@ -1270,14 +1270,22 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       return;
     }
 
+    // #358 fix: a misék pont-események, gyakran `end` NÉLKÜL — a régi
+    // `!!e.start && !!e.end` szűrő mindet kidobta, így a toggle némán nem
+    // csinált semmit. Csak `start` kötelező; `end` hiányában a FullCalendar
+    // saját default-jával egyezően +1 órát feltételezünk.
     const weekEvents: WeekEvent[] = api.getEvents()
-      .filter(e => !!e.start && !!e.end)
-      .map(e => ({
-        start: e.start as Date,
-        end: e.end as Date,
-        title: e.title || '',
-        extendedProps: e.extendedProps as Record<string, any>,
-      }));
+      .filter(e => !!e.start)
+      .map(e => {
+        const start = e.start as Date;
+        const end = e.end ?? new Date(start.getTime() + 60 * 60 * 1000);
+        return {
+          start,
+          end,
+          title: e.title || '',
+          extendedProps: e.extendedProps as Record<string, any>,
+        };
+      });
 
     const result = WeekCompressionUtil.analyze({
       weekStart: view.currentStart,

@@ -100,6 +100,34 @@ describe('WeekCompressionUtil.analyze', () => {
     }
   });
 
+  it('over-compression fix: a REGGELI misék közti rés NEM collapsed, csak a középső gap', () => {
+    const result = WeekCompressionUtil.analyze({
+      weekStart: WEEK_START, weekEnd: WEEK_END,
+      events: [
+        ev(0, 6, 0, 7, 0),    // reggel korán (06:00-07:00)
+        ev(0, 10, 0, 11, 0),  // késő reggel (10:00-11:00) — a kettő közt 3 órás reggeli rés
+        ev(2, 6, 0, 7, 0),
+        ev(2, 10, 0, 11, 0),
+        ev(4, 18, 0, 19, 0),  // este
+      ],
+    });
+    // morningLatestMin=11:00 (660), eveningEarliestMin=18:00 (1080)
+    expect(result.shouldCompress).toBe(true);
+    const collapsed = new Set(result.collapsedSlotMinutes);
+    // a REGGELI rés (07:00-10:00) a morningLatestMin ELŐTT → NEM collapsed (nem nyomjuk össze)
+    expect(collapsed.has(480)).toBe(false);  // 08:00
+    expect(collapsed.has(540)).toBe(false);  // 09:00
+    // a KÖZÉPSŐ gap (11:00-18:00) IGEN collapsed
+    expect(collapsed.has(720)).toBe(true);   // 12:00
+    expect(collapsed.has(900)).toBe(true);   // 15:00
+    expect(collapsed.has(1020)).toBe(true);  // 17:00
+    // minden collapsed slot a középső gap-en belül
+    for (const s of result.collapsedSlotMinutes) {
+      expect(s).toBeGreaterThanOrEqual(660);
+      expect(s).toBeLessThan(1080);
+    }
+  });
+
   it('nagyszombat: egy KÖZÉPSŐ mise slotjai NEM collapsed-ek (körülötte törik a tengely)', () => {
     const result = WeekCompressionUtil.analyze({
       weekStart: WEEK_START, weekEnd: WEEK_END,
