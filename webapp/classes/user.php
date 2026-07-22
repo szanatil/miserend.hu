@@ -771,6 +771,9 @@ class User {
 
 		$feasts = \Eloquent\CalGeneratedPeriod::whereIn('period_id', $feastIds)
 			->whereRaw('DATE(start_date) = ?', [$target])
+			// #290: a jegy szerint CSAK a NEM vasárnapra eső parancsolt ünnepekre
+			// emlékeztetünk (vasárnap úgyis mennek misére). DAYOFWEEK: 1 = vasárnap.
+			->whereRaw('DAYOFWEEK(start_date) <> 1')
 			->get();
 
 		foreach ($feasts as $feast) {
@@ -798,8 +801,9 @@ class User {
 			->whereNotNull('user.email')->where('user.email', '<>', '')
 			->where('templomok.ok', 'i')
 			->groupBy('user.email')
-			->orderByRaw('RAND()')
-			->limit(5)
+			// #290: NINCS limit/RAND — egynapos trigger + napi cron mellett a limit(5)
+			// ünnepenként csak 5 gondnokot érne el. A rate-limitet az Email::sendQueued
+			// drainer intézi (külön cron), nem a kiválasztás.
 			->get();
 
 		$today = date('Y-m-d');
