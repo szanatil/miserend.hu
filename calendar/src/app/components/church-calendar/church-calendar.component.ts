@@ -50,6 +50,7 @@ import {MatIcon} from '@angular/material/icon';
 import {MatTooltip} from '@angular/material/tooltip';
 import {SearchService} from '../../services/search.service';
 import {GeneratedPeriod} from "../../model/generated-period";
+import {SpecialType} from "../../model/period";
 import { eventListTemplate, EventListTemplateVars } from './event-list-template';
 import {EditConfirmationService} from '../../services/edit-confirmation.service';
 import {CopyPeriodDialogComponent, CopyPeriodDialogData} from '../copy-period-dialog/copy-period-dialog.component';
@@ -1141,15 +1142,70 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
     this.calendarComponent.getApi().changeView(view as any);
   }
 
+  // #323: ha a látható nézet húsvét/karácsony időszakot is tartalmaz, és a
+  // templomnak nincs ilyen periódusú miséje, valószínű hibás/hiányos a
+  // miserend. UI flag-ek a template banner-éhez.
+  public missingEasterMassWarning = false;
+  public missingChristmasMassWarning = false;
+
   private onDatesSet(arg : any) {
     const title: string = arg.view.title;
     this.datesSet.emit(title);
     this.setCalendarsTitle(title);
-    
+
     // Fetch liturgical days for the current view date range
     const start = arg.view.currentStart;
     const end = arg.view.currentEnd;
     this.fetchLiturgicalDays(start, end);
+
+    // #323: ellenőrizzük, hogy a nézet érint-e karácsonyi vagy húsvéti
+    // periódust, és a templomnak van-e ilyen mise. Ha érinti, de nincs
+    // mise → warning banner.
+    this.checkSpecialPeriodCoverage(start, end);
+  }
+
+  private checkSpecialPeriodCoverage(viewStart: Date, viewEnd: Date): void {
+    // Csak ott jelezzünk, ahol értelmes (a felhasználó éppen szerkeszti vagy
+    // megnézi a templomot - suggestion review pl. nem).
+    if (ScriptUtil.isNull(this.currentChurch)) {
+      this.missingEasterMassWarning = false;
+      this.missingChristmasMassWarning = false;
+      return;
+    }
+
+    const normalize = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const vStart = normalize(viewStart);
+    const vEnd = normalize(viewEnd);
+
+    let viewIntersectsEaster = false;
+    let viewIntersectsChristmas = false;
+
+    for (const gp of this.periodService['generatedPeriods$'].getValue()) {
+      const specialType = this.periodService.getSpecialPeriodType(gp.periodId);
+      if (specialType !== SpecialType.EASTER && specialType !== SpecialType.CHRISTMAS) {
+        continue;
+      }
+      const gpStart = normalize(new Date(gp.startDate));
+      const gpEnd = normalize(new Date(gp.endDate));
+      // intervallum-átfedés: nem (vEnd < gpStart vagy gpEnd < vStart)
+      if (vEnd < gpStart || gpEnd < vStart) {
+        continue;
+      }
+      if (specialType === SpecialType.EASTER) viewIntersectsEaster = true;
+      if (specialType === SpecialType.CHRISTMAS) viewIntersectsChristmas = true;
+    }
+
+    let churchHasEasterMass = false;
+    let churchHasChristmasMass = false;
+    for (const m of this.masses.values()) {
+      if (ScriptUtil.isNull(m.periodId)) continue;
+      if (this.periodService.isEasterPeriod(m.periodId)) churchHasEasterMass = true;
+      if (this.periodService.isChristmasPeriod(m.periodId)) churchHasChristmasMass = true;
+      if (churchHasEasterMass && churchHasChristmasMass) break;
+    }
+
+    this.missingEasterMassWarning = viewIntersectsEaster && !churchHasEasterMass;
+    this.missingChristmasMassWarning = viewIntersectsChristmas && !churchHasChristmasMass;
   }
 
   private fetchLiturgicalDays(start: Date, end: Date): void {
