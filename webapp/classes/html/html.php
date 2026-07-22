@@ -65,6 +65,7 @@ class Html {
         $this->twig->addFilter(new \Twig\TwigFilter('phone_links', 'twig_phone_links'));
         $this->twig->addFilter(new \Twig\TwigFilter('strip_protocol', 'twig_strip_protocol'));
         $this->twig->addFilter(new \Twig\TwigFilter('facebook_path', 'twig_facebook_path'));
+        $this->twig->addFilter(new \Twig\TwigFilter('readable_rrule', 'twig_readable_rrule'));
         // DANGER: a twig declarálva van / meg van hívva a Load.php -ban is. Így ott is módosítani kellhet a filterket
         $this->twig->addGlobal('domain', DOMAIN); // Environment-specific domain for email templates
 
