@@ -1,3 +1,10 @@
+# #532: a projekt-nevet a top-level `name:` adja (docker compose spec). Ez prefixeli
+# a containereket, a volume-okat és a hálózatot — így ugyanez a compose-rendszer több
+# példányban futhat egy szerveren (pl. prod + staging) ütközés nélkül. A portokat és az
+# image-taget külön env-változó paraméterezi (default = a mostani érték → dev változatlan).
+# Docs: https://docs.docker.com/reference/compose-file/version-and-name/
+name: ${PROJECT:-miserend}
+
 services:
   tmp-init:
     image: busybox
@@ -12,14 +19,13 @@ services:
     restart: "no"
   mysql:
     image: mariadb:12
-    container_name: mysql
     platform: linux/amd64
     volumes:
       - db_data:/var/lib/mysql
       - ./mysql/initdb.d:/docker-entrypoint-initdb.d
       - ./mysql/mysql.conf.d:/etc/mysql/mysql.conf.d
     ports:
-      - 3306:3306
+      - ${MYSQL_PORT:-3306}:3306
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: pw
@@ -34,7 +40,6 @@ services:
           - mysql
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.10.1
-    container_name: elasticsearch
     entrypoint: ["/entrypoint-wrapper.sh"]
     command: ["eswrapper"]
     environment:
@@ -47,8 +52,8 @@ services:
         soft: -1
         hard: -1
     ports:
-      - 9200:9200
-      - 9300:9300
+      - ${ES_HTTP_PORT:-9200}:9200
+      - ${ES_TCP_PORT:-9300}:9300
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
       - ./elasticsearch/entrypoint.sh:/entrypoint-wrapper.sh:ro
@@ -66,14 +71,12 @@ services:
       retries: 30
       start_period: 40s
   miserend:
-    container_name: miserend
-
-    image: localhost/miserend:latest
-    volumes: 
+    image: ${MISEREND_IMAGE:-localhost/miserend:latest}
+    volumes:
        - tmp:/miserend/webapp/fajlok/tmp
        - ./miserend/apache/ports.conf:/etc/apache2/ports.conf
     ports:
-      - 8000:8000
+      - ${APP_PORT:-8000}:8000
     user: "www-data"
     restart: "always"
     depends_on:
@@ -81,8 +84,8 @@ services:
         condition: service_healthy
       elasticsearch:
         condition: service_healthy
-    environment: 
-      - MISEREND_WEBAPP_ENVIRONMENT=production
+    environment:
+      - MISEREND_WEBAPP_ENVIRONMENT=${MISEREND_ENV:-production}
 
     networks:
       inner:
