@@ -42,6 +42,10 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.10.1
     entrypoint: ["/entrypoint-wrapper.sh"]
     command: ["eswrapper"]
+    # #557: az ES-nek eddig NEM volt restart-policyja (a mysql/miserend-nek igen),
+    # ezért ha elhalt (crash/OOM), halva maradt, amíg valaki kézzel újra nem indította
+    # → a keresés leállt. Az always-szel a docker magától visszahozza.
+    restart: always
     environment:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
