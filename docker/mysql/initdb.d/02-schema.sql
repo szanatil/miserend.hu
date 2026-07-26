@@ -250,6 +250,34 @@ CREATE TABLE IF NOT EXISTS `church_links` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `church_relationships`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE IF NOT EXISTS `church_relationships` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `parent_church_id` int(11) NOT NULL COMMENT 'felsőbbrendű misézőhely',
+  `child_church_id`  int(11) NOT NULL COMMENT 'alsóbbrendű misézőhely',
+  `type` enum(
+    'subordinate',
+    'associated',
+    'territorially_independent'
+  ) NOT NULL COMMENT 'kapcsolat típusa',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_pair` (`parent_church_id`, `child_church_id`),
+  KEY `parent_idx` (`parent_church_id`),
+  KEY `child_idx`  (`child_church_id`),
+  CONSTRAINT `fk_cr_parent` FOREIGN KEY (`parent_church_id`)
+    REFERENCES `templomok` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_cr_child`  FOREIGN KEY (`child_church_id`)
+    REFERENCES `templomok` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `confessions`
 --
 
