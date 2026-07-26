@@ -481,3 +481,30 @@ describe('MassUtil.createCalendarEvent (#428 manual experiod hides dates)', () =
     expect(events[0].exrule!.length).toBeGreaterThan(0);
   });
 });
+
+describe('MassUtil.getRenumByMass', () => {
+  const massWithRrule = (rrule: Mass['rrule']): Mass => ({
+    id: 1, churchId: 100, title: 'Szentmise', rite: Rite.ROMAN_CATHOLIC,
+    startDate: '2026-03-01T07:00:00', lang: 'hu', rrule,
+  });
+
+  it('nincs rrule -> NONE', () => {
+    expect(MassUtil.getRenumByMass(massWithRrule(null))).toBe(Renum.NONE);
+  });
+
+  it('yearly -> YEARLY', () => {
+    expect(MassUtil.getRenumByMass(massWithRrule({dtstart: '2026-03-01T07:00:00', freq: 'yearly'}))).toBe(Renum.YEARLY);
+  });
+
+  it('weekly byweekno nélkül -> EVERY_WEEK', () => {
+    expect(MassUtil.getRenumByMass(massWithRrule({dtstart: '2026-03-01T07:00:00', freq: 'weekly'}))).toBe(Renum.EVERY_WEEK);
+  });
+
+  it('weekly páros byweekno -> EVEN_WEEK', () => {
+    expect(MassUtil.getRenumByMass(massWithRrule({dtstart: '2026-03-01T07:00:00', freq: 'weekly', byweekno: [2, 4, 6]}))).toBe(Renum.EVEN_WEEK);
+  });
+
+  it('weekly páratlan byweekno -> ODD_WEEK', () => {
+    expect(MassUtil.getRenumByMass(massWithRrule({dtstart: '2026-03-01T07:00:00', freq: 'weekly', byweekno: [1, 3, 5]}))).toBe(Renum.ODD_WEEK);
+  });
+});

@@ -120,19 +120,26 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 		return true;
 	}
 	
-	function putBulk($data) {	
-		$this->curl_setopt(CURLOPT_CUSTOMREQUEST ,"PUT");		
-
-		if(is_array($data)) {
-			$bulkData = [];
-			foreach($data as $item) {
-				if(is_array($item))
-					$bulkData[] = json_encode($item);
-				else
-					$bulkData[] = $item;				
-			}							
-			$data = implode("\n", $bulkData)."\n";
+	/**
+	 * #374: Az ES _bulk NDJSON-payload összeállítása. Tömb-elemeket json_encode-ol,
+	 * a már-string elemeket változatlanul átengedi, \n-nel összefűzi + záró \n. Tiszta,
+	 * ezért kiemelve a putBulk-ból (a hálózati résztől), hogy tesztelhető legyen.
+	 */
+	static function buildBulkNdjson($data) {
+		if (!is_array($data)) {
+			return $data;
 		}
+		$bulkData = [];
+		foreach ($data as $item) {
+			$bulkData[] = is_array($item) ? json_encode($item) : $item;
+		}
+		return implode("\n", $bulkData) . "\n";
+	}
+
+	function putBulk($data) {
+		$this->curl_setopt(CURLOPT_CUSTOMREQUEST ,"PUT");
+
+		$data = self::buildBulkNdjson($data);
 
 		$this->buildQuery('_bulk', $data);
 		$this->run();

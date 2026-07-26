@@ -631,8 +631,48 @@ class ApiTest extends TestCase {
     public function testCollectApiEndpointsNoApi() {
         $api = new Api();
         $endpoints = $api->collectApiEndpoints();
-        
+
         // Ensure the base Api class itself is not returned as an endpoint
         $this->assertNotContains('Api', $endpoints);
+    }
+
+    // #374: validateEnum tömb-alapú (típusos) ága — a meglévő tesztek csak skalár
+    // értékeket fednek, a ['date'=>[]]-szerű típusos szabály nem volt tesztelve.
+
+    public function testValidateEnumLiteralValueMatches() {
+        $api = new Api();
+        // 'sunday' literál -> nem dob
+        $api->validateEnum('whenMass', ['today', 'tomorrow', 'sunday', ['date' => []]], 'sunday');
+        $this->assertTrue(true, 'literál egyezésnél nem dobhat');
+    }
+
+    public function testValidateEnumDateRuleMatches() {
+        $api = new Api();
+        // formátumilag helyes dátum a ['date'=>[]] szabály alatt -> nem dob
+        $api->validateEnum('whenMass', ['today', 'sunday', ['date' => []]], '2026-03-20');
+        $this->assertTrue(true, 'érvényes dátumnál nem dobhat');
+    }
+
+    public function testValidateEnumInvalidDateThrows() {
+        $api = new Api();
+        $this->expectException(\Exception::class);
+        $api->validateEnum('whenMass', ['today', 'sunday', ['date' => []]], '2026-13-45');
+    }
+
+    public function testValidateEnumUnknownValueThrows() {
+        $api = new Api();
+        $this->expectException(\Exception::class);
+        $api->validateEnum('whenMass', ['today', 'sunday', ['date' => []]], 'garbage');
+    }
+
+    /**
+     * #374: dokumentálja, hogy a validateEnum date-ága CSAK formátumot ellenőriz
+     * (regex), nem naptár-tudatos — szemben a \Request::validateDateFormat-tal.
+     * A 2026-02-30 formátumilag helyes, ezért NEM dob.
+     */
+    public function testValidateEnumDateIsFormatOnlyNotCalendarAware() {
+        $api = new Api();
+        $api->validateEnum('whenMass', [['date' => []]], '2026-02-30');
+        $this->assertTrue(true, 'a date-ág formátum-only, nem naptár-tudatos');
     }
 }

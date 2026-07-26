@@ -207,3 +207,14 @@ function twig_facebook_path($url) {
     return $url;
 }
 
+/**
+ * #307/#536: RRULE → emberi-olvasható magyar szöveg a Twig-ből.
+ * A javaslat-email „egyszerűsített változások" listájában a mise
+ * ismétlődését (rrule) így nem nyers JSON-ként, hanem pl. „hétfőn,
+ * szerdán, pénteken, minden héten" formában mutatjuk.
+ *
+ * Használat a sablonban:  {{ rrule|readable_rrule }}
+ */
+function twig_readable_rrule($rrule) {
+    return SimpleRRule::humanText($rrule);
+}

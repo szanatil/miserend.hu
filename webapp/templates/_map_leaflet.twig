@@ -181,7 +181,13 @@
 		maxZoom: 18,
 		ext: 'png'
 	});
-    OpenStreetMap_Mapnik.addTo(mymap);
+    // #376: a direkt tile.openstreetmap.org az OSM Tile Usage Policy szerint
+    // produkciós forgalomra tiltott → intermittensen „Access blocked" csempe
+    // (van akinek megy, van akinek nem, Referer/IP/forgalom alapján). A CARTO
+    // Voyager basemap (ingyenes, produkcióra való) a default — böngészőben mérve
+    // minden csempe 200-zal jön. Az OpenStreetMap_Mapnik/Stamen fentebb definiálva
+    // marad, de nincs a réteg-választóban (baseLayers=null a lenti control.layers-nél).
+    CartoDB_Voyager.addTo(mymap);
     
     
     var layerControls = new Array();

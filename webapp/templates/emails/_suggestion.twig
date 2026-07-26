@@ -1,0 +1,59 @@
+<a href="https://miserend.hu/templom/{{ church.id }}">{{ church.fullName }}</a><br/>
+
+{% if senderEmail %}
+<i><a href="mailto:{{ senderEmail }}" target="_blank">{{ senderName }}</a>:</i><br/>
+{% elseif senderName %}
+<i>{{ senderName }}:</i><br/>
+{% endif %}
+
+{% if senderMessage %}
+<p>{{ senderMessage|striptags('<br><p>')|raw }}</p>
+{% endif %}
+
+<strong>Javasolt változások ({{ suggestions|length }} db):</strong>
+<ul style="padding-left: 20px; margin: 5px 0;">
+{% for s in suggestions %}
+    <li>
+        {% if s.massState == 'NEW' %}
+            <span style="color:#2a7;">ÚJ mise</span>
+        {% elseif s.massState == 'DELETED' %}
+            <span style="color:#c33;">TÖRÖLT mise</span> (mass_id: {{ s.massId }})
+        {% elseif s.massState == 'MODIFIED' %}
+            <span style="color:#37a;">MÓDOSÍTOTT mise</span> (mass_id: {{ s.massId }})
+        {% else %}
+            {{ s.massState }} (mass_id: {{ s.massId }})
+        {% endif %}
+        {% if s.changes %}
+            {# #307: emberi-olvasható „egyszerűsített változások" — magyar mezőnevek,
+               fordított nyelv/rítus, formázott időpont. Ismeretlen kulcsnál a nyers kulcs. #}
+            {% set fieldLabels = {
+                'title': 'Megnevezés', 'rite': 'Rítus', 'startDate': 'Időpont', 'duration' : 'Időtartam', 
+                'lang': 'Nyelv', 'comment': 'Megjegyzés', 'churchId': 'Templom', 'types' : 'Tulajdonságok', 
+                'periodId': 'Időszak', 'length': 'Hossz (perc)', 'rrule': 'Ismétlődés', 'exdate' : 'Kivett alkalom', 'experiod' : 'Kizárt időszak'
+            } %}
+            <ul style="margin:3px 0; padding-left:18px; color:#555; font-size:90%;">
+                {% for k, v in s.changes %}
+                    {% if k != 'id' and k != 'churchId' %}
+                        <li><strong>{{ fieldLabels[k]|default(k) }}:</strong>
+                        {%- if v is null or v == '' %} <em>(üres)</em>
+                        {%- elseif k == 'lang' %} {{ ('LANGUAGES.' ~ v)|trans }}
+                        {%- elseif k == 'rite' %} {{ v|trans }}
+                        {%- elseif k == 'startDate' %} {{ v|date('Y-m-d H:i') }}
+                        {%- elseif k == 'rrule' %} {{ v|readable_rrule }}
+                        {%- elseif k == 'exdate' %} {{ v|map(item => item|date('Y. m. d.'))|join(', ') }}
+                        {%- elseif k == 'duration' %}
+                            {%- set duration_parts = [] %}
+                            {%- if v.days %} {% set duration_parts = duration_parts|merge([v.days ~ ' nap']) %} {% endif %}
+                            {%- if v.hours %} {% set duration_parts = duration_parts|merge([v.hours ~ ' óra']) %} {% endif %}
+                            {%- if v.minutes %} {% set duration_parts = duration_parts|merge([v.minutes ~ ' perc']) %} {% endif %}
+                            {{- duration_parts|join(', ') }}
+                        {%- elseif v is iterable %} {{ v|json_encode }}
+                        {%- else %} {{ v }}{% endif %}
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </li>
+{% endfor %}
+</ul>

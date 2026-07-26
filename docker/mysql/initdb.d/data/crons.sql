@@ -39,7 +39,9 @@ INSERT INTO `crons` VALUES
 (37,'\\Api\\NearBy','cleanOldLogs','1 day',NULL,NULL,'2000-01-01 00:45:01',0,'2000-01-01 00:25:01','0000-00-00 00:00:00','2024-09-25 00:25:01'),
 (38,'\\ExternalApi\\ElasticsearchApi','updateChurches','6 hours',NULL,NULL,'2026-01-26 23:58:05',0,'2026-01-26 17:58:05','0000-00-00 00:00:00','2026-01-26 17:58:05'),
 (39,'\\ExternalApi\\ElasticsearchApi','updateMasses','6 hours',NULL,NULL,'2026-01-26 23:58:39',0,'2026-01-26 17:58:39','0000-00-00 00:00:00','2026-01-26 17:58:39'),
-(40,'\\ExternalCalendarImporter','importAllExternalCalendars','1 day',NULL,NULL,'0000-00-00 00:00:00',0,'0000-00-00 00:00:00','0000-00-00 00:00:00','0000-00-00 00:00:00');
+(40,'\\ExternalCalendarImporter','importAllExternalCalendars','1 day',NULL,NULL,'0000-00-00 00:00:00',0,'0000-00-00 00:00:00','0000-00-00 00:00:00','0000-00-00 00:00:00'),
+(41,'\\Crons','cleanExternalApiStats','1 day',NULL,NULL,'0000-00-00 00:00:00',0,'0000-00-00 00:00:00','0000-00-00 00:00:00','0000-00-00 00:00:00'),
+(42,'\\Crons','cleanNotificationEmails','1 day',NULL,NULL,'0000-00-00 00:00:00',0,'0000-00-00 00:00:00','0000-00-00 00:00:00','0000-00-00 00:00:00');
 /*!40000 ALTER TABLE `crons` ENABLE KEYS */;
 UNLOCK TABLES;
 
