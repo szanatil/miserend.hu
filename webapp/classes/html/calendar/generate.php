@@ -43,13 +43,25 @@ class Generate extends \Html\Calendar\CalendarApi {
             $this->sendJsonError('Elasticsearch előkészítése sikertelen: ' . $e->getMessage(), 503);
         }
 
-        $this->tids = \Request::IntegerArrayRequired('tids');
+        // #392: az IntegerArrayRequired hiányzó/nem-numerikus paraméterre Exception-t dob;
+        // enélkül a globális handler HTML-hibaoldalt renderelne a JSON-kliensnek (a #392-tünet).
+        try {
+            $this->tids = \Request::IntegerArrayRequired('tids');
+        } catch (\Throwable $e) {
+            $this->sendJsonError('Hiányzó vagy érvénytelen templom ID.', 400);
+            exit;
+        }
         if (empty($this->tids)) {
             $this->sendJsonError('Nincs templom ID megadva.', 400);
             exit;
         }
 
-        $this->years = \Request::IntegerArrayRequired('years');
+        try {
+            $this->years = \Request::IntegerArrayRequired('years');
+        } catch (\Throwable $e) {
+            $this->sendJsonError('Hiányzó vagy érvénytelen év.', 400);
+            exit;
+        }
         if (empty($this->years)) {
             $this->sendJsonError('Nincs év megadva.', 400);
             exit;
