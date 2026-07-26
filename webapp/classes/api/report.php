@@ -161,7 +161,7 @@ class Report extends Api {
             $this->remark->leiras .= "<i>, adatbázis: " . date("Y-m-d H:i", $this->input['dbdate']) . "</i>";
 
             $church = \Eloquent\Church::find($this->remark->church_id)->toArray();
-            $updated = strtotime($church['frissites']);
+            $updated = strtotime($church['frissites'] ?? ''); // #174-B: frissites nullable
             if ($this->input['dbdate'] < $updated) {
                 $this->remark->leiras .= "<br/>\n<br/>\n<strong>Figyelem! Elavult adatok alapján történt a bejelentés!</strong>";
             }

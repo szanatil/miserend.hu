@@ -727,6 +727,30 @@ class Church extends \Illuminate\Database\Eloquent\Model {
     }    
     
     
+    /**
+     * #174-B: a `frissites` biztonságos olvasása. NULL, üres string ÉS a régi
+     * '0000-00-00[ 00:00:00]' szemét-érték egyaránt "nincs adat" (null). Így a
+     * kód akkor is helyesen viselkedik, ha a 0000-00-00 -> NULL adatbázis-
+     * migráció MÉG NEM futott le - a merge nem függ a migráció időzítésétől.
+     * (A '0000-00-00' TRUTHY string, ezért a sima `$this->frissites ?` check
+     * NEM kapná el, és strtotime('0000-00-00') === false-tól visszatérne a bug.)
+     */
+    private function frissitesOrNull(): ?string
+    {
+        $f = $this->frissites;
+        if (empty($f) || strpos((string) $f, '0000-00-00') === 0) {
+            return null;
+        }
+        return $f;
+    }
+
+    /** #174-B: a frissites formázva ('Y-m-d H:i:s'), vagy null ha nincs adat. */
+    private function frissitesFormatted(): ?string
+    {
+        $f = $this->frissitesOrNull();
+        return $f !== null ? date('Y-m-d H:i:s', strtotime($f)) : null;
+    }
+
     public function toAPIArray($length = "minimal", $whenMass = false)
     {
 
@@ -785,7 +809,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             $return = [
                 'id' => $this->id,
                 'nev' => !empty($this->names) ? $this->names[0] : '',
-                'frissitve' => date('Y-m-d H:i:s', strtotime($this->frissites)),
+                'frissitve' => $this->frissitesFormatted(),
                 'ismertnev' => !empty($this->alternative_names) ? $this->alternative_names[0] : '',
                 'orszag' => ( DB::table('orszagok')->where('id', $this->orszag)->value('nev') ?: "" ),
                 'varos' => $this->varos,
@@ -810,7 +834,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             'nev' => !empty($this->names) ? $this->names[0] : '',
             'ismertnev' => !empty($this->alternative_names) ? $this->alternative_names[0] : '',
             'alternative_names' => $this->alternative_names,
-            'frissitve' => date('Y-m-d H:i:s', strtotime($this->frissites)),            
+            'frissitve' => $this->frissitesFormatted(),            
             'orszag' => ( DB::table('orszagok')->where('id', $this->orszag)->value('nev') ?: "" ),
             'egyhazmegye' => ( DB::table('egyhazmegye')->where('id', $this->egyhazmegye)->value('nev') ?: "" ),
             'megye' => ( DB::table('megye')->where('id', $this->megye)->value('megyenev') ?: "" ),
@@ -1063,10 +1087,16 @@ class Church extends \Illuminate\Database\Eloquent\Model {
                 $jelzes.=" <img src=/img/ora.gif title='Feltöltött/módosított templom, áttekintésre vár!' align=absmiddle> ";
 
             if($this->ok == 'i' AND $this->miseaktiv == 1) {
-                $updatedTime = strtotime($this->frissites);
-                if($updatedTime < strtotime("-10 years")) {
+                // #174-B: frissites lehet NULL (új sémában a 0000-00-00
+                // helyett). strtotime(NULL) === false, ami a < strtotime()
+                // összehasonlításban truthy-vá válna, és minden NULL templomra
+                // hibásan "Több mint 10 éves" warningot adna ki. NULL = nincs
+                // adat, nem adunk warningot.
+                $f = $this->frissitesOrNull();
+                $updatedTime = $f !== null ? strtotime($f) : null;
+                if($updatedTime !== null && $updatedTime < strtotime("-10 years")) {
                     $jelzes.=" <i class='fa fa-exclamation-triangle fa-lg red' title='Több mint 10 éves adatok!' > </i> ";
-                } elseif ($updatedTime < strtotime("-5 year")) {
+                } elseif ($updatedTime !== null && $updatedTime < strtotime("-5 year")) {
                     $jelzes.=" <i class='fa fa-exclamation fa-lg red' title='Több mint öt éves adatok!'> </i> ";
                 } 
             }

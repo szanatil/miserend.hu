@@ -146,7 +146,7 @@ class Church extends \Html\Html {
         else 
             $this->setTitle($this->names[0]);
         
-        $this->updated = str_replace('-', '.', $this->frissites) . '.';
+        $this->updated = $this->frissites ? str_replace('-', '.', $this->frissites) . '.' : ''; // #174-B: frissites nullable
 
         /*
           $staticmap = "kepek/staticmaps/" . $tid . "_227x140.jpeg";
