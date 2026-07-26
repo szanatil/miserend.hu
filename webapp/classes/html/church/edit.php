@@ -13,6 +13,8 @@ class Edit extends \Html\Html {
     public function __construct($path) {
         global $user;
    
+        // #545: többdimenziós szerkesztő-űrlap nyers inputja. A mezőnkénti
+        // \Request:: átírás staging-tesztet igényel (mentés-folyamat), ezért marad.
         $this->input = $_REQUEST;
         $this->tid = $path[0];
         $this->church = \Eloquent\Church::find($this->tid);
