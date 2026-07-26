@@ -44,6 +44,12 @@ INSERT INTO `crons` VALUES
 (42,'\\Crons','cleanNotificationEmails','1 day',NULL,NULL,'0000-00-00 00:00:00',0,'0000-00-00 00:00:00','0000-00-00 00:00:00','0000-00-00 00:00:00');
 /*!40000 ALTER TABLE `crons` ENABLE KEYS */;
 UNLOCK TABLES;
+
+-- #306: külön INSERT-ként (nem a fenti VALUES-listába), hogy ne ütközzön más
+-- branch cron-hozzáadásával a merge-nél (pl. #351 cron 41/42).
+INSERT INTO `crons` VALUES
+(43,'\\Crons','rollPeriodYears','1 month',NULL,NULL,'0000-00-00 00:00:00',0,'0000-00-00 00:00:00','0000-00-00 00:00:00','0000-00-00 00:00:00');
+
 commit;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
