@@ -253,4 +253,71 @@ class RequestTest extends TestCase {
         $_REQUEST['test'] = '';
         $this->assertEquals('', \Request::Date('test'));
     }
+
+    // #374: validateDateFormat() naptár-tudatos, szigorú ellenőrzése
+    public function testValidateDateFormatAcceptsLeapDay() {
+        $this->assertTrue(\Request::validateDateFormat('2024-02-29'));
+    }
+
+    public function testValidateDateFormatRejectsNonLeapFeb29() {
+        $this->assertFalse(\Request::validateDateFormat('2023-02-29'));
+    }
+
+    public function testValidateDateFormatRejectsMonth13() {
+        $this->assertFalse(\Request::validateDateFormat('2023-13-01'));
+    }
+
+    public function testValidateDateFormatRejectsLooseFormat() {
+        // Egyjegyű hónap/nap nem elfogadott (szigorú YYYY-mm-dd).
+        $this->assertFalse(\Request::validateDateFormat('2023-1-1'));
+    }
+
+    public function testValidateDateFormatAcceptsValid() {
+        $this->assertTrue(\Request::validateDateFormat('2023-01-01'));
+    }
+
+    // #374: get() tömbszerű (nested) kulcs, pl. church[lat]
+    public function testGetNestedArrayKey() {
+        $_REQUEST = ['church' => ['lat' => '47.5']];
+        $this->assertEquals('47.5', \Request::get('church[lat]'));
+    }
+
+    public function testGetNestedMissingKeyReturnsFalse() {
+        $_REQUEST = ['church' => ['lat' => '47.5']];
+        $this->assertFalse(\Request::get('church[missing]'));
+    }
+
+    // #374: Boolean()
+    public function testBooleanTrueFromString() {
+        $_REQUEST['b'] = '1';
+        $this->assertTrue(\Request::Boolean('b'));
+    }
+
+    public function testBooleanTrueFromWord() {
+        $_REQUEST['b'] = 'true';
+        $this->assertTrue(\Request::Boolean('b'));
+    }
+
+    public function testBooleanUnsetIsFalse() {
+        unset($_REQUEST['b']);
+        $this->assertFalse(\Request::Boolean('b'));
+    }
+
+    // #374: IntegerArray() — érvényes tömb átmegy, rossz elem/nem-tömb dob
+    public function testIntegerArrayValid() {
+        $_REQUEST['a'] = [1, 2, 3];
+        $this->assertEquals([1, 2, 3], \Request::IntegerArray('a'));
+    }
+
+    public function testIntegerArrayNonIntegerElementThrows() {
+        $_REQUEST['a'] = [1, 'x', 3];
+        $this->expectException(Exception::class);
+        \Request::IntegerArray('a');
+    }
+
+    public function testIntegerArrayNonArrayThrows() {
+        $_REQUEST['a'] = 'notarray';
+        $this->expectException(Exception::class);
+        \Request::IntegerArray('a');
+    }
 }
