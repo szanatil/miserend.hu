@@ -211,6 +211,44 @@ class Request {
         return (bool)$value;
     }
 
+    /**
+     * #391: pontosvesszővel (vagy megadott elválasztóval) tagolt float-lista.
+     * Hiányzó/üres bemenetre `false` (nem hiba — a hívó csendben kilép).
+     * Ha $count meg van adva, a darabszámot is ellenőrzi. Minden elemnek
+     * számnak kell lennie, egyébként Exception. Visszatérés: float-ök tömbje.
+     */
+    static function FloatList($name, $count = null, $separator = ';') {
+        $value = self::get($name);
+        if ($value === false || $value === '' || $value === null) {
+            return false;
+        }
+        $parts = array_map('trim', explode($separator, $value));
+        if ($count !== null && count($parts) != $count) {
+            throw new Exception("'$name' must be a list of $count numbers separated by '$separator'.");
+        }
+        $floats = [];
+        foreach ($parts as $part) {
+            if (!is_numeric($part)) {
+                throw new Exception("List '$name' contains a non-numeric value.");
+            }
+            $floats[] = (float) $part;
+        }
+        return $floats;
+    }
+
+    /**
+     * #391: bounding box — pontosvesszős 4-float lista (a térkép-ajaxokhoz).
+     * Hiányzó vagy rossz alakú bbox → `false`, hogy a hívó némán kiléphessen
+     * (a korábbi inline `count()!=4` / `is_numeric` őrökkel egyező viselkedés).
+     */
+    static function Bbox($name) {
+        try {
+            return self::FloatList($name, 4);
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
      static function validateDateFormat($value) {
         // Strict YYYY-mm-dd format validation
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {

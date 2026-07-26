@@ -6,12 +6,12 @@ class ChurchesInBBox extends Ajax {
 
     public function __construct() {
                
-        $bbox = explode(';',$_REQUEST['bbox']);
-        if(count($bbox) != 4 ) return ;
-        foreach($bbox as $int) {
-            if(!is_numeric($int)) return;
-        }
-        
+        // #391: a bbox parse+validáció a \Request::Bbox()-ba került (pontosvesszős
+        // 4-float lista). Hiányzó/rossz alakú bbox → false, ekkor némán kilépünk
+        // (mint korábban a count()!=4 / is_numeric őrök).
+        $bbox = \Request::Bbox('bbox');
+        if($bbox === false) return;
+
         $churchesInBBox = \Eloquent\Church::inBBox(['latMin'=>$bbox[0],'lonMin'=>$bbox[1],'latMax'=>$bbox[2],'lonMax'=>$bbox[3]])->get();
 
         $return = [];
