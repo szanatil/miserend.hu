@@ -12,7 +12,7 @@ class ChurchesInBBox extends Ajax {
         $bbox = \Request::Bbox('bbox');
         if($bbox === false) return;
 
-        $churchesInBBox = \Eloquent\Church::inBBox(['latMin'=>$bbox[0],'lonMin'=>$bbox[1],'latMax'=>$bbox[2],'lonMax'=>$bbox[3]])->get();
+         $churchesInBBox = \Eloquent\Church::where('ok','i')->inBBox(['latMin'=>$bbox[0],'lonMin'=>$bbox[1],'latMax'=>$bbox[2],'lonMax'=>$bbox[3]])->get();
 
         $return = [];
         global $user;
