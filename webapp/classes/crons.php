@@ -41,9 +41,6 @@ class Crons {
 			->delete();
 	}
 
-}
-
-
 	/**
 	 * #306: a cal_periods alapján gördíti a cal_periods_year-t. Minden FÜGGETLEN
 	 * időszakhoz (nincs start/end period_id ÉS nincs start/end month_day) beszúrja a
