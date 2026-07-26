@@ -25,6 +25,17 @@ class Suggestions extends \Html\Calendar\CalendarApi
 
     public function __construct($path)
     {
+        // #392: váratlan kivétel -> tiszta JSON hiba (nem HTML).
+        try {
+            $this->handle($path);
+        } catch (\Throwable $e) {
+            error_log('[calendar] ' . static::class . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            $this->sendJsonError('Váratlan hiba a naptár-műveletben.', 500);
+        }
+    }
+
+    private function handle($path)
+    {
         if (empty($path[0])) {
             $this->sendJsonError('Nem megfelelő URL!', 400);
         }
