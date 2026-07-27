@@ -88,7 +88,8 @@ class Catalogue extends \Html\Html {
                 'Rnj' => 'templomok nem jóváhagyott észrevétellel',
                 'Ru' => 'templomok új észrevétellel',
                 'Rf' => 'templomok folyamatban lévő észrevétellel',
-                'Sp' => 'javaslatokkal rendelkező templomok'
+                'Sp' => 'javaslatokkal rendelkező templomok',
+                'Hn' => 'gondnok nélküli templomok (nincs aktív gondnok)'
             ],
             'selected' => $this->filterStatus
         ];
@@ -150,6 +151,17 @@ class Catalogue extends \Html\Html {
 
             if (in_array($this->filterStatus, ['i', 'f', 'n'])) {
                 $search = $search->where('ok', $this->filterStatus);
+            }
+
+            // #504: gondnok nélküli templomok — nincs 'allowed' (aktív) church_holder soruk.
+            // (whereNotExists, mert a Church modellen nincs holders() reláció, csak accessor.)
+            if ($this->filterStatus === 'Hn') {
+                $search = $search->whereNotExists(function ($q) {
+                    $q->from('church_holders')
+                      ->whereColumn('church_holders.church_id', 'templomok.id')
+                      ->where('church_holders.status', 'allowed')
+                      ->whereNull('church_holders.deleted_at');
+                });
             }
 
         }
