@@ -36,8 +36,16 @@ class ChurchesInBoundary extends Ajax {
                 return;
             }
 
-            if ($elements === null) {
-                $elements = [];
+            // #572: ha az Overpass NEM adott vissza elemet (túlterhelt / üres / null válasz),
+            // NE szinkronizáljunk üresre — a sync() alább törölné a meglévő templom-
+            // társításokat, MIELŐTT az újak megérkeznének, és ha nem jönnek meg, csak
+            // veszítünk. Inkább megtartjuk a meglévőt és jelezzük, hogy próbálja később.
+            if (empty($elements)) {
+                $return['error'] = 'Az OSM (Overpass) most nem adott vissza adatot (valószínűleg túlterhelt). A meglévő társításokat megtartjuk — próbáld újra később.';
+                $return['church_ids'] = $churchIds; // a meglévő (fent lekért) lista marad
+                header('Content-Type: application/json');
+                echo json_encode($return);
+                return;
             }
 
             $churchIds = [];

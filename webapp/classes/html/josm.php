@@ -39,9 +39,19 @@ class Josm extends Html {
 
        $overpass = new \ExternalApi\OverpassApi();
        $overpass->downloadUrlMiserend();
-        if (!$overpass->jsonData->elements) {
-            throw new \Exception("Missing Json Elements from OverpassApi Query");
-        }
+        // #573: az Overpass API gyakran túlterhelt és üres/hibás választ ad. Korábban
+        // ilyenkor kivételt dobtunk → az EGÉSZ /josm oldal elszállt. Most inkább
+        // barátságos üzenettel, az OSM-függő részeket üresen hagyva betöltjük az oldalt
+        // (a DB-alapú rész — osmtags, cron-utolsó-futás — így is látszik).
+        if (empty($overpass->jsonData->elements)) {
+            addMessage('Az OSM (Overpass) adatok most nem elérhetők (valószínűleg túlterhelt). Az OSM-összevetés átmenetileg üres — próbáld újra pár perc múlva.', 'error');
+            $this->multipleOSMids = [];
+            $this->osmWBadChurch = [];
+            $this->countOsmData = 0;
+            $this->churchesWNoOsm = collect([]);
+            $this->churchesWBadOsm = collect([]);
+            $this->churchesWBad = collect([]);
+        } else {
 
 		$urlmiserends = [];
 		foreach($overpass->jsonData->elements as $element) {
@@ -85,6 +95,7 @@ class Josm extends Html {
         $this->churchesWBad = \Eloquent\Church::where('ok','i')
                 ->whereNotIn('id',$goodIDs)
                 ->get();
+        }
 			
     
         /* OSM tag variácók */
