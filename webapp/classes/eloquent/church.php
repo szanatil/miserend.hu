@@ -1329,7 +1329,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         }
         
         global $user;
-        if($user->uid == $_user->uid) {
+        if(isset($user) && $user->uid == $_user->uid) {
             $this->writeAcess = $access;
         }
         return $access;
