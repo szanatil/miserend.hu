@@ -8,6 +8,14 @@ class ChurchRelationshipTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         DB::beginTransaction();
+        // Izoláció a seed-adattól: a seed church_relationships valós templom-id-kra
+        // hivatkozik (child_church_id egészen 5435-ig), a teszt-templomok viszont
+        // auto-increment id-t kapnak (friss init: 5420-tól) — ezek ÜTKÖZNEK, amitől
+        // a `where('child_church_id', id)` egy EXTRA seed-relációt is visszaad, és a
+        // ancestors/descendants count nem-determinisztikusan hibás lesz (flaky).
+        // A tranzakción belül kiürítjük; a tearDown rollback visszaállítja a seedet.
+        DB::table('church_relationships')->delete();
+        DB::table('church_holders')->delete();
     }
 
     protected function tearDown(): void {
