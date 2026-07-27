@@ -120,7 +120,20 @@ class Edit extends \Html\Html {
         $this->church->log .= "\nMod: " . $user->login . " (" . date('Y-m-d H:i:s') . ")";
         
         /* Valamiért a writeAcess nem az igazi és mivel nincs a tálában ezért kiakadt...*/
+        // #44: figyeljük, változott-e a koordináta (save UTÁN már nem látszana a dirty-állapot).
+        $latLonChanged = $this->church->isDirty('lat') || $this->church->isDirty('lon');
         $this->church->save();
+
+        // #44: koordináta-módosításkor újraszámoljuk a szomszédságot (distances), különben
+        // a szomszédok listája elavulna az új pozícióhoz képest. Az esetleges hiba ne buktassa
+        // a mentést.
+        if ($latLonChanged) {
+            try {
+                $this->church->updateNeighbours();
+            } catch (\Throwable $e) {
+                error_log('[#44] updateNeighbours hiba a(z) ' . $this->tid . ' templomnál: ' . $e->getMessage());
+            }
+        }
 
         switch ($this->input['modosit']) {
             case 'n':
