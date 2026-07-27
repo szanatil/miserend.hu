@@ -77,6 +77,11 @@ class AutocompleteCombined extends Ajax {
             ->whereNotNull('osmid');
 
         $boundaries = $boundaryQuery
+            // #571: a PONTOS (majd prefix-) találat kerüljön előre. Enélkül egy rövid
+            // településnév (pl. "Áta") kiszorult a take(15) mögé, mert a %áta% substring
+            // sok más boundary-t is talál (117 db), és a religious_administration + kisebb
+            // admin_level sorok elé kerültek. Így az egyező település mindig a lista elején van.
+            ->orderByRaw("CASE WHEN name = ? THEN 0 WHEN name LIKE ? THEN 1 ELSE 2 END", [$text, $text . '%'])
             ->orderByRaw("CASE WHEN boundary = 'religious_administration' THEN 0 WHEN boundary = 'administrative' THEN 1 ELSE 2 END")
             ->orderBy('admin_level', 'asc')
             ->orderBy('name', 'asc')
