@@ -81,8 +81,17 @@ services:
         condition: service_healthy
       elasticsearch:
         condition: service_healthy
-    environment: 
+    # #610: az SMTP-beállításokat át KELL adni a konténernek. A `.env` önmagában csak a
+    # compose-fájl interpolációjához kell, a PHP-hez nem jut el belőle semmi. Enélkül a
+    # config.php alapértéke érvényesült, ami a dev mailcatcher-be küldött minden levelet.
+    # A `.env` a compose.yml mellé (docker/.env) kerül.
+    environment:
       - MISEREND_WEBAPP_ENVIRONMENT=production
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-25}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_SECURE=${SMTP_SECURE:-}
 
     networks:
       inner:
