@@ -6,11 +6,15 @@ class BoundaryGeoJson extends Ajax {
 
     public function __construct() {
         
-        if(!isset($_REQUEST['osm'])) return;
-                     
-        header('Content-Type: application/json');  
+        // #545: közvetlen $_REQUEST helyett a \Request:: olvasás. Az `osm` egy
+        // pontosvesszős lista (pl. "N:123;W:456"); a Text() üres sztringet ad
+        // hiányzáskor, ezért itt a régi isset-őrrel egyenértékű kilépés.
+        $osmParam = \Request::Text('osm');
+        if($osmParam === '') return;
+
+        header('Content-Type: application/json');
         echo "[";
-        $osmdatas = explode(';',$_REQUEST['osm']);
+        $osmdatas = explode(';', $osmParam);
         foreach($osmdatas as $key => $osmdata ) {
             
             preg_match('/(node|way|relation|N|W|R):([0-9]{1,8})$/i', $osmdata, $osm); 

@@ -28,7 +28,22 @@
 
 ## SMTP (production)
 
-Production-ben a SMTP a `.env` `SMTP_HOST` / `SMTP_PORT` szerint (config.php `production` ág). Engedélyezni kell:
+Production-ben a levélküldés az alábbi env-változókból konfigurálódik (`webapp/config.php`, `smtp` ág):
+
+| Változó | Alapérték | Megjegyzés |
+|---|---|---|
+| `SMTP_HOST` | *(üres)* | **Kötelező.** Üresen a rendszer egyetlen levelet sem küld ki, a `/health` pirosan jelzi. |
+| `SMTP_PORT` | `25` | |
+| `SMTP_USER` | *(üres)* | Ha meg van adva, bekapcsolja az SMTP-autentikációt. |
+| `SMTP_PASSWORD` | *(üres)* | |
+| `SMTP_SECURE` | *(üres)* | `tls` vagy `ssl` |
+
+A `.env` a compose-fájl mellé kerül (`docker/.env`), és a `docker/compose.yml` `environment` blokkja adja tovább a
+konténernek. **A `.env` önmagában nem elég**: a compose csak a saját interpolációjához olvassa, a PHP-hez nem jut el
+belőle semmi, ha a service nem sorolja fel a változókat (ez volt a #610 gyökere — az SMTP így a dev `mailcatcher`
+alapértéken maradt és minden levél elveszett).
+
+Engedélyezni kell:
 
 | Cél | Host | Port |
 |---|---|---|

@@ -13,6 +13,8 @@ class Edit extends \Html\Html {
     public function __construct($path) {
         global $user;
    
+        // #545: többdimenziós szerkesztő-űrlap nyers inputja. A mezőnkénti
+        // \Request:: átírás staging-tesztet igényel (mentés-folyamat), ezért marad.
         $this->input = $_REQUEST;
         $this->tid = $path[0];
         $this->church = \Eloquent\Church::find($this->tid);
@@ -118,7 +120,20 @@ class Edit extends \Html\Html {
         $this->church->log .= "\nMod: " . $user->login . " (" . date('Y-m-d H:i:s') . ")";
         
         /* Valamiért a writeAcess nem az igazi és mivel nincs a tálában ezért kiakadt...*/
+        // #44: figyeljük, változott-e a koordináta (save UTÁN már nem látszana a dirty-állapot).
+        $latLonChanged = $this->church->isDirty('lat') || $this->church->isDirty('lon');
         $this->church->save();
+
+        // #44: koordináta-módosításkor újraszámoljuk a szomszédságot (distances), különben
+        // a szomszédok listája elavulna az új pozícióhoz képest. Az esetleges hiba ne buktassa
+        // a mentést.
+        if ($latLonChanged) {
+            try {
+                $this->church->updateNeighbours();
+            } catch (\Throwable $e) {
+                error_log('[#44] updateNeighbours hiba a(z) ' . $this->tid . ' templomnál: ' . $e->getMessage());
+            }
+        }
 
         switch ($this->input['modosit']) {
             case 'n':
@@ -197,7 +212,7 @@ class Edit extends \Html\Html {
             'name' => "church[frissites]",
             'value' => date('Y-m-d'),
             'checked' => false,
-            'labelback' => 'Frissítsük a dátumot! (Utoljára frissítve: ' . date('Y.m.d.', strtotime($this->church->frissites)).')'
+            'labelback' => 'Frissítsük a dátumot! (Utoljára frissítve: ' . ($this->church->frissites ? date('Y.m.d.', strtotime($this->church->frissites)) : 'nincs adat').')' // #174-B: frissites nullable
         );
 				
         $this->title = $this->church->fullName;

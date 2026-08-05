@@ -86,8 +86,14 @@ class SearchResultsChurches extends Html {
         $offset = $this->pagination->take * $this->pagination->active;
         $limit = $this->pagination->take;        		        
         $results = [];
-        $results['results'] = $search->getResults($offset, $limit, false);                
+        $results['results'] = $search->getResults($offset, $limit, false);
         $resultsCount = $search->total;
+
+        // #575: ha a keresőmotor (Elasticsearch) nem elérhető, ne néma üres
+        // találati oldalt mutassunk, hanem érthető, nem-szakmai üzenetet.
+        if ($search->searchFailed) {
+            addMessage('A fejlett keresőmotorunk sajnos éppen nem elérhető. Kérlek, próbáld újra pár perc múlva.', 'error');
+        }
                 		
         
 

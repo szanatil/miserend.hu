@@ -16,6 +16,16 @@ class Masses extends \Html\Ajax\Calendar\CalendarApi {
     protected $elastic;
 
     public function __construct($path) {
+        // #392: váratlan kivétel -> tiszta JSON hiba (nem HTML).
+        try {
+            $this->handle($path);
+        } catch (\Throwable $e) {
+            error_log('[calendar] ' . static::class . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            $this->sendJsonError('Váratlan hiba a naptár-műveletben.', 500);
+        }
+    }
+
+    private function handle($path) {
 
         if (empty($path[0])) {
             $this->sendJsonError('Hiányzó templom azonosító.', 400);

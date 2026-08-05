@@ -1059,11 +1059,11 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       return this.eventService.simpleAcceptSuggestionPackage(selectedSuggestionPackage);
   }
 
-  onRejectSuggestion(selectedSuggestionPackage: SuggestionPackage) : Observable<{
+  onRejectSuggestion(selectedSuggestionPackage: SuggestionPackage, notifySender: boolean = false) : Observable<{
     suggestionPackages: SuggestionPackage[];
     calendarMasses: Mass[]
   }>  {
-    return this.eventService.simpleRejectSuggestionPackage(selectedSuggestionPackage);
+    return this.eventService.simpleRejectSuggestionPackage(selectedSuggestionPackage, notifySender);
   }
 
   public reLoadCalendar() {

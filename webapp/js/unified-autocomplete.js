@@ -185,6 +185,14 @@ const UnifiedAutocomplete = (function () {
             return false;
         }
 
+        // #569: a találati oldal UGYANAZT a #keyword mezőt kétszer inicializálja (egyszer az
+        // extraHead-ből, egyszer a bal oldali kereső-panelből). A 2. wrapInputField() új, ÜRES
+        // badge/rejtett-mező containerre állítja az inputField._ua-t, így a látható szűrő-badge-ek
+        // × gombjai a stale _ua-t hívják → a szűrők NEM kiikszelhetők. Inputonként egyszer init.
+        if (inputField._ua) {
+            return inputField._ua;
+        }
+
         injectStyles();
         wrapInputField(inputField, form);
         attachEventListeners(inputField);

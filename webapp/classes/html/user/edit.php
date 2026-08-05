@@ -25,6 +25,10 @@ class Edit extends \Html\Html {
     function modify() {
         global $user;
         
+        // #545: az `edituser` egy többdimenziós $_REQUEST-tömb (uid, roles, terms,
+        // robot, ...) vegyes értéktípusokkal, a submit() az egészet fogyasztja.
+        // Mezőnkénti \Request:: átírás staging-tesztet igényel (regisztráció +
+        // jogosultság-mentés), ezért ez a blokk egyelőre marad.
         $newuser = new \User(isset($_REQUEST['edituser']['uid']) ? $_REQUEST['edituser']['uid'] : false);
         
         if ((!isset($_REQUEST['terms']) OR $_REQUEST['terms'] != 1 ) AND $newuser->uid == 0 AND $user->uid == 0) {

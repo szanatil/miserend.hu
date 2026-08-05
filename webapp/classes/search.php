@@ -8,6 +8,7 @@ class Search {
     public $query =  ["bool" => ["must" => [], "must_not" => []]];
     public $sort = [];
     public $total = 0; // Találatok száma
+    public $searchFailed = false; // #575: true, ha az ES nem adott érvényes választ (nem elérhető ≠ 0 találat)
     public $filters = []; 
     public $massOrChurch = 'church';
     public $pitId = false; 
@@ -432,7 +433,12 @@ class Search {
             if($lastHit) {
                 $this->search_after = $lastHit->sort;
             }
-            
+
+        } else {
+            // #575: nincs `hits` a válaszban → az ES nem adott érvényes találati
+            // listát (nem fut / index gond / hálózati hiba). Ez NEM "0 találat",
+            // hanem a kereső elérhetetlensége — a hívó ezt jelzi a felhasználónak.
+            $this->searchFailed = true;
         }
 
         return $result;
