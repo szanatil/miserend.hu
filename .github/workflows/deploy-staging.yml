@@ -61,7 +61,10 @@ jobs:
             # A miserend image megépítése (a compose nem építi — a Dockerfile multi-stage
             # buildje csinálja a calendar + PHP fordítást is). Staging-saját tag, hogy a
             # prod localhost/miserend:latest-jét NE írja felül.
-            docker build -t "${MISEREND_IMAGE}" -f docker/miserend/Dockerfile .
+            docker build \
+              --build-arg NG_CONFIG=staging \
+              -t "${MISEREND_IMAGE}" \
+              -f docker/miserend/Dockerfile .
 
             # Friss adatbázis MINDEN deploynál: volume-ok törlése → nulláról seed.
             $COMPOSE down -v --remove-orphans
