@@ -1,5 +1,5 @@
 # #532: staging override. A compose.yml MELLÉ töltendő (NEM a compose.dev.yml mellé):
-#   docker compose --env-file docker/.env.staging -f docker/compose.yml -f docker/compose.staging.yml ...
+#   docker compose --env-file .env.staging -f docker/compose.yml -f docker/compose.staging.yml ...
 #
 # Miért nem a compose.dev.yml: az a host `../webapp`-ját mountolja a konténer kódja FÖLÉ,
 # így a hostion kellene `npm build`-elni a naptárt (borazslo által jelzett gubanc). Itt a

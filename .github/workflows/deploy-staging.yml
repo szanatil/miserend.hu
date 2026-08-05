@@ -9,7 +9,7 @@ name: 🚀 Deploy to staging
 #  - A staging a MEGÉPÍTETT image-et futtatja (a Dockerfile multi-stage buildje a
 #    calendar-t is legyártja) → nincs host-oldali `npm build`, nincs git-pull-gubanc.
 #  - A staging példány EL van különítve a prod-tól: külön projekt-név (`PROJECT`),
-#    külön image-tag (`MISEREND_IMAGE`) és külön portok — mind a `docker/.env.staging`-ben.
+#    külön image-tag (`MISEREND_IMAGE`) és külön portok — mind a `.env.staging`-ben.
 #  - Env `staging` (nem `production`) → a layout.twig noindex-et rak ki (#547).
 #  - MINDEN deploynál friss adatbázis: `docker compose down -v` → nulláról seed.
 #  - A productionhöz EZ SOSEM nyúl.
@@ -53,10 +53,10 @@ jobs:
 
             # A staging env-értékek (projekt-név, image-tag, portok) betöltése.
             set -a
-            . docker/.env.staging
+            . .env.staging
             set +a
 
-            COMPOSE="docker compose --env-file docker/.env.staging -f docker/compose.yml -f docker/compose.staging.yml"
+            COMPOSE="docker compose --env-file .env.staging -f docker/compose.yml -f docker/compose.staging.yml"
 
             # A miserend image megépítése (a compose nem építi — a Dockerfile multi-stage
             # buildje csinálja a calendar + PHP fordítást is). Staging-saját tag, hogy a

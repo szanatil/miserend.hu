@@ -94,7 +94,7 @@ services:
     # config.php alapértéke érvényesült, ami a dev mailcatcher-be küldött minden levelet.
     # A `.env` a compose.yml mellé (docker/.env) kerül.
     environment:
-      - MISEREND_WEBAPP_ENVIRONMENT=${MISEREND_ENV:-production}
+      - MISEREND_WEBAPP_ENVIRONMENT=production
       - SMTP_HOST=${SMTP_HOST:-}
       - SMTP_PORT=${SMTP_PORT:-25}
       - SMTP_USER=${SMTP_USER:-}
