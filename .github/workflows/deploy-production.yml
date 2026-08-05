@@ -63,7 +63,7 @@ jobs:
             TIMESTAMP=$(date +%Y-%m-%d_%H%M%S)
             BACKUP_FILE="$BACKUP_DIR/miserend-$TIMESTAMP.sql.gz"
 
-            $COMPOSE exec -T mysql mysqldump \
+            $COMPOSE exec -T mysql mariadb-dump \
               -u root -ppw \
               --all-databases \
               --single-transaction \
