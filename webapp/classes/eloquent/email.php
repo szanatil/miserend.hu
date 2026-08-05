@@ -16,7 +16,23 @@ class Email extends \Illuminate\Database\Eloquent\Model {
     function addToQueue($to = false) {
 		if($to) $this->to = $to;
         $this->status = 'queued';
-        return $this->save();        
+        return $this->save();
+    }
+
+    /**
+     * #290: A queue-ba tett ('queued') emailek kiküldése. Eddig NEM volt queue-drainer
+     * a rendszerben (mindenki send()-et hívott inline); a #290 az addToQueue()-t
+     * használja, ezt a metódust pedig cron hívja batchenként korlátozva.
+     */
+    static function sendQueued($limit = 20) {
+        $queued = self::where('status', 'queued')
+            ->orderBy('created_at')
+            ->limit($limit)
+            ->get();
+        foreach ($queued as $email) {
+            $email->send();
+        }
+        return true;
     }
     
     function send($to = false) {
