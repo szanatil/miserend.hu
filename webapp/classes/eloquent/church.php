@@ -719,12 +719,33 @@ class Church extends \Illuminate\Database\Eloquent\Model {
     }
 
     public function getNeighboursAttribute () {
-        return $this->neighbourss()
-                    ->limit(10)
-                    ->get();
-        exit;
-        return $this->neighbours()->where("distance", "<=", $distance)->get();
-    }    
+        // #103: mindkét irányban keresünk. Egy pár a distances-ben csak EGYSZER szerepel
+        // (from→to), a régi accessor viszont csak a `from = ez` sorokat nézte — ezért ha a
+        // templomot a SZOMSZÉDJA dolgozta fel (ez volt a 'to'), 0 szomszédot mutatott. Most
+        // a templom lehet 'from' VAGY 'to', és mindig a MÁSIK végpont templomát adjuk vissza.
+        if (empty($this->lat) || empty($this->lon)) {
+            return collect();
+        }
+        $rows = \Eloquent\Distance::where(function($q) {
+                    $q->where('fromLat', $this->lat)->where('fromLon', $this->lon);
+                })->orWhere(function($q) {
+                    $q->where('toLat', $this->lat)->where('toLon', $this->lon);
+                })->orderBy('distance', 'ASC')->limit(30)->get();
+
+        $result = collect();
+        foreach ($rows as $d) {
+            $isFrom = ($d->fromLat == $this->lat && $d->fromLon == $this->lon);
+            $lat = $isFrom ? $d->toLat : $d->fromLat;
+            $lon = $isFrom ? $d->toLon : $d->fromLon;
+            $church = \Eloquent\Church::where('lat', $lat)->where('lon', $lon)->where('ok', 'i')->first();
+            if ($church) {
+                $church->distance = $d->distance;
+                $result->push($church);
+                if ($result->count() >= 10) break;
+            }
+        }
+        return $result;
+    }
     
     
     /**
@@ -1033,7 +1054,18 @@ class Church extends \Illuminate\Database\Eloquent\Model {
     }
 
     public function getDenominationAttribute($value) {
-        return  in_array($this->egyhazmegye,[34,17,18]) ? 'greek_catholic' : 'roman_catholic';
+        // #542 (borazslo): a denomination az OSM-ből származzon — az `attributes` tábla
+        // 'denomination' kulcsából (fromOSM=1, az OSM-sync tölti) —, nem a törékeny
+        // egyházmegye-id (17,18,34) heurisztikából. A `templomok.denomination` oszlop
+        // kivezetésre szánt (mindig NULL, semmi nem írja).
+        // ÁTMENETI fallback: amíg az OSM-sync nem fed le minden templomot, a korábbi
+        // egyházmegye-alapú érték marad (regresszió-mentesség) — eltávolítható, ha az
+        // OSM-denomination minden templomra megvan.
+        $osm = $this->attributes()->where('key', 'denomination')->value('value');
+        if (!empty($osm)) {
+            return $osm;
+        }
+        return in_array($this->egyhazmegye, [34, 17, 18]) ? 'greek_catholic' : 'roman_catholic';
     }
     
     public function getHoldersAttribute($value) {
