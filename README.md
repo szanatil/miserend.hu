@@ -106,6 +106,11 @@ Fejlesztői környezetben indul egy Mailcatcher is, ami a levelezés szimulálá
 
 Alapértelmezetten a http://localhost:11080/ oldalon lehet nyomon követni a kiküldött emaileket. 
 
+Éles (`production`) és `staging` környezetben viszont a mailcatcher **nem** alapértelmezés: ott az `SMTP_HOST` /
+`SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_SECURE` env-változókat kötelező megadni (`docker/.env`, l.
+[docs/outgoing-connections.md](docs/outgoing-connections.md)). Ha nincs beállítva SMTP kiszolgáló, a rendszer nem
+küld ki levelet, és a `/health` oldal „Levelezőrendszer egészsége” blokkja pirosan jelzi az okát. (#610)
+
 
 ## Miserend web alkalmazás (PHP)
 
