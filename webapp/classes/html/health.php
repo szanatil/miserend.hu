@@ -253,8 +253,17 @@ class Health extends Html {
 			->get();
 
 		$this->mailing = $config['smtp'];
+		unset($this->mailing['Password']); // a health oldal ne szivárogtassa ki
 		$this->mailing['debug'] = $config['mail']['debug'];
-		
+
+		// #610: a levélküldés némán dőlt el a konfigurációnál — ez legyen látható.
+		$this->mailing['warning'] = false;
+		if (trim((string) $this->mailing['Host']) === '') {
+			$this->mailing['warning'] = 'Nincs beállítva SMTP kiszolgáló (SMTP_HOST): egyetlen levél sem megy ki.';
+		} elseif (in_array($config['env'], ['production','staging']) AND $this->mailing['Host'] == 'mailcatcher') {
+			$this->mailing['warning'] = 'A(z) '.$config['env'].' környezet a dev mailcatcher-re küld: minden levél elveszik.';
+		}
+
 		$email = new \Eloquent\Email();
 
 		$html = '';

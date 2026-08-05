@@ -1,6 +1,6 @@
 <?php
 
-namespace html\calendar;
+namespace Html\Ajax\Calendar;
 
 use Carbon\Carbon;
 
@@ -12,11 +12,21 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-class Periods extends \Html\Calendar\CalendarApi {
+class Periods extends \Html\Ajax\Calendar\CalendarApi {
 
     private array $years;
 
     public function __construct($path) {
+        // #392: váratlan kivétel -> tiszta JSON hiba (nem HTML).
+        try {
+            $this->handle($path);
+        } catch (\Throwable $e) {
+            error_log('[calendar] ' . static::class . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            $this->sendJsonError('Váratlan hiba a naptár-műveletben.', 500);
+        }
+    }
+
+    private function handle($path) {
         global $user;
 
         $this->years = [

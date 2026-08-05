@@ -7,5 +7,13 @@
             <small style="color: #666; display: block; margin-bottom: 8px; font-weight: bold;">Admin funkciók:</small>
             {% include "church/_adminlinks.twig" %}
         </div>
+        {# #505: aktív (engedélyezett) gondnok jelzése az adatlapon #}
+        <div style="margin-top: 8px;">
+            {% if activeHolderCount > 0 %}
+                <span class="label label-success" title="A templomnak van engedélyezett gondnoka."><i class="fa-solid fa-user-check"></i> Van aktív gondnok ({{ activeHolderCount }})</span>
+            {% else %}
+                <span class="label label-warning" title="A templomnak nincs engedélyezett gondnoka — érdemes gondnokot keresni."><i class="fa-solid fa-user-slash"></i> Nincs aktív gondnok</span>
+            {% endif %}
+        </div>
     </div>
 {% endif %}

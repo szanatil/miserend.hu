@@ -130,7 +130,12 @@ class Church extends \Html\Html {
   
 								
         copyArrayToObject($church->toArray(), $this);
-		
+
+        // #505: az adatlap admin/szerkesztő nézetében jelezzük, van-e a templomnak
+        // aktív (engedélyezett) gondnoka. A részletes lista a _panelholders.twig-ben marad.
+        $this->activeHolderCount = \Eloquent\ChurchHolder::where('church_id', $church->id)
+            ->where('status', 'allowed')->count();
+
         global $_tidsToWorkWith;
         if(in_array($this->id, $_tidsToWorkWith)) {
             $this->hasWorkAccess = false;
@@ -146,7 +151,7 @@ class Church extends \Html\Html {
         else 
             $this->setTitle($this->names[0]);
         
-        $this->updated = str_replace('-', '.', $this->frissites) . '.';
+        $this->updated = $this->frissites ? str_replace('-', '.', $this->frissites) . '.' : ''; // #174-B: frissites nullable
 
         /*
           $staticmap = "kepek/staticmaps/" . $tid . "_227x140.jpeg";

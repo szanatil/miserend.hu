@@ -1,6 +1,6 @@
 <?php
 
-namespace Html\Calendar;
+namespace Html\Ajax\Calendar;
 
 use Eloquent\CalMass;
 use Eloquent\CalSuggestion;
@@ -19,11 +19,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 header("Access-Control-Allow-Origin: *");
 
-class Suggestions extends \Html\Calendar\CalendarApi
+class Suggestions extends \Html\Ajax\Calendar\CalendarApi
 {
     private bool $modify;
 
     public function __construct($path)
+    {
+        // #392: váratlan kivétel -> tiszta JSON hiba (nem HTML).
+        try {
+            $this->handle($path);
+        } catch (\Throwable $e) {
+            error_log('[calendar] ' . static::class . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            $this->sendJsonError('Váratlan hiba a naptár-műveletben.', 500);
+        }
+    }
+
+    private function handle($path)
     {
         if (empty($path[0])) {
             $this->sendJsonError('Nem megfelelő URL!', 400);
@@ -150,6 +161,24 @@ class Suggestions extends \Html\Calendar\CalendarApi
             } catch (\Throwable $e) {
                 Capsule::connection()->rollBack();                
                 $this->sendJsonError('Hiba történt a javaslatok alkalmazása során: ' . $e->getMessage(), 500);
+            }
+        }
+
+        // #543: a beküldő értesítése (ha adott meg emailt). Elfogadáskor automatikus
+        // köszönő-levél; elutasításkor csak ha a kezelő kéri (notify_sender flag — ezt
+        // az Angular felület küldheti; default: nem küldünk, mert néha látszik, hogy
+        // valaki véletlen többet küldött be). Ide csak a state-save + a sikeres ACCEPTED-
+        // apply UTÁN jutunk el (az apply hibája fentebb sendJsonError-rel kilép). Az
+        // email-hiba NE buktassa a már elmentett javaslat-státuszt.
+        if (!empty($package->sender_email)) {
+            try {
+                if ($input['state'] === 'ACCEPTED') {
+                    $package->sendMail('accepted_sender', $package->sender_email);
+                } elseif ($input['state'] === 'REJECTED' && !empty($input['notify_sender'])) {
+                    $package->sendMail('rejected_sender', $package->sender_email);
+                }
+            } catch (\Throwable $e) {
+                // csendben elnyeljük — a státusz már mentve, az email másodlagos
             }
         }
 
@@ -298,6 +327,17 @@ class Suggestions extends \Html\Calendar\CalendarApi
                         'changes' => $suggestion['changes'] ?? null,
                     ]);
                 }
+            }
+
+            // #307: értesítjük az adminokat / egyházmegyei felelőst / templom-gazdákat.
+            // A küldés a tranzakción belül van, de a try/catch elnyeli az SMTP- vagy
+            // template-hibákat (csak error_log-ba kerül) — a tranzakció EZÉRT NEM
+            // görgetődik vissza. A javaslat akkor is legitim, ha az értesítő email
+            // valamiért nem ment ki; a felhasználói flow nem akadhat el SMTP-fennakadáson.
+            try {
+                $package->emails();
+            } catch (\Throwable $emailError) {
+                error_log("CalSuggestionPackage #{$package->id} email error: " . $emailError->getMessage());
             }
 
             $this->content = json_encode(["success" => true, "id" => $package->id]);

@@ -1,10 +1,10 @@
 <?php
 
-namespace Html\Calendar;
+namespace Html\Ajax\Calendar;
 
 use ExternalApi\NapilelkibatyuApi;
 
-class Liturgicaldays extends \Html\Calendar\CalendarApi {
+class Liturgicaldays extends \Html\Ajax\Calendar\CalendarApi {
 
     public function __construct() {
         try {
@@ -83,7 +83,10 @@ class Liturgicaldays extends \Html\Calendar\CalendarApi {
             }
         }
 
-        // Default: take first 4 characters and add a dot
-        return substr($fullName, 0, 4) . '.';
+        // Default: take first 4 characters and add a dot.
+        // #374: mb_substr, nem substr — a byte-alapú substr félbevághat egy többbájtos
+        // UTF-8 karaktert (pl. 'Á'), amitől érvénytelen UTF-8 keletkezik, a json_encode
+        // FALSE-t ad, és az EGÉSZ liturgikus-nap endpoint üres választ ad vissza.
+        return mb_substr($fullName, 0, 4, 'UTF-8') . '.';
     }
 }

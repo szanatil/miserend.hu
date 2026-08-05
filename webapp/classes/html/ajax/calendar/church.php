@@ -1,5 +1,5 @@
 <?php
-namespace html\calendar;
+namespace Html\Ajax\Calendar;
 
 use ExternalApi\ElasticsearchApi;
 use Eloquent\CalMass;
@@ -9,13 +9,24 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-class Church extends \Html\Calendar\CalendarApi {
+class Church extends \Html\Ajax\Calendar\CalendarApi {
 
     protected $elastic;
     public $tid;
     public $church;
 
     public function __construct($path) {
+        // #392: minden váratlan kivétel tiszta JSON hibaválasz legyen (ne az index.php
+        // globális HTML-handlere, amin a JSON-t váró naptár-kliens elhasal).
+        try {
+            $this->handle($path);
+        } catch (\Throwable $e) {
+            error_log('[calendar] ' . static::class . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            $this->sendJsonError('Váratlan hiba a naptár-műveletben.', 500);
+        }
+    }
+
+    private function handle($path) {
 
         if (empty($path[0])) {
             $this->sendJsonError('Hiányzó templom azonosító.', 400);
@@ -54,10 +65,16 @@ class Church extends \Html\Calendar\CalendarApi {
                     $c++;   
                 }
                 
+                if( isset($this->church->location->country['name']) and $this->church->location->country['name'] == 'Magyarország')                    
+                    $country = 'HU';
+                else
+                    $country = false;
+
                 $response = [
                     'id' => $this->tid,
                     'name' => $this->church->nev,
                     'rite' => strtoupper($this->church->denomination),
+                    'country' => $country,
                     'timeZone' => 'Europe/Budapest',
                     'hasExternalCalendar' => $this->church->hasExternalCalendar,
                     'eventsFromSensor' => $confessions,

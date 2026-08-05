@@ -236,6 +236,12 @@ class SearchResultsMasses extends Html {
         $applyNarrowingFilters($search);
         $results = $search->getResults($offset, $limit, false);
 
+        // #575: ha a keresőmotor (Elasticsearch) nem elérhető, érthető üzenet a
+        // néma üres oldal helyett. (A #357 lazított 2. menet is elhasalna ES nélkül.)
+        if ($search->searchFailed) {
+            addMessage('A fejlett keresőmotorunk sajnos éppen nem elérhető. Kérlek, próbáld újra pár perc múlva.', 'error');
+        }
+
         // #357: ha 0 találat ÉS volt szűkítő szűrő → 2. menet a szűkítők nélkül.
         if ($search->total == 0 && $hasNarrowingFilters) {
             $relaxed = new \Search('masses');

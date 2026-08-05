@@ -678,9 +678,10 @@ class Church extends \Illuminate\Database\Eloquent\Model {
     }
 
     public function updateNeighbours() {
-        //TODO: Does not work! 
-        // "Call to undefined method Illuminate\Database\Query\Builder::MupdateChurch()"
-        $distance = new Distance();        
+        // #172: a globális \Distance kell (azon van a MupdateChurch). Az Eloquent
+        // névtérben a sima `new Distance()` a modellt (\Eloquent\Distance) hozná,
+        // ami nem ismeri a metódust -> "Call to undefined method MupdateChurch()".
+        $distance = new \Distance();
         $distance->MupdateChurch($this);
     }
     
@@ -718,14 +719,59 @@ class Church extends \Illuminate\Database\Eloquent\Model {
     }
 
     public function getNeighboursAttribute () {
-        return $this->neighbourss()
-                    ->limit(10)
-                    ->get();
-        exit;
-        return $this->neighbours()->where("distance", "<=", $distance)->get();
-    }    
+        // #103: mindkét irányban keresünk. Egy pár a distances-ben csak EGYSZER szerepel
+        // (from→to), a régi accessor viszont csak a `from = ez` sorokat nézte — ezért ha a
+        // templomot a SZOMSZÉDJA dolgozta fel (ez volt a 'to'), 0 szomszédot mutatott. Most
+        // a templom lehet 'from' VAGY 'to', és mindig a MÁSIK végpont templomát adjuk vissza.
+        if (empty($this->lat) || empty($this->lon)) {
+            return collect();
+        }
+        $rows = \Eloquent\Distance::where(function($q) {
+                    $q->where('fromLat', $this->lat)->where('fromLon', $this->lon);
+                })->orWhere(function($q) {
+                    $q->where('toLat', $this->lat)->where('toLon', $this->lon);
+                })->orderBy('distance', 'ASC')->limit(30)->get();
+
+        $result = collect();
+        foreach ($rows as $d) {
+            $isFrom = ($d->fromLat == $this->lat && $d->fromLon == $this->lon);
+            $lat = $isFrom ? $d->toLat : $d->fromLat;
+            $lon = $isFrom ? $d->toLon : $d->fromLon;
+            $church = \Eloquent\Church::where('lat', $lat)->where('lon', $lon)->where('ok', 'i')->first();
+            if ($church) {
+                $church->distance = $d->distance;
+                $result->push($church);
+                if ($result->count() >= 10) break;
+            }
+        }
+        return $result;
+    }
     
     
+    /**
+     * #174-B: a `frissites` biztonságos olvasása. NULL, üres string ÉS a régi
+     * '0000-00-00[ 00:00:00]' szemét-érték egyaránt "nincs adat" (null). Így a
+     * kód akkor is helyesen viselkedik, ha a 0000-00-00 -> NULL adatbázis-
+     * migráció MÉG NEM futott le - a merge nem függ a migráció időzítésétől.
+     * (A '0000-00-00' TRUTHY string, ezért a sima `$this->frissites ?` check
+     * NEM kapná el, és strtotime('0000-00-00') === false-tól visszatérne a bug.)
+     */
+    private function frissitesOrNull(): ?string
+    {
+        $f = $this->frissites;
+        if (empty($f) || strpos((string) $f, '0000-00-00') === 0) {
+            return null;
+        }
+        return $f;
+    }
+
+    /** #174-B: a frissites formázva ('Y-m-d H:i:s'), vagy null ha nincs adat. */
+    private function frissitesFormatted(): ?string
+    {
+        $f = $this->frissitesOrNull();
+        return $f !== null ? date('Y-m-d H:i:s', strtotime($f)) : null;
+    }
+
     public function toAPIArray($length = "minimal", $whenMass = false)
     {
 
@@ -784,7 +830,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             $return = [
                 'id' => $this->id,
                 'nev' => !empty($this->names) ? $this->names[0] : '',
-                'frissitve' => date('Y-m-d H:i:s', strtotime($this->frissites)),
+                'frissitve' => $this->frissitesFormatted(),
                 'ismertnev' => !empty($this->alternative_names) ? $this->alternative_names[0] : '',
                 'orszag' => ( DB::table('orszagok')->where('id', $this->orszag)->value('nev') ?: "" ),
                 'varos' => $this->varos,
@@ -809,7 +855,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             'nev' => !empty($this->names) ? $this->names[0] : '',
             'ismertnev' => !empty($this->alternative_names) ? $this->alternative_names[0] : '',
             'alternative_names' => $this->alternative_names,
-            'frissitve' => date('Y-m-d H:i:s', strtotime($this->frissites)),            
+            'frissitve' => $this->frissitesFormatted(),            
             'orszag' => ( DB::table('orszagok')->where('id', $this->orszag)->value('nev') ?: "" ),
             'egyhazmegye' => ( DB::table('egyhazmegye')->where('id', $this->egyhazmegye)->value('nev') ?: "" ),
             'megye' => ( DB::table('megye')->where('id', $this->megye)->value('megyenev') ?: "" ),
@@ -1008,7 +1054,18 @@ class Church extends \Illuminate\Database\Eloquent\Model {
     }
 
     public function getDenominationAttribute($value) {
-        return  in_array($this->egyhazmegye,[34,17,18]) ? 'greek_catholic' : 'roman_catholic';
+        // #542 (borazslo): a denomination az OSM-ből származzon — az `attributes` tábla
+        // 'denomination' kulcsából (fromOSM=1, az OSM-sync tölti) —, nem a törékeny
+        // egyházmegye-id (17,18,34) heurisztikából. A `templomok.denomination` oszlop
+        // kivezetésre szánt (mindig NULL, semmi nem írja).
+        // ÁTMENETI fallback: amíg az OSM-sync nem fed le minden templomot, a korábbi
+        // egyházmegye-alapú érték marad (regresszió-mentesség) — eltávolítható, ha az
+        // OSM-denomination minden templomra megvan.
+        $osm = $this->attributes()->where('key', 'denomination')->value('value');
+        if (!empty($osm)) {
+            return $osm;
+        }
+        return in_array($this->egyhazmegye, [34, 17, 18]) ? 'greek_catholic' : 'roman_catholic';
     }
     
     public function getHoldersAttribute($value) {
@@ -1062,10 +1119,16 @@ class Church extends \Illuminate\Database\Eloquent\Model {
                 $jelzes.=" <img src=/img/ora.gif title='Feltöltött/módosított templom, áttekintésre vár!' align=absmiddle> ";
 
             if($this->ok == 'i' AND $this->miseaktiv == 1) {
-                $updatedTime = strtotime($this->frissites);
-                if($updatedTime < strtotime("-10 years")) {
+                // #174-B: frissites lehet NULL (új sémában a 0000-00-00
+                // helyett). strtotime(NULL) === false, ami a < strtotime()
+                // összehasonlításban truthy-vá válna, és minden NULL templomra
+                // hibásan "Több mint 10 éves" warningot adna ki. NULL = nincs
+                // adat, nem adunk warningot.
+                $f = $this->frissitesOrNull();
+                $updatedTime = $f !== null ? strtotime($f) : null;
+                if($updatedTime !== null && $updatedTime < strtotime("-10 years")) {
                     $jelzes.=" <i class='fa fa-exclamation-triangle fa-lg red' title='Több mint 10 éves adatok!' > </i> ";
-                } elseif ($updatedTime < strtotime("-5 year")) {
+                } elseif ($updatedTime !== null && $updatedTime < strtotime("-5 year")) {
                     $jelzes.=" <i class='fa fa-exclamation fa-lg red' title='Több mint öt éves adatok!'> </i> ";
                 } 
             }
@@ -1298,7 +1361,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         }
         
         global $user;
-        if($user->uid == $_user->uid) {
+        if(isset($user) && $user->uid == $_user->uid) {
             $this->writeAcess = $access;
         }
         return $access;

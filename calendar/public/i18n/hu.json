@@ -306,5 +306,18 @@
   "SCHEDULE_OUTDATED_MESSAGE_YEARS": "éve nem volt frissítve a miserend.",
   "SCHEDULE_OUTDATED_MESSAGE_MONTHS": "hónapja nem volt frissítve a miserend.",
   "SCHEDULE_OUTDATED_MESSAGE_SUFFIX": "Kérlek frissítsd az adatokat. Ha így jó ahogy van, kattints ide:",
-  "SCHEDULE_MARK_AS_CURRENT": "A miserend így pontos"
+  "SCHEDULE_MARK_AS_CURRENT": "A miserend így pontos",
+
+  "CHURCH_RANK": {
+    "parish":           "plébánia",
+    "auxiliary":  "oldallagosan ellátott plébánia",
+    "filial":    "fília",
+    "rectoral":        "templomigazgatóság",
+    "unknown":          "ismeretlen"
+  },
+  "CHURCH_RELATIONSHIP_TYPE": {
+    "subordinate":               "alá-fölé rendelt",
+    "associated":                "mellérendelt",
+    "territorially_independent": "területileg ott van, de lényegében független"
+  }
 }

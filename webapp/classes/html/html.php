@@ -25,6 +25,10 @@ class Html {
     public $errorTrace;
 
     function __construct() {
+        // #545: ez a nyers-input GYÖKÉR — minden Html-oldalon elérhető a $this->input
+        // szűretlen $_REQUEST-ként. Kiváltása a html/ mappa mind a ~73 ->input[...]
+        // használatának átírását + staging-tesztet igényel (form-mentés, kép-feltöltés),
+        // ezért külön, tesztelt lépésben megy — nem itt, vakon.
         $this->input = $_REQUEST;
         $this->initPagination();
     }
@@ -65,6 +69,7 @@ class Html {
         $this->twig->addFilter(new \Twig\TwigFilter('phone_links', 'twig_phone_links'));
         $this->twig->addFilter(new \Twig\TwigFilter('strip_protocol', 'twig_strip_protocol'));
         $this->twig->addFilter(new \Twig\TwigFilter('facebook_path', 'twig_facebook_path'));
+        $this->twig->addFilter(new \Twig\TwigFilter('readable_rrule', 'twig_readable_rrule'));
         // DANGER: a twig declarálva van / meg van hívva a Load.php -ban is. Így ott is módosítani kellhet a filterket
         $this->twig->addGlobal('domain', DOMAIN); // Environment-specific domain for email templates
 
@@ -216,7 +221,7 @@ class Html {
         }
 
         if(!$toString)
-            echo "<pre>".$return."<pre>";
+            echo "<pre>".$return."</pre>";
        
         return $return;
     }

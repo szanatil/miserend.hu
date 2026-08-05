@@ -34,7 +34,7 @@ class NapilelkibatyuApi extends \ExternalApi\ExternalApi {
 			return false;
 		}
 		
-		return $this->extractDateInfo();
+		return $this->extractDateInfo($date);
 	}
 
 	/**

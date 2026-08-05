@@ -1,5 +1,5 @@
 <?php
-namespace Html\Calendar;
+namespace Html\Ajax\Calendar;
 
 use Carbon\Carbon;
 use ExternalApi\ElasticsearchApi;
@@ -17,7 +17,7 @@ if (!headers_sent()) {
     }
 }
 
-class Generate extends \Html\Calendar\CalendarApi {
+class Generate extends \Html\Ajax\Calendar\CalendarApi {
 
     protected $elastic;
     public $format = 'json';
@@ -29,18 +29,39 @@ class Generate extends \Html\Calendar\CalendarApi {
             return;            
         }   
 
-        $this->elastic = new ElasticsearchApi();        
-        if (!$this->elastic->isexistsIndex('mass_index')) {
-            $this->createMassIndex();            
+        // #392: az ES-kapcsolat / index-létrehozás (createMassIndex, ami "File not
+        // found" / "Failed to create index" throw-okat dobhat) eddig az index.php
+        // globális catch-éig ért, ami HTML Exception-oldalt renderel — nem JSON-t.
+        // Egy JSON-t váró calendar-kliens ezen JSON.parse-szal elhasal. Wrapping ->
+        // mindig tiszta JSON hibaválasz.
+        try {
+            $this->elastic = new ElasticsearchApi();
+            if (!$this->elastic->isexistsIndex('mass_index')) {
+                $this->createMassIndex();
+            }
+        } catch (\Throwable $e) {
+            $this->sendJsonError('Elasticsearch előkészítése sikertelen: ' . $e->getMessage(), 503);
         }
 
-        $this->tids = \Request::IntegerArrayRequired('tids');
+        // #392: az IntegerArrayRequired hiányzó/nem-numerikus paraméterre Exception-t dob;
+        // enélkül a globális handler HTML-hibaoldalt renderelne a JSON-kliensnek (a #392-tünet).
+        try {
+            $this->tids = \Request::IntegerArrayRequired('tids');
+        } catch (\Throwable $e) {
+            $this->sendJsonError('Hiányzó vagy érvénytelen templom ID.', 400);
+            exit;
+        }
         if (empty($this->tids)) {
             $this->sendJsonError('Nincs templom ID megadva.', 400);
             exit;
         }
 
-        $this->years = \Request::IntegerArrayRequired('years');
+        try {
+            $this->years = \Request::IntegerArrayRequired('years');
+        } catch (\Throwable $e) {
+            $this->sendJsonError('Hiányzó vagy érvénytelen év.', 400);
+            exit;
+        }
         if (empty($this->years)) {
             $this->sendJsonError('Nincs év megadva.', 400);
             exit;
@@ -58,15 +79,22 @@ class Generate extends \Html\Calendar\CalendarApi {
                   break;
                               
             case 'PUT':
+                // #392: az updateMasses() dobhat (ES timeout, network, mapping
+                // conflict) — nyers throw helyett JSON hibaválasz. A debug-logolás
+                // a master logger-callbackjén marad ($generateLog).
                 $generateLog = [];
-                $debug = \ExternalApi\ElasticsearchApi::updateMasses($this->years, $this->tids,
-                    function($msg) use (&$generateLog) { $generateLog[] = $msg; }
-                );
+                try {
+                    $debug = \ExternalApi\ElasticsearchApi::updateMasses($this->years, $this->tids,
+                        function($msg) use (&$generateLog) { $generateLog[] = $msg; }
+                    );
 
-                $this->content = json_encode([
-                    'success' => true,
-                    'debug'   => array_merge($debug ?? [], $generateLog, $this->debugLog)
-                ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+                    $this->content = json_encode([
+                        'success' => true,
+                        'debug'   => array_merge($debug ?? [], $generateLog, $this->debugLog)
+                    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+                } catch (\Throwable $e) {
+                    $this->sendJsonError('Misék regenerálása sikertelen: ' . $e->getMessage(), 500);
+                }
                 break;
         }}
 
