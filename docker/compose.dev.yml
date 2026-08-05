@@ -19,6 +19,9 @@ services:
         aliases:
           - mailcatcher
   miserend:
+    build:
+      context: ..
+      dockerfile: docker/miserend/Dockerfile
     depends_on:
       npm-init:
         condition: service_completed_successfully
