@@ -49,6 +49,20 @@ Engedélyezni kell:
 |---|---|---|
 | SMTP relay | (config-tól függ) | 25 / 465 / 587 |
 
+### Kézbesíthetőség
+
+Az SMTP `250` válasz csak azt igazolja, hogy a relay átvette a levelet, a címzetti
+kézbesítést nem. A feladó domain SPF rekordjának engedélyeznie kell a relay tényleges
+kimenő IP-jét, és a relay naplójában kell ellenőrizni az esetleges későbbi visszapattanást.
+
+A #610 vizsgálatakor az `epistola.hcbc.hu` relay nem szerepelt a `miserend.hu` SPF
+rekordjában. Ha továbbra is ez a szolgáltató küld, az SPF-hez a szolgáltató által megadott
+`include:` mechanizmust (jelenleg `include:epistola.hcbc.hu`) kell hozzáadni úgy, hogy
+egyetlen SPF rekord maradjon. Ne a relay fogadó A rekordját vegyük fel találomra: a kimenő
+IP eltérhet tőle. A módosítás után külső címre küldött tesztlevél fejlécében ellenőrizni
+kell az SPF eredményt; ha nem `pass`, a relay naplója alapján kell azonosítani a tényleges
+kimenő címet.
+
 ## Container image registry-k
 
 Build / pull időben kellhet:
