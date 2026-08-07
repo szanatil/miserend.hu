@@ -83,10 +83,18 @@ class SearchResultsMasses extends Html {
         }
 
         // Time range search
-        $start_date = (isset($params['start_date']) AND $params['start_date'] != '') ? $params['start_date'] : date('Y-m-d');
-        $start_time = (isset($params['start_time']) AND $params['start_time'] != '') ? $params['start_time'] : '00:00';
-        $end_date = (isset($params['end_date']) AND $params['end_date'] != '') ? $params['end_date'] : date('Y-m-d', strtotime('+1 week'));
-        $end_time = (isset($params['end_time']) AND $params['end_time'] != '') ? $params['end_time'] : '23:59';
+        // #608: a dátum és az idő ellenőrzés nélkül ment tovább az Elasticsearchbe és a
+        // liturgikus API-nak, így egy elgépelt érték nyers ES-stacktrace-t öntött a
+        // felhasználó képébe. Értelmezhetetlen bemenetnél az alapértelmezett időszakot
+        // használjuk, és jelezzük — a keresés így legalább lefut.
+        $invalidTimeRange = false;
+        $start_date = $this->validDate($params['start_date'], date('Y-m-d'), $invalidTimeRange);
+        $start_time = $this->validTime($params['start_time'], '00:00', $invalidTimeRange);
+        $end_date = $this->validDate($params['end_date'], date('Y-m-d', strtotime('+1 week')), $invalidTimeRange);
+        $end_time = $this->validTime($params['end_time'], '23:59', $invalidTimeRange);
+        if ($invalidTimeRange) {
+            addMessage('A megadott dátum vagy időpont értelmezhetetlen, ezért az alapértelmezett időszakot használom.', 'error');
+        }
 
         $from = $start_date."T".$start_time.":00";
         $until = $end_date."T".$end_time.":00";
@@ -400,6 +408,38 @@ class SearchResultsMasses extends Html {
         $this->template = 'search/resultsmasses.twig';
 
         $this->results = $results;
+    }
+
+    /**
+     * #608: csak ÉÉÉÉ-HH-NN alakú, létező naptári dátumot engedünk tovább.
+     * Hiányzó érték nem hiba (alapértelmezést kap), az értelmezhetetlen viszont igen.
+     */
+    private function validDate($value, string $default, bool &$invalid): string {
+        if ($value === false || $value === null || $value === '') {
+            return $default;
+        }
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', (string) $value, $parts)
+            && checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1])) {
+            return $value;
+        }
+
+        $invalid = true;
+        return $default;
+    }
+
+    /**
+     * #608: csak ÓÓ:PP alakú, létező időpontot engedünk tovább.
+     */
+    private function validTime($value, string $default, bool &$invalid): string {
+        if ($value === false || $value === null || $value === '') {
+            return $default;
+        }
+        if (preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', (string) $value)) {
+            return $value;
+        }
+
+        $invalid = true;
+        return $default;
     }
 
     /**

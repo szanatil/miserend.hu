@@ -172,6 +172,24 @@ final class MassSearchResultsTest extends PantherTestCase
         );
     }
 
+    /**
+     * #608: a dátum ellenőrzés nélkül ment az Elasticsearchbe, így egy elgépelt érték
+     * nyers ES-stacktrace-t öntött a felhasználó képébe a találatok helyett.
+     */
+    public function testUnparseableDateFallsBackToTheDefaultRangeWithoutLeakingEngineErrors(): void
+    {
+        $url = '/?q=SearchResultsMasses&start_date=%24S&start_time=19%3A23&end_date=%24S&end_time=21%3A23';
+
+        $this->client->request('GET', $url);
+        $this->client->waitFor('body', 10);
+
+        $pageText = $this->client->executeScript('return document.body.textContent;');
+        self::assertStringNotContainsString('parse_exception', $pageText);
+        self::assertStringNotContainsString('search_phase_execution_exception', $pageText);
+        self::assertStringNotContainsString('Hiba történt', $pageText);
+        self::assertStringContainsString('A megadott dátum vagy időpont értelmezhetetlen', $pageText);
+    }
+
     public function testCurrentLocationFillsTheNearbyOrigin(): void
     {
         $this->client->request('GET', '/');
