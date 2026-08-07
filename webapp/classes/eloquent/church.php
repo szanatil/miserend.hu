@@ -126,9 +126,8 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         $network = [];
         $visited = [$this->id];
         
-        // 1. Gyűjtsük össze az összes őst (fordított sorrendben, hogy felülről induljon)
+        // 1. Gyűjtsük össze az összes őst, felülről lefelé haladó sorrendben.
         $ancestors = $this->_collectAllAncestors([], $visited);
-        $ancestors = array_reverse($ancestors);
         
         // Őseink hozzáadása
         $level = 0;
@@ -154,7 +153,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         ];
         
         // 3. Hozzáadjuk a leszármazottakat
-        $descendants = $this->_collectAllDescendants([], $visited);
+        $descendants = $this->_collectAllDescendants([], $visited, $level + 1);
         foreach ($descendants as $descendant) {
             $network[] = [
                 'church' => $descendant['church'],
