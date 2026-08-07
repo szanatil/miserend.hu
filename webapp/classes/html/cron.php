@@ -11,6 +11,10 @@ class Cron extends Html {
         set_time_limit('300');
         ini_set('memory_limit', '512M');
 
+        // #592: existing production databases do not rerun initdb seed files.
+        // Register the external-calendar job before selecting the next due cron.
+        \ExternalCalendarImporter::ensureCronRegistered();
+
         if($jobId = \Request::Integer('cron_id')) {
             $nextjob = \Eloquent\Cron::find($jobId);
 			if (!$nextjob) return;

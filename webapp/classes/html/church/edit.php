@@ -85,34 +85,7 @@ class Edit extends \Html\Html {
         // Handle external calendar URL
         if (isset($this->input['church']['external_calendar_url'])) {
             $newUrl = trim($this->input['church']['external_calendar_url']);
-            
-            if (!empty($newUrl)) {
-                // URL validation
-                if (!filter_var($newUrl, FILTER_VALIDATE_URL)) {
-                    throw new \Exception('Érvénytelen URL formátum!');
-                }
-                
-                // Update or create external calendar
-                $externalCal = \Eloquent\ExternalCalendar::where('church_id', $this->tid)
-                    ->where('active', 1)
-                    ->first();
-                
-                if ($externalCal) {
-                    $externalCal->url = $newUrl;
-                    $externalCal->save();
-                } else {
-                    \Eloquent\ExternalCalendar::create([
-                        'church_id' => $this->tid,
-                        'name' => 'Google Calendar',
-                        'url' => $newUrl,
-                        'active' => 1
-                    ]);
-                }
-            } else {
-                // Empty URL: deactivate external calendar
-                \Eloquent\ExternalCalendar::where('church_id', $this->tid)
-                    ->update(['active' => 0]);
-            }
+            \ExternalCalendarImporter::saveCalendarUrl((int)$this->tid, $newUrl);
         }
 
        
@@ -168,15 +141,19 @@ class Edit extends \Html\Html {
         // Meglévő kapcsolatok betöltése (szülő irányban)
         $this->church->load('parentRelationships.parent');
         
-        // Add external calendar URL field
+        $externalCalendar = $this->getExternalCalendar();
+        $lastImport = $externalCalendar && $externalCalendar->last_import_at
+            ? $externalCalendar->last_import_at->format('Y.m.d. H:i')
+            : 'még nem futott le sikeresen';
+
         $this->form['external_calendar_url'] = [
             'type' => 'text',
             'name' => 'church[external_calendar_url]',
             'id' => 'external_calendar_url',
             'class' => 'form-control',
             'placeholder' => 'https://calendar.google.com/calendar/ical/...',
-            'value' => $this->getExternalCalendarUrl(),
-            'labelback' => 'Külső naptár (iCalendar ICS URL) - maximum 1'
+            'value' => $externalCalendar ? $externalCalendar->url : '',
+            'labelback' => 'Külső naptár (publikus HTTPS iCalendar URL). Napi automatikus szinkron; utolsó sikeres import: ' . $lastImport
         ];
     
   $this->form['misemegj'] = array(
@@ -225,11 +202,10 @@ class Edit extends \Html\Html {
         }
     }
 
-    private function getExternalCalendarUrl() {
-        $externalCal = \Eloquent\ExternalCalendar::where('church_id', $this->tid)
+    private function getExternalCalendar(): ?\Eloquent\ExternalCalendar {
+        return \Eloquent\ExternalCalendar::where('church_id', $this->tid)
             ->where('active', 1)
             ->first();
-        return $externalCal ? $externalCal->url : '';
     }
     
     function addFormAdministrative() {
