@@ -1298,6 +1298,13 @@ class Church extends \Illuminate\Database\Eloquent\Model {
 		}
         return $return;
     }
+
+    public function getGlutenFreeCommunionAttribute(): array {
+        return \GlutenFreeCommunion::details(
+            $this->getAttribute(\GlutenFreeCommunion::HOLIDAYS_KEY),
+            $this->getAttribute(\GlutenFreeCommunion::WEEKDAYS_KEY)
+        );
+    }
 	
     /*
      * What does 'M' mean?
