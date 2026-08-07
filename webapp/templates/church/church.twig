@@ -229,6 +229,9 @@
 	{% if location.osm is not null %}
 		{% include 'church/_panelaccessibility.twig'  %}
 	{% endif %}
+    {% if cardDonation.message %}
+        {% include 'church/_panelcarddonation.twig' %}
+    {% endif %}
     
 {% endblock %}
 

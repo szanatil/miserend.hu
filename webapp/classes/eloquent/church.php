@@ -1298,6 +1298,20 @@ class Church extends \Illuminate\Database\Eloquent\Model {
 		}
         return $return;
     }
+
+    public function getCardDonationAttribute(): array {
+        $value = $this->getAttribute('payment:credit_cards');
+        $messages = [
+            'yes' => 'Bankkártyás digitális persely bármikor elérhető.',
+            'limited' => 'Bankkártyás adományozás a sekrestyében vagy külön kérésre lehetséges.',
+            'no' => 'Csak készpénzes adományozás lehetséges.',
+        ];
+        return [
+            'value' => $value,
+            'message' => $messages[$value] ?? null,
+            'available' => $value === 'yes' || $value === 'limited',
+        ];
+    }
 	
     /*
      * What does 'M' mean?
