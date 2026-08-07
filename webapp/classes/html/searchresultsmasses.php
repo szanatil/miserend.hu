@@ -11,6 +11,9 @@ class SearchResultsMasses extends Html {
     public $filters;
     public $results;
     public $boundaryDataJson;
+    public $nearbyMapJson = '[]';
+    public $nearbyOrigin;
+    public $nearbyRadius;
 
     public function __construct() {
         parent::__construct();
@@ -35,8 +38,30 @@ class SearchResultsMasses extends Html {
             'end_date' => \Request::Text('end_date'),
             'end_time' => \Request::Text('end_time'),
             'lang' => \Request::StringArray('lang'), // Be aware: this is an array with 'should' and 'must_not' keys, e.g. lang[should], lang[must_not]
-            'timezone' => \Request::Text('timezone')
+            'timezone' => \Request::Text('timezone'),
+            'nearby_lat' => \Request::Text('nearby_lat'),
+            'nearby_lon' => \Request::Text('nearby_lon'),
+            'nearby_radius' => \Request::Text('nearby_radius'),
         ];
+
+        $nearby = null;
+        $hasLatitude = $params['nearby_lat'] !== false && $params['nearby_lat'] !== '';
+        $hasLongitude = $params['nearby_lon'] !== false && $params['nearby_lon'] !== '';
+        if ($hasLatitude !== $hasLongitude) {
+            throw new Exception('A szélességi és hosszúsági fokot együtt kell megadni.');
+        }
+        if ($hasLatitude) {
+            if (!is_numeric($params['nearby_lat']) || !is_numeric($params['nearby_lon']) || !is_numeric($params['nearby_radius'])) {
+                throw new Exception('A helyzet és a sugár csak szám lehet.');
+            }
+            $nearby = [
+                'lat' => (float) $params['nearby_lat'],
+                'lon' => (float) $params['nearby_lon'],
+                'radius' => (float) $params['nearby_radius'],
+            ];
+            $this->nearbyOrigin = ['lat' => $nearby['lat'], 'lon' => $nearby['lon']];
+            $this->nearbyRadius = $nearby['radius'];
+        }
 
         // Time range search
         $start_date = (isset($params['start_date']) AND $params['start_date'] != '') ? $params['start_date'] : date('Y-m-d');
@@ -59,7 +84,7 @@ class SearchResultsMasses extends Html {
         $hasNarrowingFilters = !empty($typesReq) || !empty($ritesReq) || !empty($categoriesReq);
 
         // ---- BASE szűrők (mindig megmaradnak): hely, egyházmegye, nyelv, kulcsszó, időtartam ----
-        $applyBaseFilters = function (\Search $search) use ($params, $from, $until) {
+        $applyBaseFilters = function (\Search $search) use ($params, $from, $until, $nearby) {
             if ($params['timezone']) $search->timezone = $params['timezone'];
 
             // Boundaries' based search
@@ -103,6 +128,9 @@ class SearchResultsMasses extends Html {
 
             // Time range
             $search->timeRange($from, $until);
+            if ($nearby) {
+                $search->nearby($nearby['lat'], $nearby['lon'], $nearby['radius']);
+            }
         };
 
         // ---- SZŰKÍTŐ szűrők (típus / rítus / kategória) — ezeket dobjuk a fallback-ban ----
@@ -260,6 +288,7 @@ class SearchResultsMasses extends Html {
         }
 
         if ($search->total != 0) {
+            $mapChurches = [];
             foreach ($results as &$result) {
                 $church = \Eloquent\Church::find($result->church_id);
                 $result->church = $church->toArray();
@@ -273,6 +302,24 @@ class SearchResultsMasses extends Html {
                 if(isset($result->mass['periodId'])) {
                     $result->period = \Eloquent\CalPeriod::find($result->mass['periodId'])->toArray();
                 }
+                if ($nearby && (float) $result->church['lat'] !== 0.0 && (float) $result->church['lon'] !== 0.0) {
+                    $churchId = (int) $result->church_id;
+                    if (!isset($mapChurches[$churchId])) {
+                        $mapChurches[$churchId] = [
+                            'id' => $churchId,
+                            'name' => $result->church['names'][0] ?? '',
+                            'city' => is_array($result->church['varos']) ? ($result->church['varos'][0] ?? '') : $result->church['varos'],
+                            'lat' => (float) $result->church['lat'],
+                            'lon' => (float) $result->church['lon'],
+                            'distance_km' => $result->distance_km ?? null,
+                            'times' => [],
+                        ];
+                    }
+                    $mapChurches[$churchId]['times'][] = date('H:i', strtotime($result->start_date));
+                }
+            }
+            if ($nearby) {
+                $this->nearbyMapJson = json_encode(array_values($mapChurches), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
             }
         }
 

@@ -43,6 +43,79 @@ final class MassSearchResultsTest extends PantherTestCase
         self::assertStringNotContainsString('Parse error', $pageContent);
     }
 
+    public function testNearbyMassSearchRendersSelectableMapAndBackgroundlessListTimes(): void
+    {
+        $startDate = date('Y-m-d');
+        $endDate = date('Y-m-d', strtotime('+1 day'));
+        $url = "/?q=SearchResultsMasses&start_date={$startDate}&start_time=00%3A00"
+            . "&end_date={$endDate}&end_time=00%3A00&nearby_lat=47.4979&nearby_lon=19.0402&nearby_radius=15";
+
+        $this->client->request('GET', $url);
+        $this->client->waitFor('#nearby-masses-map', 15);
+        $this->client->waitFor('.leaflet-interactive', 15);
+
+        $distances = $this->client->executeScript(<<<'JS'
+            return Array.from(document.querySelectorAll('.mass-distance')).map(function (node) {
+                return Number(node.dataset.distance);
+            });
+        JS);
+        self::assertNotEmpty($distances);
+        $sorted = $distances;
+        sort($sorted, SORT_NUMERIC);
+        self::assertSame($sorted, $distances);
+
+        $labelStyle = $this->client->executeScript(<<<'JS'
+            var time = document.querySelector('.nearby-list-time');
+            return { background: getComputedStyle(time).backgroundColor, text: time.textContent.trim() };
+        JS);
+        self::assertSame('rgba(0, 0, 0, 0)', $labelStyle['background']);
+        self::assertMatchesRegularExpression('/\d{2}:\d{2}/', $labelStyle['text']);
+
+        $this->client->executeScript("document.querySelectorAll('.leaflet-interactive')[2].dispatchEvent(new MouseEvent('click', {bubbles:true}));");
+        $this->client->waitFor('#nearby-church-card:not([hidden])', 5);
+        self::assertStringContainsString('km légvonalban', $this->client->getCrawler()->filter('#nearby-church-card')->text());
+        self::assertGreaterThan(0, $this->client->executeScript("return document.querySelectorAll('.nearby-church-selected').length;"));
+    }
+
+    public function testCurrentLocationFillsTheNearbyOrigin(): void
+    {
+        $this->client->request('GET', '/');
+        $this->client->waitFor('#use_current_location', 10);
+        $this->client->executeScript(<<<'JS'
+            Object.defineProperty(navigator, 'geolocation', {
+                configurable: true,
+                value: {
+                    getCurrentPosition: function (success) {
+                        success({coords: {latitude: 47.497913, longitude: 19.040236}});
+                    }
+                }
+            });
+        JS);
+        $this->client->getCrawler()->filter('#use_current_location')->click();
+
+        $coordinates = $this->client->executeScript(<<<'JS'
+            return {
+                lat: document.querySelector('#nearby_lat').value,
+                lon: document.querySelector('#nearby_lon').value
+            };
+        JS);
+        self::assertSame('47.497913', $coordinates['lat']);
+        self::assertSame('19.040236', $coordinates['lon']);
+
+        $this->client->executeScript("HTMLFormElement.prototype.submit = function () { this.dataset.submitted = '1'; };");
+        $this->client->getCrawler()->filter('#walking_masses')->click();
+        self::assertSame('3', $this->client->executeScript("return document.querySelector('#nearby_radius').value;"));
+        self::assertSame('1', $this->client->executeScript("return document.querySelector('#kereses').dataset.submitted;"));
+
+        $this->client->getCrawler()->filter('#next_two_hours')->click();
+        $rangeMinutes = $this->client->executeScript(<<<'JS'
+            var start = new Date(document.querySelector('#start_date').value + 'T' + document.querySelector('#start_time').value);
+            var end = new Date(document.querySelector('#end_date').value + 'T' + document.querySelector('#end_time').value);
+            return (end.getTime() - start.getTime()) / 60000;
+        JS);
+        self::assertSame(120, $rangeMinutes);
+    }
+
     public function testSearchFiltersAreDisplayed(): void
     {
         $startDate = date('Y-m-d');

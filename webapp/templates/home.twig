@@ -107,6 +107,7 @@
                         <input type="hidden" name="start_time" id="start_time" value="">
                         <input type="hidden" name="end_date" id="end_date" value="">
                         <input type="hidden" name="end_time" id="end_time" value="">
+
                         
                         {# Hidden clockpicker inputs #}
                         <input type="text" id="clockpicker_start_time" class="clockpicker" style="display:none;">
@@ -772,7 +773,39 @@
             <div class="home-cta-buttons form-group" style="margin-top:12px">
                 <button type=submit name="q" value="SearchResultsMasses"  class="btn btn-primary" id="search_masses_btn"></button>
                 <button type=submit name="q" value="SearchResultsChurches"  class="btn btn-primary">Templom keresése</button>
+                <button type="button" class="btn btn-primary" id="next_two_hours">Misék a következő két órában</button>
+                <button type="button" class="btn btn-primary" id="walking_masses">Következő misék gyalogtávolságra</button>
             </div>
+            <small id="location_status" class="form-text text-muted" aria-live="polite"></small>
+            <details class="nearby-search-options" style="margin-top:8px;">
+                <summary style="cursor:pointer; color:#6f3b8f;">Egyéni közeli keresés</summary>
+                <div class="row g-2 align-items-end" style="margin-top:6px;">
+                    <div class="col-sm-4">
+                        <label for="nearby_lat" class="form-label">Szélesség</label>
+                        <input type="number" step="any" min="-90" max="90" class="form-control form-control-sm" name="nearby_lat" id="nearby_lat" placeholder="47.4979">
+                    </div>
+                    <div class="col-sm-4">
+                        <label for="nearby_lon" class="form-label">Hosszúság</label>
+                        <input type="number" step="any" min="-180" max="180" class="form-control form-control-sm" name="nearby_lon" id="nearby_lon" placeholder="19.0402">
+                    </div>
+                    <div class="col-sm-2">
+                        <label for="nearby_radius" class="form-label">Sugár</label>
+                        <select class="form-select form-select-sm" name="nearby_radius" id="nearby_radius">
+                            <option value="">–</option>
+                            <option value="1">1 km</option>
+                            <option value="3">3 km</option>
+                            <option value="5">5 km</option>
+                            <option value="10">10 km</option>
+                            <option value="15">15 km</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary w-100" id="use_current_location">Saját helyzetem</button>
+                    </div>
+                </div>
+                <small class="form-text text-muted">A sugár légvonalbeli távolságot jelent. A keresés a fent kiválasztott időszakot használja.</small>
+            </details>
+            <script src="/js/nearby-mass-search.js"></script>
             
             <script>
                 (function($){

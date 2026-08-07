@@ -7,6 +7,7 @@ class Search {
 
     public $query =  ["bool" => ["must" => [], "must_not" => []]];
     public $sort = [];
+    public $runtimeMappings = [];
     public $total = 0; // Találatok száma
     public $searchFailed = false; // #575: true, ha az ES nem adott érvényes választ (nem elérhető ≠ 0 találat)
     public $filters = []; 
@@ -279,6 +280,44 @@ class Search {
         ];
     }
 
+    function nearby(float $latitude, float $longitude, float $radiusKm): void {
+        if ($this->massOrChurch !== 'mass') {
+            throw new LogicException('Nearby mass search is only available on the mass index.');
+        }
+        if ($latitude < -90 || $latitude > 90 || $longitude < -180 || $longitude > 180) {
+            throw new InvalidArgumentException('Invalid geographic coordinates.');
+        }
+        if ($radiusKm <= 0 || $radiusKm > 200) {
+            throw new InvalidArgumentException('Radius must be between 0 and 200 kilometres.');
+        }
+
+        $origin = ['lat' => $latitude, 'lon' => $longitude];
+        $locationField = 'church_runtime_location';
+        $this->runtimeMappings[$locationField] = [
+            'type' => 'geo_point',
+            'script' => [
+                'source' => "if (doc['church.lat'].size() != 0 && doc['church.lon'].size() != 0) { emit(doc['church.lat'].value, doc['church.lon'].value); }",
+            ],
+        ];
+        $this->query['bool']['filter'][] = [
+            'geo_distance' => [
+                'distance' => rtrim(rtrim(number_format($radiusKm, 3, '.', ''), '0'), '.') . 'km',
+                $locationField => $origin,
+            ],
+        ];
+        $this->sort = [[
+            '_geo_distance' => [
+                $locationField => $origin,
+                'order' => 'asc',
+                'unit' => 'km',
+                'mode' => 'min',
+                'distance_type' => 'arc',
+                'ignore_unmapped' => true,
+            ],
+        ]];
+        $this->filters[] = 'Legfeljebb <b>' . htmlspecialchars((string) $radiusKm) . ' km</b> távolságra';
+    }
+
     function dateRange($fromDate, $toDate) {
         // Keep human-readable filter text in the configured timezone
         $filter = "Dátum: <b>" . htmlspecialchars(twig_hungarian_date_format($fromDate)) . "</b> - <b>" . htmlspecialchars(twig_hungarian_date_format($toDate)) . "</b>";
@@ -380,6 +419,9 @@ class Search {
             "size"  => $size,
             "track_total_hits" => true
         ];
+        if (!empty($this->runtimeMappings)) {
+            $esQuery['runtime_mappings'] = $this->runtimeMappings;
+        }
     
         // Nagy adatkupacoknál jobb PIT-et nyitni ( openPit() ) és azt használva kérdezgetni le
         if ($this->pitId) {
@@ -399,12 +441,11 @@ class Search {
 
 
         if($this->massOrChurch === 'mass') {
-            
-            $esQuery['sort'] = [
+            $esQuery['sort'] = array_merge($this->sort, [
                 [ "start_date" =>  [ "order" => "asc" ] ],
                 [ "_score" =>  [ "order" => "desc" ] ],                
                 [ "church_id" => [ "order" => "asc" ] ]
-            ];        
+            ]);
         } else if ($this->massOrChurch === 'church') {
             
             $esQuery['sort'] = [
@@ -490,6 +531,9 @@ class Search {
 
             $source = $hit->_source;
             $source->score = $hit->_score;
+            if (!empty($this->sort) && isset($hit->sort[0]) && is_numeric($hit->sort[0])) {
+                $source->distance_km = round((float) $hit->sort[0], 2);
+            }
 
             $dateUtc = Carbon::parse($source->start_date)->setTimezone('UTC');
 
