@@ -14,6 +14,11 @@ class SearchResultsMasses extends Html {
     public $nearbyMapJson = '[]';
     public $nearbyOrigin;
     public $nearbyRadius;
+    // #608: üres közeli találat esetén a legközelebbi jövőbeli mise és a hozzá vezető linkek.
+    public $nearbyNextMass;
+    public $nearbyLookaheadDays = 7;
+    public $nearbyLookaheadUrl;
+    public $nearbyWiderRadiusUrls = [];
 
     public function __construct() {
         parent::__construct();
@@ -47,20 +52,34 @@ class SearchResultsMasses extends Html {
         $nearby = null;
         $hasLatitude = $params['nearby_lat'] !== false && $params['nearby_lat'] !== '';
         $hasLongitude = $params['nearby_lon'] !== false && $params['nearby_lon'] !== '';
+        $hasRadius = $params['nearby_radius'] !== false && $params['nearby_radius'] !== '';
+
+        // #608: a hely szerinti szűrés hibás bemenete nem fatális hiba. Tipikus eset a
+        // magyar tizedesvessző: a number input az értelmezhetetlen értéket üres stringként
+        // küldi el, így csak az egyik koordináta érkezik meg. Ilyenkor jelezzük a bajt,
+        // és hely nélkül keresünk tovább — a felhasználó így legalább kap találatokat.
         if ($hasLatitude !== $hasLongitude) {
-            throw new Exception('A szélességi és hosszúsági fokot együtt kell megadni.');
-        }
-        if ($hasLatitude) {
-            if (!is_numeric($params['nearby_lat']) || !is_numeric($params['nearby_lon']) || !is_numeric($params['nearby_radius'])) {
-                throw new Exception('A helyzet és a sugár csak szám lehet.');
+            addMessage('A szélességi és a hosszúsági fokot együtt kell megadni, tizedesponttal (például 47.4979). A hely szerinti szűrést kihagytam.', 'error');
+        } elseif ($hasLatitude) {
+            $latitude = $params['nearby_lat'];
+            $longitude = $params['nearby_lon'];
+            $radius = $hasRadius ? $params['nearby_radius'] : null;
+
+            if (!is_numeric($latitude) || !is_numeric($longitude) || !is_numeric($radius)) {
+                addMessage('A helyzet és a sugár csak szám lehet, tizedesponttal (például 47.4979). A hely szerinti szűrést kihagytam.', 'error');
+            } elseif ($latitude < -90 || $latitude > 90 || $longitude < -180 || $longitude > 180) {
+                addMessage('A megadott koordináta érvénytelen: a szélesség -90 és 90, a hosszúság -180 és 180 közé eshet. A hely szerinti szűrést kihagytam.', 'error');
+            } elseif ($radius <= 0 || $radius > 200) {
+                addMessage('A sugárnak 0 és 200 km között kell lennie. A hely szerinti szűrést kihagytam.', 'error');
+            } else {
+                $nearby = [
+                    'lat' => (float) $latitude,
+                    'lon' => (float) $longitude,
+                    'radius' => (float) $radius,
+                ];
+                $this->nearbyOrigin = ['lat' => $nearby['lat'], 'lon' => $nearby['lon']];
+                $this->nearbyRadius = $nearby['radius'];
             }
-            $nearby = [
-                'lat' => (float) $params['nearby_lat'],
-                'lon' => (float) $params['nearby_lon'],
-                'radius' => (float) $params['nearby_radius'],
-            ];
-            $this->nearbyOrigin = ['lat' => $nearby['lat'], 'lon' => $nearby['lon']];
-            $this->nearbyRadius = $nearby['radius'];
         }
 
         // Time range search
@@ -84,7 +103,7 @@ class SearchResultsMasses extends Html {
         $hasNarrowingFilters = !empty($typesReq) || !empty($ritesReq) || !empty($categoriesReq);
 
         // ---- BASE szűrők (mindig megmaradnak): hely, egyházmegye, nyelv, kulcsszó, időtartam ----
-        $applyBaseFilters = function (\Search $search) use ($params, $from, $until, $nearby) {
+        $applyBaseFilters = function (\Search $search, $rangeFrom = null, $rangeUntil = null, $sortByDistance = true) use ($params, $from, $until, $nearby) {
             if ($params['timezone']) $search->timezone = $params['timezone'];
 
             // Boundaries' based search
@@ -127,9 +146,9 @@ class SearchResultsMasses extends Html {
             }
 
             // Time range
-            $search->timeRange($from, $until);
+            $search->timeRange($rangeFrom ?? $from, $rangeUntil ?? $until);
             if ($nearby) {
-                $search->nearby($nearby['lat'], $nearby['lon'], $nearby['radius']);
+                $search->nearby($nearby['lat'], $nearby['lon'], $nearby['radius'], $sortByDistance);
             }
         };
 
@@ -319,7 +338,57 @@ class SearchResultsMasses extends Html {
                 }
             }
             if ($nearby) {
+                foreach ($mapChurches as &$mapChurch) {
+                    // #608: a gombostű a legkorábbi időpontot mutatja, a kártya az összeset.
+                    $mapChurch['times'] = array_values(array_unique($mapChurch['times']));
+                    sort($mapChurch['times']);
+                }
+                unset($mapChurch);
                 $this->nearbyMapJson = json_encode(array_values($mapChurches), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+            }
+        }
+
+        // #608: a „következő két óra" a nap nagy részében üres (este szinte mindig).
+        // Néma üres lista helyett megkeressük a legközelebbi jövőbeli misét ugyanott,
+        // ugyanazokkal a szűrőkkel — különben olyan misét ígérnénk, amit a felhasználó kiszűrt.
+        if ($nearby && $search->total == 0 && !$search->searchFailed) {
+            $lookaheadUntil = date('Y-m-d\TH:i:s', strtotime($from . ' +' . $this->nearbyLookaheadDays . ' days'));
+
+            $lookahead = new \Search('masses');
+            $applyBaseFilters($lookahead, $from, $lookaheadUntil, false);
+            $applyNarrowingFilters($lookahead);
+            $lookaheadResults = $lookahead->getResults(0, 1, false);
+
+            if (!empty($lookaheadResults)) {
+                $next = $lookaheadResults[0];
+                $nextChurch = \Eloquent\Church::find($next->church_id);
+                $nextChurchArray = $nextChurch ? $nextChurch->toArray() : [];
+                $this->nearbyNextMass = [
+                    'title' => $next->title ?? '',
+                    'start_date' => $next->start_date,
+                    'distance_km' => $next->distance_km ?? null,
+                    'church_id' => (int) $next->church_id,
+                    'church_name' => $nextChurchArray['names'][0] ?? '',
+                    'church_city' => is_array($nextChurchArray['varos'] ?? null)
+                        ? ($nextChurchArray['varos'][0] ?? '')
+                        : ($nextChurchArray['varos'] ?? ''),
+                    'total' => $lookahead->total,
+                ];
+                $this->nearbyLookaheadUrl = $this->buildSearchUrl($params, [
+                    'end_date' => substr($lookaheadUntil, 0, 10),
+                    'end_time' => substr($lookaheadUntil, 11, 5),
+                ]);
+            } else {
+                // A sugáron belül egyáltalán nincs mise a következő héten — itt nem az idő
+                // a szűk keresztmetszet, hanem a távolság.
+                foreach ([5, 10, 15] as $widerRadius) {
+                    if ($widerRadius <= $nearby['radius']) continue;
+                    $this->nearbyWiderRadiusUrls[$widerRadius] = $this->buildSearchUrl($params, [
+                        'nearby_radius' => $widerRadius,
+                        'end_date' => substr($lookaheadUntil, 0, 10),
+                        'end_time' => substr($lookaheadUntil, 11, 5),
+                    ]);
+                }
             }
         }
 
@@ -331,6 +400,22 @@ class SearchResultsMasses extends Html {
         $this->template = 'search/resultsmasses.twig';
 
         $this->results = $results;
+    }
+
+    /**
+     * #608: keresési URL az aktuális paraméterekből, néhány felülírt értékkel.
+     * A \Request::Text() a hiányzó mezőkre false-t ad, amit a http_build_query
+     * "0"-vá alakítana (pl. kulcsszo=0) — ezért az üres értékeket kidobjuk.
+     */
+    private function buildSearchUrl(array $params, array $overrides): string {
+        $merged = array_filter(
+            array_merge($params, $overrides),
+            function ($value) {
+                return $value !== false && $value !== null && $value !== '' && $value !== [];
+            }
+        );
+
+        return \Pagination::qe($merged, '/?');
     }
 
 }

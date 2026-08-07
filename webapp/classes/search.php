@@ -7,6 +7,9 @@ class Search {
 
     public $query =  ["bool" => ["must" => [], "must_not" => []]];
     public $sort = [];
+    // #608: melyik sort-slot hordozza a geo-távolságot. Vakon a sort[0]-ból olvasni
+    // hibás, mert idő szerinti rendezésnél az epoch-milliszekundum is numerikus.
+    public $distanceSortIndex = null;
     public $runtimeMappings = [];
     public $total = 0; // Találatok száma
     public $searchFailed = false; // #575: true, ha az ES nem adott érvényes választ (nem elérhető ≠ 0 találat)
@@ -280,7 +283,11 @@ class Search {
         ];
     }
 
-    function nearby(float $latitude, float $longitude, float $radiusKm): void {
+    /**
+     * @param bool $sortByDistance true → a legközelebbi templom az első (alap közeli keresés).
+     *                             false → a legkorábbi mise az első (#608: „legközelebbi mise" keresés).
+     */
+    function nearby(float $latitude, float $longitude, float $radiusKm, bool $sortByDistance = true): void {
         if ($this->massOrChurch !== 'mass') {
             throw new LogicException('Nearby mass search is only available on the mass index.');
         }
@@ -305,7 +312,7 @@ class Search {
                 $locationField => $origin,
             ],
         ];
-        $this->sort = [[
+        $geoSort = [
             '_geo_distance' => [
                 $locationField => $origin,
                 'order' => 'asc',
@@ -314,7 +321,16 @@ class Search {
                 'distance_type' => 'arc',
                 'ignore_unmapped' => true,
             ],
-        ]];
+        ];
+        if ($sortByDistance) {
+            $this->sort = [$geoSort];
+            $this->distanceSortIndex = 0;
+        } else {
+            // Idő szerint rendezünk, a távolság csak holtversenyt dönt — de a sort
+            // értékéből továbbra is ki tudjuk olvasni a km-t.
+            $this->sort = [['start_date' => ['order' => 'asc']], $geoSort];
+            $this->distanceSortIndex = 1;
+        }
         $this->filters[] = 'Legfeljebb <b>' . htmlspecialchars((string) $radiusKm) . ' km</b> távolságra';
     }
 
@@ -531,8 +547,10 @@ class Search {
 
             $source = $hit->_source;
             $source->score = $hit->_score;
-            if (!empty($this->sort) && isset($hit->sort[0]) && is_numeric($hit->sort[0])) {
-                $source->distance_km = round((float) $hit->sort[0], 2);
+            if ($this->distanceSortIndex !== null
+                && isset($hit->sort[$this->distanceSortIndex])
+                && is_numeric($hit->sort[$this->distanceSortIndex])) {
+                $source->distance_km = round((float) $hit->sort[$this->distanceSortIndex], 2);
             }
 
             $dateUtc = Carbon::parse($source->start_date)->setTimezone('UTC');

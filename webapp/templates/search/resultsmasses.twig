@@ -37,7 +37,31 @@
             border-left: 4px solid #6f3b8f;
             background: #f7f3f9;
         }
-        #nearby-church-card[hidden] { display: none; }
+        .nearby-church-card-hint { margin: 0; color: #555; }
+        /* #608: a bejelentő kérése — háttér nélküli, pici betűs, csak időpontot mutató gombostű. */
+        .leaflet-tooltip.nearby-time-label {
+            background: none;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1;
+            color: #3b1a4d;
+            /* A térkép bármilyen színű lehet alatta, ezért fehér kontúr adja az olvashatóságot. */
+            text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
+            white-space: nowrap;
+        }
+        .leaflet-tooltip.nearby-time-label::before { display: none; }
+        .mass-empty-state {
+            margin: 8px 0 18px;
+            padding: 16px 18px;
+            border-left: 4px solid #6f3b8f;
+            background: #f7f3f9;
+        }
+        .mass-empty-state p { margin: 0 0 8px; }
+        .mass-empty-state-title { font-weight: 700; }
+        .mass-empty-state-actions { display: flex; flex-wrap: wrap; gap: 8px; }
         .nearby-church-card-times { margin: 8px 0; display: flex; flex-wrap: wrap; gap: 10px; }
         .nearby-list-time { color: #333; font-weight: 700; white-space: nowrap; }
         .mass-results-table tr.nearby-church-selected td {
@@ -73,7 +97,9 @@
 
             {% if nearbyOrigin %}
                 <div id="nearby-masses-map" aria-label="Közeli misék térképe"></div>
-                <section id="nearby-church-card" aria-live="polite" hidden></section>
+                <section id="nearby-church-card" aria-live="polite">
+                    <p class="nearby-church-card-hint">Válassz egy templomot a térképen a miseidőpontjai megtekintéséhez. Az alábbi lista minden találatot mutat.</p>
+                </section>
                 <script>
                 document.addEventListener('DOMContentLoaded', function () {
                     if (typeof L === 'undefined') return;
@@ -105,7 +131,6 @@
                             + '<div class="nearby-church-card-times">'
                             + times.map(function (time) { return '<span class="nearby-list-time">' + time + '</span>'; }).join('')
                             + '</div><a class="btn btn-sm btn-primary" href="/templom/' + church.id + '">Templom adatlapja</a>';
-                        card.hidden = false;
                     }
                     churches.forEach(function (church) {
                         var marker = L.circleMarker([church.lat, church.lon], {
@@ -114,12 +139,20 @@
                             weight: 2,
                             fillColor: '#6f3b8f',
                             fillOpacity: 1
-                        }).bindTooltip(church.name);
+                        });
+                        // #608: a gombostű felirata háttér nélküli, pici betűs, és csak az
+                        // időpontot tartalmazza — a fehér tooltip-téglalap takarta a térképet.
+                        if (church.times.length) marker.bindTooltip(church.times[0], {
+                            permanent: true,
+                            direction: 'top',
+                            offset: [0, -6],
+                            opacity: 1,
+                            className: 'nearby-time-label'
+                        });
                         marker.on('click', function () { selectChurch(church); });
                         marker.addTo(map);
                         bounds.extend([church.lat, church.lon]);
                     });
-                    if (churches.length) selectChurch(churches[0]);
                     if (churches.length) map.fitBounds(bounds.pad(0.15));
                 });
                 </script>
@@ -225,6 +258,37 @@
                 {% endfor %}
                 </tbody>
             </table>
+        {% else %}
+            {# #608: a szűk időablak (pl. „következő két óra") gyakran üres — ne néma üres oldal fogadjon. #}
+            <div class="mass-empty-state">
+                {% if nearbyOrigin %}
+                    <p class="mass-empty-state-title">A megadott {{ nearbyRadius }} km-es körben ebben az időszakban nincs mise.</p>
+                    {% if nearbyNextMass %}
+                        <p>
+                            A legközelebbi mise a közelben:
+                            <a href="/templom/{{ nearbyNextMass.church_id }}"><strong>{{ nearbyNextMass.church_name }}</strong></a>
+                            {% if nearbyNextMass.church_city %}({{ nearbyNextMass.church_city }}){% endif %}
+                            — <strong>{{ nearbyNextMass.start_date|miserend_date }}</strong>
+                            {%- if nearbyNextMass.distance_km is not null -%}
+                                , {{ nearbyNextMass.distance_km|number_format(2, ',', ' ') }} km légvonalban
+                            {%- endif -%}
+                        </p>
+                        <a class="btn btn-sm btn-primary" href="{{ nearbyLookaheadUrl }}">
+                            A következő {{ nearbyLookaheadDays }} nap miséi itt ({{ nearbyNextMass.total }} találat)
+                        </a>
+                    {% else %}
+                        <p>A következő {{ nearbyLookaheadDays }} napban sincs mise ebben a körben. Próbáld nagyobb sugárral:</p>
+                        <p class="mass-empty-state-actions">
+                            {% for radius, url in nearbyWiderRadiusUrls %}
+                                <a class="btn btn-sm btn-outline-primary" href="{{ url }}">{{ radius }} km</a>
+                            {% endfor %}
+                        </p>
+                    {% endif %}
+                {% else %}
+                    <p class="mass-empty-state-title">A megadott feltételekkel nem találtunk eseményt.</p>
+                    <p>Próbáld tágabb időszakkal, kevesebb szűrővel vagy más kulcsszóval.</p>
+                {% endif %}
+            </div>
         {% endif %}
 
         {% include '_pagination.twig' %}

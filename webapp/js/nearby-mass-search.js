@@ -70,7 +70,8 @@
         if (walking) walking.addEventListener('click', function () {
             requestLocation(function () {
                 radius.value = '3';
-                status.textContent = '3 km-es légvonalbeli körben keresek.';
+                setNextTwoHours();
+                status.textContent = '3 km-es légvonalbeli körben, a következő két órában keresek.';
                 submitMassSearch();
             }, walking);
         });
