@@ -625,33 +625,14 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         return $formattedMasses;
     }
 
-    /**
-     * Betöltödik a MASS kategóriához tartozó misék típusa kulcsait
-     * a mass-definitions.json-ből (ugyanaz, amit home.php és searchresultsmasses.php használ)
-     */
     private static function getMassTypeKeysFromDefinitions(): array
     {
-        $massDefinitionsPath = \PATH . 'mass-definitions.json';
-        
-        if (!file_exists($massDefinitionsPath)) {
-            // Fallback: ha nem érhető el a JSON, üres tömb (ne szűrjön)
-            return [];
-        }
-        
-        $massDefinitions = json_decode(file_get_contents($massDefinitionsPath), true);
-        
-        if (!isset($massDefinitions['definitions']) || !is_array($massDefinitions['definitions'])) {
-            return []; // Biztonsági fallback
-        }
-        
-        // Gyűjtödik a MASS kategóriához tartozó definíciókat
         $massTypeKeys = [];
-        foreach ($massDefinitions['definitions'] as $definition) {
-            if ($definition['category'] === 'MASS') {
-                $massTypeKeys[] = $definition['key'];
-                $massTypeKeys[] = t('MASS_TITLE.' . $definition['key']);
-            }
-        }        
+        foreach ((new \MassDefinitions())->definitionKeysByCategory('MASS') as $key) {
+            $massTypeKeys[] = $key;
+            $massTypeKeys[] = t('MASS_TITLE.' . $key);
+        }
+
         return $massTypeKeys;
     }
     

@@ -190,15 +190,7 @@ class SearchResultsMasses extends Html {
             if (!empty($categoriesReq)) {
                 $selectedCategories = array_filter(array_map('trim', explode(',', $categoriesReq)));
 
-                $massDefinitionsPath = dirname(__DIR__) . '/../mass-definitions.json';
-                $massDefinitions = json_decode(file_get_contents($massDefinitionsPath), true);
-                $titlesByCategory = $massDefinitions['titlesByCategory'] ?? [];
-                $allTitles = [];
-                foreach ($selectedCategories as $cat) {
-                    if (isset($titlesByCategory[$cat])) {
-                        $allTitles = array_merge($allTitles, $titlesByCategory[$cat]);
-                    }
-                }
+                $allTitles = (new \MassDefinitions())->titlesByCategories($selectedCategories);
                 if (!empty($allTitles)) {
                     foreach ($allTitles as $title) {
                         $cleanTitle = preg_replace('/^MASS_TITLE\./', '', $title);
