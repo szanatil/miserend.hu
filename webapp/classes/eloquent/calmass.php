@@ -190,7 +190,6 @@ class CalMass extends CalModel
                     continue;
                 }
 
-                
                 // --- kizárt dátumokkal  ---
                 $excludedDatesRaw = $mass->exdate ?? [];
                 if (is_string($excludedDatesRaw)) {
@@ -391,6 +390,20 @@ class CalMass extends CalModel
                     ];
 
                     
+                }
+
+                if (isset($rrule['dtstart'])) {
+                    try {
+                        $rrule['dtstart'] instanceof \DateTimeInterface
+                            ? Carbon::instance($rrule['dtstart'])
+                            : Carbon::parse($rrule['dtstart'], $timezone);
+                    } catch (\Throwable $e) {
+                        error_log(
+                            "Invalid RRULE dtstart, skipping mass ID {$mass->id}: "
+                            . var_export($rrule['dtstart'], true)
+                        );
+                        continue;
+                    }
                 }
 
                 

@@ -61,6 +61,46 @@ class ElasticsearchMassGatingTest extends TestCase
         );
     }
 
+    public function testMassChangedSinceLastSuccessReindexes(): void
+    {
+        $this->assertTrue(
+            \ExternalApi\ElasticsearchApi::shouldFullReindex(
+                '2026-07-10 03:00:00',
+                '2026-07-01',
+                false,
+                '2026-07-11'
+            ),
+            'Mise módosítása önmagában is teljes újraindexelést kér.'
+        );
+    }
+
+    public function testIndexCreatedAfterLastSuccessReindexes(): void
+    {
+        $this->assertTrue(
+            \ExternalApi\ElasticsearchApi::shouldFullReindex(
+                '2026-01-26 17:58:39',
+                '2026-01-06',
+                false,
+                '2026-01-20',
+                '2026-08-06 20:00:00'
+            ),
+            'A cron utolsó sikere után létrejött indexet újra kell építeni.'
+        );
+    }
+
+    public function testOlderIndexAndUnchangedMassesSkip(): void
+    {
+        $this->assertFalse(
+            \ExternalApi\ElasticsearchApi::shouldFullReindex(
+                '2026-07-10 03:00:00',
+                '2026-07-01',
+                false,
+                '2026-07-01',
+                '2026-06-01 12:00:00'
+            )
+        );
+    }
+
     /** Ha egyáltalán nincs generatedPeriod -> ne blokkoljunk. */
     public function testNoGeneratedPeriodsReindexes(): void
     {

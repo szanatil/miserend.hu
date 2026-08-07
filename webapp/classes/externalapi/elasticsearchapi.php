@@ -83,6 +83,22 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 
 	}
 
+	function getIndexCreationDate(string $name): ?string {
+		$this->curl_setopt(CURLOPT_CUSTOMREQUEST, "GET");
+		$this->buildQuery($name . '/_settings?filter_path=*.settings.index.creation_date');
+		$this->run();
+		if ($this->responseCode != 200) {
+			throw new \Exception("Could not get index settings!\n" . $this->error);
+		}
+
+		$creationDate = $this->jsonData->{$name}->settings->index->creation_date ?? null;
+		if ($creationDate === null || !is_numeric($creationDate)) {
+			return null;
+		}
+
+		return date('Y-m-d H:i:s', intdiv((int) $creationDate, 1000));
+	}
+
 	function putIndex($name, $data) {	
 		$this->curl_setopt(CURLOPT_CUSTOMREQUEST ,"PUT");		
 		$this->buildQuery($name, json_encode($data));
@@ -297,12 +313,26 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 	 * @param ?string $lastSuccessAt       a cron legutóbbi sikeres futása (DATETIME) vagy null
 	 * @param ?string $maxPeriodUpdatedAt  a cal_generated_periods legnagyobb updated_at-ja (DATE) vagy null
 	 * @param bool    $indexEmpty          a mass_index hiányzik vagy 0 dokumentum
+	 * @param ?string $maxMassUpdatedAt    a cal_masses legnagyobb updated_at-ja vagy null
+	 * @param ?string $indexCreatedAt      a mass_index létrehozásának időpontja vagy null
 	 */
-	static function shouldFullReindex(?string $lastSuccessAt, ?string $maxPeriodUpdatedAt, bool $indexEmpty): bool {
+	static function shouldFullReindex(
+		?string $lastSuccessAt,
+		?string $maxPeriodUpdatedAt,
+		bool $indexEmpty,
+		?string $maxMassUpdatedAt = null,
+		?string $indexCreatedAt = null
+	): bool {
 		// Startup: üres/hiányzó index -> mindenképp fel kell építeni.
 		if ($indexEmpty) return true;
 		// Nincs korábbi sikeres futás (vagy nulldátum) -> fussunk.
 		if (empty($lastSuccessAt) || strpos($lastSuccessAt, '0000-00-00') === 0) return true;
+		// Újra létrehozott/visszaállított indexet ez a cron még nem validált.
+		if (!empty($indexCreatedAt) && strtotime($indexCreatedAt) > strtotime($lastSuccessAt)) return true;
+		// Nemcsak a periódusok, maguk a misék is változhatnak.
+		if (!empty($maxMassUpdatedAt)
+			&& strpos($maxMassUpdatedAt, '0000-00-00') !== 0
+			&& substr($maxMassUpdatedAt, 0, 10) >= substr($lastSuccessAt, 0, 10)) return true;
 		// Nincs egyetlen generatedPeriod sem -> ne blokkoljunk (ritka, adatbiztos irány).
 		if (empty($maxPeriodUpdatedAt) || strpos($maxPeriodUpdatedAt, '0000-00-00') === 0) return true;
 		// Date-inkluzív (>=): ha a periódusok az utolsó sikeres futás NAPJÁN vagy után frissültek,
@@ -311,15 +341,18 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 		return substr($maxPeriodUpdatedAt, 0, 10) >= substr($lastSuccessAt, 0, 10);
 	}
 
-	/** #306: a mass_index hiányzik vagy 0 dokumentumot tartalmaz? (startup-force ág) */
-	private static function massIndexIsEmpty(): bool {
+	/** A mass_index állapota a teljes újraindexelés eldöntéséhez. */
+	private static function massIndexState(): array {
 		$elastic = new \ExternalApi\ElasticsearchApi();
 		if (!$elastic->isexistsIndex('mass_index')) {
-			return true;
+			return ['empty' => true, 'created_at' => null];
 		}
 		$info = $elastic->checkIndex('mass_index');
 		$docs = isset($info->{'docs.count'}) ? (int) $info->{'docs.count'} : 0;
-		return $docs === 0;
+		return [
+			'empty' => $docs === 0,
+			'created_at' => $elastic->getIndexCreationDate('mass_index'),
+		];
 	}
 
 	/*
@@ -328,8 +361,8 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 	 *
 	 * #306: a teljes (top-level, $tids nélküli) cron-futás korábban MINDIG mindent
 	 * újragenerált (~40 perc, 500k+ esemény), akkor is, ha semmi nem változott. Most a
-	 * shouldFullReindex() őr csak akkor engedi a teljes futást, ha az index üres/hiányzik
-	 * (startup), vagy a generatedPeriods változott a legutóbbi sikeres futás óta. A per-
+	 * shouldFullReindex() őr csak akkor engedi a teljes futást, ha az index üres, újabb a
+	 * cron sikerénél, vagy a misék/periódusok változtak a legutóbbi sikeres futás óta. A per-
 	 * templom PUT (generate.php) és a rekurzív chunk-hívások mindig nem-üres $tids-szel
 	 * jönnek, ezért érintetlenek.
 	 */
@@ -341,24 +374,32 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 		// #306: teljes cron-futásnál (üres $tids) döntsük el, kell-e egyáltalán újragenerálni.
 		if (empty($tids)) {
 			try {
-				$indexEmpty = self::massIndexIsEmpty();
+				$indexState = self::massIndexState();
 			} catch (\Throwable $e) {
 				// ES-hiba az index-ellenőrzésnél: a biztonság kedvéért fussunk le teljesen.
-				$indexEmpty = true;
+				$indexState = ['empty' => true, 'created_at' => null];
 				$log("#306: index-ellenőrzés hibázott (" . $e->getMessage() . ") — biztonságból teljes futás.");
 			}
 			$cron = \Eloquent\Cron::where('class', '\\ExternalApi\\ElasticsearchApi')
 				->where('function', 'updateMasses')->first();
 			$lastSuccess = $cron->lastsuccess_at ?? null;
 			$maxUpdated  = \Eloquent\CalGeneratedPeriod::max('updated_at');
+			$maxMassUpdated = \Eloquent\CalMass::max('updated_at');
 
-			if (!self::shouldFullReindex($lastSuccess, $maxUpdated, $indexEmpty)) {
-				$log("#306: a generatedPeriods nem változott a legutóbbi sikeres futás óta ("
-					. $lastSuccess . "), és az index nem üres — teljes újragenerálás kihagyva.");
+			if (!self::shouldFullReindex(
+				$lastSuccess,
+				$maxUpdated,
+				$indexState['empty'],
+				$maxMassUpdated,
+				$indexState['created_at']
+			)) {
+				$log("#306: a misék és a generatedPeriods nem változtak a legutóbbi sikeres futás óta ("
+					. $lastSuccess . "), az index pedig régebbi és nem üres — teljes újragenerálás kihagyva.");
 				return;
 			}
-			$log("#306: teljes újragenerálás indul (indexEmpty=" . ($indexEmpty ? '1' : '0')
-				. ", lastSuccess=" . $lastSuccess . ", maxPeriodUpdated=" . $maxUpdated . ").");
+			$log("#306: teljes újragenerálás indul (indexEmpty=" . ($indexState['empty'] ? '1' : '0')
+				. ", indexCreated=" . $indexState['created_at'] . ", lastSuccess=" . $lastSuccess
+				. ", maxPeriodUpdated=" . $maxUpdated . ", maxMassUpdated=" . $maxMassUpdated . ").");
 		}
 
 		if (empty($years)) {
