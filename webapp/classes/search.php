@@ -470,7 +470,7 @@ class Search {
 
         $elastic = new ElasticSearchApi();
         $elastic->curl_setopt(CURLOPT_CUSTOMREQUEST, "DELETE");
-        $elastic->buildQuery('_pit', json_encode(['id' => [$pitId]]));
+        $elastic->buildQuery('_pit', json_encode(['id' => $pitId]));
         $elastic->run();
  
         if (isset($elastic->jsonData->succeeded) && $elastic->jsonData->succeeded == true) {
