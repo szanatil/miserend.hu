@@ -84,10 +84,12 @@ Amit érdemes tudni róluk:
 - **Három különböző Leaflet-verziót** töltünk be három sablonból (1.7.1 / 1.9.3 / 1.9.4). Ezt
   egységesíteni kellene.
 - A `makinacorpus.github.io` egy GitHub Pages, **nem CDN** — nincs rendelkezésre állási ígéret rá.
-- A **Stamen csempeszerver** (`stamen-tiles-*.a.ssl.fastly.net`, `_map_leaflet.twig`) mérve
-  **HTTP 503**-at ad: a Stamen 2023-ban a Stadiához költözött, ez a réteg halott.
 - A `leaflet.polylinedecorator.css` hivatkozás **HTTP 404** volt (nem létezik az unpkg-n); a #653-ban
   töröltük.
+- A **Stamen csempeszerver** (`stamen-tiles-*.a.ssl.fastly.net`) mérve **HTTP 503**-at adott: a Stamen
+  2023-ban a Stadiához költözött. A réteg soha nem is volt kiválasztható (definiálva volt, de sehol
+  nem használtuk), ezért a #653-ban töröltük. Az utód (`tiles.stadiamaps.com`) kulcs nélkül **HTTP
+  401** — ha valaha kell terep-alapréteg, az regisztrációt és API-kulcsot igényel.
 
 A #653 arról szól, hogy ezek nagy részét saját kiszolgálásra váltsuk (a jQuery, a Bootstrap és a
 FontAwesome már ma is a `webapp/package.json`-ból jön) — akkor ez a szakasz a csempeszerverre

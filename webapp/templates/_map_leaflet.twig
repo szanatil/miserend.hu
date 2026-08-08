@@ -196,18 +196,22 @@
 		maxZoom: 19,
 		attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 	});
-	var Stamen_Terrain = 		L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}{r}.{ext}', {
-		attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-		subdomains: 'abcd',
-		minZoom: 0,
-		maxZoom: 18,
-		ext: 'png'
-	});
+    /*
+     * #653: a Stamen Terrain réteg innen KIKERÜLT. A Stamen 2023-ban a Stadia Mapshez
+     * költözött, a régi végpont (stamen-tiles-*.a.ssl.fastly.net) mérve HTTP 503-at ad,
+     * tehát a réteg évek óta halott volt. Ráadásul soha nem is lehetett kiválasztani:
+     * definiálva volt, de sehol nem használtuk (a lenti control.layers baseLayers-e null).
+     *
+     * Visszahozni nem tudjuk csak úgy: az utód (tiles.stadiamaps.com/tiles/stamen_terrain)
+     * kulcs nélkül HTTP 401-et ad — regisztráció, API-kulcs és domain-engedélyezés kellene
+     * hozzá. Ha valaha kell egy terep-alapréteg, az külön döntés (és külön kulcs-kezelés).
+     */
+
     // #376: a direkt tile.openstreetmap.org az OSM Tile Usage Policy szerint
     // produkciós forgalomra tiltott → intermittensen „Access blocked" csempe
     // (van akinek megy, van akinek nem, Referer/IP/forgalom alapján). A CARTO
     // Voyager basemap (ingyenes, produkcióra való) a default — böngészőben mérve
-    // minden csempe 200-zal jön. Az OpenStreetMap_Mapnik/Stamen fentebb definiálva
+    // minden csempe 200-zal jön. Az OpenStreetMap_Mapnik fentebb definiálva
     // marad, de nincs a réteg-választóban (baseLayers=null a lenti control.layers-nél).
     CartoDB_Voyager.addTo(mymap);
     
