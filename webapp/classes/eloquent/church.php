@@ -1291,11 +1291,41 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         return $return;
     }
 
+
+    /*
+     * #284: a `payment:credit_cards` OSM-értékeinek EGYETLEN forrása. Ugyanez a mondat
+     * a címke az /editosm legördülőjében és a nyilvános szöveg a templomlapon — így egy
+     * szöveg egy helyen van megadva. Az üres kulcs a "nincs adat" ág: az /editosm-en
+     * választható, a templomlapon viszont nem állítunk vele semmit (message = null).
+     */
+    public const CARD_DONATION_OPTIONS = [
+        '' => 'Nincs információ.',
+        'yes' => 'Bankkártyás, digitális persely is elérhető.',
+        'limited' => 'Bankkártyás adományozás a sekrestyében vagy külön kérésre lehetséges.',
+        'no' => 'Csak készpénzes adományozás lehetséges.',
+    ];
+
+    /* Mely `payment:credit_cards` értékek jelentenek tényleges kártyás lehetőséget. */
+    public const CARD_DONATION_AVAILABLE = ['yes', 'limited'];
+
+    public function getCardDonationAttribute(): array {
+        $value = $this->getAttribute('payment:credit_cards');
+        $message = ($value === null || $value === '')
+            ? null
+            : (self::CARD_DONATION_OPTIONS[$value] ?? null);
+
+        return [
+            'value' => $value,
+            'message' => $message,
+            'available' => in_array($value, self::CARD_DONATION_AVAILABLE, true),
+        ];
+
     public function getGlutenFreeCommunionAttribute(): array {
         return \GlutenFreeCommunion::details(
             $this->getAttribute(\GlutenFreeCommunion::HOLIDAYS_KEY),
             $this->getAttribute(\GlutenFreeCommunion::WEEKDAYS_KEY)
         );
+
     }
 	
     /*

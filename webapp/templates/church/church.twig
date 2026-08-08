@@ -236,6 +236,10 @@
 	{% if location.osm is not null %}
 		{% include 'church/_panelaccessibility.twig'  %}
 	{% endif %}
+
+    {% if cardDonation.message %}
+        {% include 'church/_panelcarddonation.twig' %}
+    {% endif %}
     {% if glutenFreeCommunion.hasInformation %}
         {% include 'church/_panelglutenfree.twig' %}
     {% endif %}
