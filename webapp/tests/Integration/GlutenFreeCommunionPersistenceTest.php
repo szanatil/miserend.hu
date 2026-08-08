@@ -17,10 +17,13 @@ final class GlutenFreeCommunionPersistenceTest extends TestCase
 
     public function testDetailedSettingsAndDerivedOsmValueAreSavedTogether(): void
     {
-        \GlutenFreeCommunion::save(1, [
+        $osmValue = \GlutenFreeCommunion::save(1, [
             \GlutenFreeCommunion::HOLIDAYS_KEY => 'at_end',
             \GlutenFreeCommunion::WEEKDAYS_KEY => 'ask_sacristy',
         ]);
+
+        // #484: a mentés visszaadja a származtatott értéket, ezt küldi fel a hívó az OSM-be.
+        $this->assertSame('yes', $osmValue);
 
         $attributes = DB::table('attributes')->where('church_id', 1)
             ->whereIn('key', [
@@ -39,5 +42,13 @@ final class GlutenFreeCommunionPersistenceTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         \GlutenFreeCommunion::save(1, [\GlutenFreeCommunion::HOLIDAYS_KEY => 'invalid']);
+    }
+
+    /*
+     * #484: ha a formon nincs is gluténmentes mező, ne induljon OSM-felküldés.
+     */
+    public function testNothingSubmittedMeansNothingToPush(): void
+    {
+        $this->assertNull(\GlutenFreeCommunion::save(1, ['nev' => 'Valami templom']));
     }
 }

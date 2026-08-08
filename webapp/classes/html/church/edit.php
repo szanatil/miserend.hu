@@ -115,7 +115,12 @@ class Edit extends \Html\Html {
             }
         }
 
-        \GlutenFreeCommunion::save($this->tid, $this->input['church']);
+        // #484: a részletes beállítások mentése + a származtatott OSM-címke azonnali
+        // felküldése, hogy ne kelljen külön az /editosm-en is elmenteni.
+        $glutenFreeOsmValue = \GlutenFreeCommunion::save($this->tid, $this->input['church']);
+        if ($glutenFreeOsmValue !== null) {
+            \GlutenFreeCommunion::syncToOsm($this->church, $glutenFreeOsmValue);
+        }
 
        
         global $user;
