@@ -367,6 +367,9 @@ class EditOsm extends \Html\Html {
 						'limited' => 'Lehetséges, de külön szólni kell. Sőt egyes helyeken vinni is kell ostyát.',
 						'no' => 'Nem lehetséges.'
 					),
+					'value' => $this->church->glutenFreeCommunion['hasInformation']
+						? $this->church->glutenFreeCommunion['osmValue']
+						: ($osmtags->{'diet:gluten_free'} ?? ''),
 					'disabled' => true,
 					'help' => 'Ezt a mezőt a részletesebb (ünnepnapokat és hétköznapokat külön kezelő) beállítások alapján töltjük ki.'
 				]

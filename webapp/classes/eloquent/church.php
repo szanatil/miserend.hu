@@ -126,9 +126,8 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         $network = [];
         $visited = [$this->id];
         
-        // 1. Gyűjtsük össze az összes őst (fordított sorrendben, hogy felülről induljon)
+        // 1. Gyűjtsük össze az összes őst, felülről lefelé haladó sorrendben.
         $ancestors = $this->_collectAllAncestors([], $visited);
-        $ancestors = array_reverse($ancestors);
         
         // Őseink hozzáadása
         $level = 0;
@@ -154,7 +153,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         ];
         
         // 3. Hozzáadjuk a leszármazottakat
-        $descendants = $this->_collectAllDescendants([], $visited);
+        $descendants = $this->_collectAllDescendants([], $visited, $level + 1);
         foreach ($descendants as $descendant) {
             $network[] = [
                 'church' => $descendant['church'],
@@ -625,33 +624,14 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         return $formattedMasses;
     }
 
-    /**
-     * Betöltödik a MASS kategóriához tartozó misék típusa kulcsait
-     * a mass-definitions.json-ből (ugyanaz, amit home.php és searchresultsmasses.php használ)
-     */
     private static function getMassTypeKeysFromDefinitions(): array
     {
-        $massDefinitionsPath = \PATH . 'mass-definitions.json';
-        
-        if (!file_exists($massDefinitionsPath)) {
-            // Fallback: ha nem érhető el a JSON, üres tömb (ne szűrjön)
-            return [];
-        }
-        
-        $massDefinitions = json_decode(file_get_contents($massDefinitionsPath), true);
-        
-        if (!isset($massDefinitions['definitions']) || !is_array($massDefinitions['definitions'])) {
-            return []; // Biztonsági fallback
-        }
-        
-        // Gyűjtödik a MASS kategóriához tartozó definíciókat
         $massTypeKeys = [];
-        foreach ($massDefinitions['definitions'] as $definition) {
-            if ($definition['category'] === 'MASS') {
-                $massTypeKeys[] = $definition['key'];
-                $massTypeKeys[] = t('MASS_TITLE.' . $definition['key']);
-            }
-        }        
+        foreach ((new \MassDefinitions())->definitionKeysByCategory('MASS') as $key) {
+            $massTypeKeys[] = $key;
+            $massTypeKeys[] = t('MASS_TITLE.' . $key);
+        }
+
         return $massTypeKeys;
     }
     
@@ -915,7 +895,19 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             }
 
             // boundaries
-            $return['boundaries'] = $this->boundaries()->pluck('boundary_id')->toArray();    
+            $return['boundaries'] = $this->boundaries()->pluck('boundary_id')->toArray();
+
+            /*
+             * #644: akadálymentesség és csökkentett gluténtartalmú áldozás — szűrhető,
+             * LAPOS mezőként. Az `accessibility` tömb ugyan eddig is kiment, de üres
+             * templomnál üres tömb, ezért az ES-ben mapping se jött rá létre, és nem
+             * lehetett rá szűrni. Itt fix kulcsokkal, mindig kiírjuk (üres stringgel,
+             * ha nincs adat), így a churches indexbe ÉS a mass_index church-részébe is
+             * bekerül — a kereső mindkettőn tud szűrni.
+             */
+            $return['wheelchair'] = (string) ($this->wheelchair ?? '');
+            $return['gluten_free_holidays'] = (string) ($this->{\GlutenFreeCommunion::HOLIDAYS_KEY} ?? '');
+            $return['gluten_free_weekdays'] = (string) ($this->{\GlutenFreeCommunion::WEEKDAYS_KEY} ?? '');
         }
         
         return $return;
@@ -1299,6 +1291,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         return $return;
     }
 
+
     /*
      * #284: a `payment:credit_cards` OSM-értékeinek EGYETLEN forrása. Ugyanez a mondat
      * a címke az /editosm legördülőjében és a nyilvános szöveg a templomlapon — így egy
@@ -1326,6 +1319,13 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             'message' => $message,
             'available' => in_array($value, self::CARD_DONATION_AVAILABLE, true),
         ];
+
+    public function getGlutenFreeCommunionAttribute(): array {
+        return \GlutenFreeCommunion::details(
+            $this->getAttribute(\GlutenFreeCommunion::HOLIDAYS_KEY),
+            $this->getAttribute(\GlutenFreeCommunion::WEEKDAYS_KEY)
+        );
+
     }
 	
     /*
