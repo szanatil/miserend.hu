@@ -18,7 +18,7 @@ final class CardDonationTest extends TestCase
     public static function donationValues(): array
     {
         return [
-            ['yes', true, 'Bankkártyás digitális persely bármikor elérhető.'],
+            ['yes', true, 'Bankkártyás, digitális persely is elérhető.'],
             ['limited', true, 'Bankkártyás adományozás a sekrestyében vagy külön kérésre lehetséges.'],
             ['no', false, 'Csak készpénzes adományozás lehetséges.'],
         ];
@@ -30,5 +30,32 @@ final class CardDonationTest extends TestCase
 
         $this->assertNull($church->cardDonation['message']);
         $this->assertFalse($church->cardDonation['available']);
+    }
+
+    public function testEmptyOsmValueDoesNotCreatePublicClaim(): void
+    {
+        $church = new \Eloquent\Church();
+        $church->setAttribute('payment:credit_cards', '');
+
+        $this->assertNull($church->cardDonation['message']);
+        $this->assertFalse($church->cardDonation['available']);
+    }
+
+    /*
+     * #284: a szerkesztő legördülőjének címkéje és a templomlap nyilvános mondata
+     * ugyanabból a listából jön. Ez a teszt bukik, ha valaki újra szétmásolja őket.
+     */
+    public function testEditorLabelsAreTheSameSentencesAsThePublicMessages(): void
+    {
+        $labels = \Eloquent\Church::CARD_DONATION_OPTIONS;
+
+        $this->assertSame(['', 'yes', 'limited', 'no'], array_keys($labels));
+
+        foreach (['yes', 'limited', 'no'] as $value) {
+            $church = new \Eloquent\Church();
+            $church->setAttribute('payment:credit_cards', $value);
+
+            $this->assertSame($labels[$value], $church->cardDonation['message']);
+        }
     }
 }

@@ -574,12 +574,9 @@ class EditOsm extends \Html\Html {
 				'payment:credit_cards' =>[
 					'title' => 'Bankkártyás adományozási lehetőség',
 					'wiki_hu' => false,
-					'options' => array(
-						'' => 'Nincs információ.',
-						'yes' => 'Bankkártyás, digitális persely is elérhető.',
-						'limited' => 'Bankkártyás fizetés csak a sekrestyében ill. külön kérésre.',
-						'no' => 'Csak készpénzes fizetés/adományozás lehetséges.'
-					),
+					// #284: a címkék az \Eloquent\Church-ből jönnek, hogy a szerkesztő
+					// legördülője és a templomlap nyilvános mondata ugyanaz legyen.
+					'options' => \Eloquent\Church::CARD_DONATION_OPTIONS,
 					'help' => 'Egyre több helyen elérhető bankkártyás fizetési vagy külön adományozó terminál, mely első változatás a jezsuiták AutoMáténak neveztek el.'
 				]
 		
