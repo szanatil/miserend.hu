@@ -10,6 +10,27 @@ class Edit extends \Html\Html {
     public $input;
     public $nearbyChurches;
 
+    /* #639: mit tegyünk a beküldött ellátó-plébánia választással. */
+    public const PARENT_REPLACE = 'replace';
+    public const PARENT_REMOVE  = 'remove';
+    public const PARENT_INVALID = 'invalid';
+
+    /**
+     * #639: a legördülő "0" értéke a placeholder-opció ("– válassz templomot –"), vagyis
+     * "nincs ellátó plébánia". Ezt korábban se nem mentettük kapcsolatként, se nem
+     * töröltük vele a meglévőt — így a beállított ellátó plébániát nem lehetett
+     * visszavonni. A döntés szándékosan tiszta (se DB, se kérés), hogy tesztelhető legyen.
+     *
+     * @param int $parentId a beküldött érték (0 = nincs kiválasztva / hiányzik)
+     * @param int $churchId a szerkesztett misézőhely
+     */
+    public static function parentChurchAction(int $parentId, int $churchId): string {
+        if ($parentId > 0 && $parentId === $churchId) {
+            return self::PARENT_INVALID;
+        }
+        return $parentId > 0 ? self::PARENT_REPLACE : self::PARENT_REMOVE;
+    }
+
     public function __construct($path) {
         global $user;
    
@@ -61,24 +82,35 @@ class Edit extends \Html\Html {
         }
 
         // --- Kapcsolat kezelése (parent templom kiválasztás) ---
-        if (isset($this->input['church']['parent_id']) && $this->input['church']['parent_id'] !== '') {
-            $parentId = (int) $this->input['church']['parent_id'];
-            // Kapcsolat csak akkor kerül mentésre, ha érvényes parent ID van és nem önmagára mutat
-            if ($parentId !== 0 && $parentId !== (int)$this->tid) {
-                // #521: egy templomnak egy ellátó plébániája (parent) van a formon
-                // keresztül. A korábbi updateOrCreate a (parent,child) PÁRRA matchelt,
-                // ezért új plébánia választásakor ÚJ sort hozott létre, a régit meghagyva
-                // ("hozzáadja, de nem cserél"). Előbb töröljük a meglévő parent-kapcsolatot,
-                // hogy a választás CSERÉLJEN (és a korábbi duplikátumok is kitakarodjanak).
-                \Eloquent\ChurchRelationship::where('child_church_id', $this->tid)->delete();
-                \Eloquent\ChurchRelationship::create([
-                    'parent_church_id' => $parentId,
-                    'child_church_id' => $this->tid,
-                    'type' => 'subordinate',
-                ]);
-            }
+        /*
+         * #639: a "0" a legördülő placeholder-opciója ("– válassz templomot –"), vagyis
+         * "nincs ellátó plébánia". Eddig ez a beküldött érték se nem állított be
+         * kapcsolatot, se nem törölte a meglévőt (a külső if beengedte, a belső `!== 0`
+         * kidobta), ezért a már beállított ellátó plébániát NEM lehetett visszavonni.
+         * Most a 0 és a hiányzó érték egyaránt a törlés ága.
+         */
+        $parentId = isset($this->input['church']['parent_id'])
+            ? (int) $this->input['church']['parent_id']
+            : 0;
+        $parentAction = self::parentChurchAction($parentId, (int) $this->tid);
+
+        if ($parentAction === self::PARENT_INVALID) {
+            // Önmagára mutató választás: érvénytelen, de ettől még ne dobjuk el a meglévőt.
+            addMessage('Egy misézőhely nem lehet a saját ellátó plébániája, ezért ezt a mezőt nem módosítottuk.', 'warning');
+        } elseif ($parentAction === self::PARENT_REPLACE) {
+            // #521: egy templomnak egy ellátó plébániája (parent) van a formon
+            // keresztül. A korábbi updateOrCreate a (parent,child) PÁRRA matchelt,
+            // ezért új plébánia választásakor ÚJ sort hozott létre, a régit meghagyva
+            // ("hozzáadja, de nem cserél"). Előbb töröljük a meglévő parent-kapcsolatot,
+            // hogy a választás CSERÉLJEN (és a korábbi duplikátumok is kitakarodjanak).
+            \Eloquent\ChurchRelationship::where('child_church_id', $this->tid)->delete();
+            \Eloquent\ChurchRelationship::create([
+                'parent_church_id' => $parentId,
+                'child_church_id' => $this->tid,
+                'type' => 'subordinate',
+            ]);
         } else {
-            // Ha üres a kiválasztás, törlődnek az összes parent kapcsolat
+            // Nincs kiválasztva semmi (0 vagy hiányzó): nincs ellátó plébánia.
             \Eloquent\ChurchRelationship::where('child_church_id', $this->tid)->delete();
         }
 
