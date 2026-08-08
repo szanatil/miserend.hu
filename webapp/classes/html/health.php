@@ -19,8 +19,14 @@ class Health extends Html {
 
     public function __construct() {
         parent::__construct();
+
+        global $user;
+        if (!$user->checkRole('any')) {
+            throw new \Exception('Nincs jogosultságod megtekinteni az egészség oldalt.');
+        }
+
         $this->setTitle('Miserend.hu állapotáról');
-		
+  
 		//General informations
 		global $config;
 		
