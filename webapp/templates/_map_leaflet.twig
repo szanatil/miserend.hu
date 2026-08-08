@@ -99,9 +99,20 @@
 
 
 <script>
-    
-    var mymap = L.map('mapid');  
-        
+
+    /*
+     * #640: a térkép felállását nehéz volt nyomon követni, mert a hiba csak az ELSŐ
+     * betöltéskor jött elő, frissítésre eltűnt. A dobott hibákat ezért gyűjtjük, hogy
+     * a funkcionális teszt (MapInitializationTest) számon tudja kérni őket.
+     */
+    window.__mapErrors = [];
+    window.addEventListener('error', function (event) {
+        window.__mapErrors.push(String(event.message || event.error));
+    });
+
+    var mymap = L.map('mapid');
+    window.mymap = mymap;
+
     var logo = L.control({position: 'bottomright'});
     logo.onAdd = function(map){
         var div = L.DomUtil.create('div', 'myclass');
@@ -117,7 +128,7 @@
     // Determine initial position: check autogeolocation first
     var initialPosition = null;
     var initialZoom = 13;
-    
+
     {% if center %}
         initialPosition = [{{ center.lat }}, {{ center.lon}}];
         {% if center.zoom %} initialZoom = {{ center.zoom }}; {% endif %}
@@ -127,43 +138,53 @@
     {% else %}
         initialPosition = [47.5, 19.05]; // Budapest default
     {% endif %}
-    
+
     // Geolocation check - try to get user position before setView
     {% if enableAutoGeoLocation is not defined %}
         {% set enableAutoGeoLocation = false %}
     {% endif %}
-    
-    function initializeMapWithPosition(lat, lng) {
-        mymap.setView([lat, lng], initialZoom);
-        // Trigger the data loading
-        onMapMoved.call(mymap);
-    }
-    
-    if ({% if enableAutoGeoLocation %}true{% else %}false{% endif %} && navigator.geolocation && !{% if center %}true{% else %}false{% endif %} && !{% if location %}true{% else %}false{% endif %}) {
-        // Try to get geolocation, but don't wait too long
-        var geolocationTimer = setTimeout(function() {
-            // Fallback to initial position if geolocation takes too long
-            mymap.setView(initialPosition, initialZoom);
-            onMapMoved.call(mymap);
-        }, 3000);
-        
-        navigator.geolocation.getCurrentPosition(
-            function(position) {
-                clearTimeout(geolocationTimer);
-                initializeMapWithPosition(position.coords.latitude, position.coords.longitude);
-            },
-            function(error) {
-                // Fallback to initial position on error
-                clearTimeout(geolocationTimer);
+
+    /*
+     * #640: a nézet beállítása KÉSŐBB, a script legvégén történik — itt csak definiáljuk.
+     *
+     * A setView() szinkron elsüti a 'load' eseményt, arra pedig az onMapMoved() és a
+     * loadBoundary() van kötve (fentebb). Ha a nézetet még itt beállítjuk, ezek olyankor
+     * futnak le, amikor a rétegek (activeRomanLayer, ...) és az svgIcons még nem léteznek.
+     * Ezért kellett korábban a script végén egy külön onMapMoved() hívás — csakhogy az
+     * auto-geolokációs ágon fordítva sült el: a setView() egy aszinkron callbackben marad,
+     * így a végi hívás nézet NÉLKÜL futott, és a getBounds() eldobta a térképet
+     * ("Set map center and zoom first"). Frissítésre azért javult meg, mert akkor a
+     * gyorsítótárazott pozíció megnyerte a versenyt.
+     *
+     * A helyes sorrend: előbb minden réteg és ikon, utána kap nézetet a térkép.
+     * Az adatbetöltést így végig az események intézik ('load' + lentebb 'moveend'),
+     * nem kell külön onMapMoved()-ot hívogatni.
+     */
+    function setInitialView() {
+        if ({% if enableAutoGeoLocation %}true{% else %}false{% endif %} && navigator.geolocation && !{% if center %}true{% else %}false{% endif %} && !{% if location %}true{% else %}false{% endif %}) {
+            // Try to get geolocation, but don't wait too long
+            var geolocationTimer = setTimeout(function() {
+                // Fallback to initial position if geolocation takes too long
                 mymap.setView(initialPosition, initialZoom);
-                onMapMoved.call(mymap);
-            }
-        );
-    } else {
-        // No autogeolocation or already have center/location
-        mymap.setView(initialPosition, initialZoom);
+            }, 3000);
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    clearTimeout(geolocationTimer);
+                    mymap.setView([position.coords.latitude, position.coords.longitude], initialZoom);
+                },
+                function(error) {
+                    // Fallback to initial position on error
+                    clearTimeout(geolocationTimer);
+                    mymap.setView(initialPosition, initialZoom);
+                }
+            );
+        } else {
+            // No autogeolocation or already have center/location
+            mymap.setView(initialPosition, initialZoom);
+        }
     }
-                        
+
     //https://leaflet-extras.github.io/leaflet-providers/preview/
     var CartoDB_Voyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
@@ -645,17 +666,18 @@
         }
     }
     
-    // Trigger initial load after all layers are set up
-    onMapMoved.call(mymap);
-         
     mymap.on('moveend', onMapMoved);
-    
+
     // Kapcsolatok réteg frissítése, amikor be/ki kapcsolják
     mymap.on('overlayadd', function(e) {
         if (e.name === 'Egyházi kapcsolatok') {
             onMapMoved.call(mymap);
         }
     });
+
+    // #640: minden réteg és eseménykezelő megvan — MOST kaphat nézetet a térkép.
+    // Innentől a 'load' (első setView) és a 'moveend' (minden további) tölti az adatot.
+    setInitialView();
                 
     function onEachFeature(feature, layer) {
         // does this feature have a property named popupContent?
@@ -669,6 +691,13 @@
     
 
 
+ /*
+  * #640: FIGYELEM — ez `const`, tehát a deklarációja ELŐTT nem érhető el (TDZ), a
+  * layerIcon() viszont jóval fentebb használja. Ma ez rendben van, mert a layerIcon()
+  * kizárólag a $.getJSON válasz-callbackjeiből fut, azok pedig mindig e sor után.
+  * Ha valaki ide fentebb szinkron adatbetöltést tesz (pl. async:false vagy egy korai
+  * setView), visszajön a "Cannot access 'svgIcons' before initialization".
+  */
  const svgIcons = {
     rm: `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="100%" viewBox="0 0 346 513" enable-background="new 0 0 346 513" xml:space="preserve">
