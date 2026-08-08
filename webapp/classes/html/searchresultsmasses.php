@@ -316,18 +316,35 @@ class SearchResultsMasses extends Html {
 
         if ($search->total != 0) {
             $mapChurches = [];
-            foreach ($results as &$result) {
+            /*
+             * #608: az Elasticsearch index természeténél fogva lemarad az adatbázistól —
+             * hivatkozhat olyan templomra, misére vagy időszakra, amit közben töröltek.
+             * Ezek a ->find(...)->toArray() láncok ilyenkor `toArray() on null`-lal DÖNTÖTTÉK
+             * LE a teljes találati oldalt (HTTP 500, üres válasz). Egy elavult indexsor nem
+             * viheti el az egész keresést: a hiányzó templomú/miséjű találatot kihagyjuk,
+             * a hiányzó időszakot pedig egyszerűen nem tesszük a sorhoz.
+             */
+            $staleResults = [];
+            foreach ($results as $index => &$result) {
                 $church = \Eloquent\Church::find($result->church_id);
+                $mass = \Eloquent\CalMass::find($result->mass_id);
+                if (!$church || !$mass) {
+                    $staleResults[] = $index;
+                    continue;
+                }
                 $result->church = $church->toArray();
 
-                $result->mass = \Eloquent\CalMass::find($result->mass_id)->toArray();
+                $result->mass = $mass->toArray();
                 if($result->mass['rrule'])
                     $rrule = new \SimpleRRule($result->mass['rrule']);
                     if(isset($rrule)) {
                         $result->mass['rrule']['readable'] = $rrule->toText();
                     }
                 if(isset($result->mass['periodId'])) {
-                    $result->period = \Eloquent\CalPeriod::find($result->mass['periodId'])->toArray();
+                    $period = \Eloquent\CalPeriod::find($result->mass['periodId']);
+                    if ($period) {
+                        $result->period = $period->toArray();
+                    }
                 }
                 if ($nearby && (float) $result->church['lat'] !== 0.0 && (float) $result->church['lon'] !== 0.0) {
                     $churchId = (int) $result->church_id;
@@ -345,6 +362,18 @@ class SearchResultsMasses extends Html {
                     $mapChurches[$churchId]['times'][] = date('H:i', strtotime($result->start_date));
                 }
             }
+            unset($result);
+
+            // Az elavult indexsorok ne jelenjenek meg üres sorként a találati listában.
+            if ($staleResults !== []) {
+                foreach ($staleResults as $index) {
+                    unset($results[$index]);
+                }
+                $results = array_values($results);
+                error_log('[#608] ' . count($staleResults) . ' elavult Elasticsearch-találat kihagyva '
+                    . '(törölt templom vagy mise) — az index frissítésre szorul.');
+            }
+
             if ($nearby) {
                 foreach ($mapChurches as &$mapChurch) {
                     // #608: a gombostű a legkorábbi időpontot mutatja, a kártya az összeset.
