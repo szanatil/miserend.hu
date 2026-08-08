@@ -115,6 +115,13 @@ class Edit extends \Html\Html {
             }
         }
 
+        // #484: a részletes beállítások mentése + a származtatott OSM-címke azonnali
+        // felküldése, hogy ne kelljen külön az /editosm-en is elmenteni.
+        $glutenFreeOsmValue = \GlutenFreeCommunion::save($this->tid, $this->input['church']);
+        if ($glutenFreeOsmValue !== null) {
+            \GlutenFreeCommunion::syncToOsm($this->church, $glutenFreeOsmValue);
+        }
+
        
         global $user;
         $this->church->log .= "\nMod: " . $user->login . " (" . date('Y-m-d H:i:s') . ")";
@@ -178,6 +185,20 @@ class Edit extends \Html\Html {
             'value' => $this->getExternalCalendarUrl(),
             'labelback' => 'Külső naptár (iCalendar ICS URL) - maximum 1'
         ];
+
+        foreach ([
+            'gluten_free_holidays' => [\GlutenFreeCommunion::HOLIDAYS_KEY, 'Ünnepnapokon'],
+            'gluten_free_weekdays' => [\GlutenFreeCommunion::WEEKDAYS_KEY, 'Hétköznapokon'],
+        ] as $formKey => [$attributeKey, $label]) {
+            $this->form[$formKey] = [
+                'type' => 'select',
+                'name' => 'church[' . $attributeKey . ']',
+                'id' => $formKey,
+                'options' => \GlutenFreeCommunion::options(),
+                'selected' => $this->church->getAttribute($attributeKey) ?? '',
+                'labelback' => $label,
+            ];
+        }
     
   $this->form['misemegj'] = array(
 			'class' => 'tinymce',
