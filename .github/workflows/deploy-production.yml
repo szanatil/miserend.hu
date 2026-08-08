@@ -101,6 +101,16 @@ jobs:
             echo "▶ Starting containers..."
             $COMPOSE up -d
 
+            # ── 5) Cron-registry szinkron (#638) ─────────────────────────────
+            # Új cron-függvénynél eddig kézzel kellett INSERT INTO-t nyomni az éles
+            # adatbázisba, mert az initdb seed nem fut újra. A registry
+            # (webapp/fajlok/crons.php) hiányzó sorait innentől a deploy veszi fel;
+            # meglévőt NEM módosít és nem töröl, tehát a lastsuccess_at megmarad.
+            # Ha most nem sikerül, nem baj: a következő cron-tick is elvégzi.
+            echo "▶ Cron registry szinkronizálása..."
+            $COMPOSE exec -T miserend php index.php q=cron cron_init=1 \
+              || echo "⚠ A cron-registry szinkron nem futott le most — a következő cron-futás pótolja."
+
             echo "▶ Container status:"
             $COMPOSE ps
             echo "✅ Production deploy complete!"
