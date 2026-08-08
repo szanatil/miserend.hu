@@ -109,23 +109,18 @@ class ExternalCalendarImporter {
         }
     }
 
+    /*
+     * #638: ez a függvény volt a kiindulópont ("jó-e ez a cron-kezelés?"). A felvétel
+     * logikája átkerült a \Eloquent\Cron::ensureRegistered()-be, a munka maga pedig a
+     * webapp/fajlok/crons.php registrybe — így új cron-függvénynél nincs kézi INSERT.
+     * Ez a metódus megmarad kényelmi belépőnek (és a teszteknek).
+     */
     public static function ensureCronRegistered(): \Eloquent\Cron {
-        $cron = \Eloquent\Cron::whereIn('class', [self::CRON_CLASS, self::class])
-            ->where('function', 'importAllExternalCalendars')
-            ->first();
-        if ($cron) {
-            return $cron;
-        }
+        \Eloquent\Cron::ensureRegistered(self::CRON_CLASS, 'importAllExternalCalendars', '1 day');
 
-        $cron = new \Eloquent\Cron();
-        $cron->class = self::CRON_CLASS;
-        $cron->function = 'importAllExternalCalendars';
-        $cron->frequency = '1 day';
-        $cron->deadline_at = date('Y-m-d H:i:s');
-        $cron->attempts = 0;
-        $cron->lastsuccess_at = null;
-        $cron->save();
-        return $cron;
+        return \Eloquent\Cron::whereIn('class', [self::CRON_CLASS, self::class])
+            ->where('function', 'importAllExternalCalendars')
+            ->firstOrFail();
     }
 
     /**

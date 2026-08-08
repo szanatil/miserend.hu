@@ -134,6 +134,59 @@ class ExternalCalendarImporterTest extends TestCase
         $this->assertNotSame('0000-00-00 00:00:00', $cron->deadline_at);
     }
 
+    /*
+     * #638: a registry hiányzó sorait az init felveszi, a MEGLÉVŐKET nem bántja —
+     * különben minden deploy elfelejtené, mikor futott utoljára sikeresen egy munka.
+     */
+    public function testCronInitAddsMissingJobsAndKeepsExistingHistory(): void
+    {
+        $existing = Eloquent\Cron::where('class', '\\ExternalApi\\ElasticsearchApi')
+            ->where('function', 'updateMasses')->firstOrFail();
+        $existing->lastsuccess_at = '2026-01-26 17:58:39';
+        $existing->frequency = '12 hours'; // kézzel hangolt érték
+        $existing->save();
+
+        Eloquent\Cron::whereIn('class', [ExternalCalendarImporter::class, '\\ExternalCalendarImporter'])
+            ->where('function', 'importAllExternalCalendars')
+            ->delete();
+
+        $created = Eloquent\Cron::init();
+
+        $this->assertContains('\\ExternalCalendarImporter->importAllExternalCalendars()', $created);
+        $this->assertTrue(
+            Eloquent\Cron::where('class', '\\ExternalCalendarImporter')
+                ->where('function', 'importAllExternalCalendars')->exists()
+        );
+
+        $existing->refresh();
+        $this->assertSame('12 hours', $existing->frequency);
+        $this->assertSame('2026-01-26 17:58:39', (string) $existing->lastsuccess_at);
+
+        // Másodszor futtatva már nincs mit felvenni.
+        $this->assertSame([], Eloquent\Cron::init());
+    }
+
+    /*
+     * #638: minden registry-beli munka osztálya és metódusa tényleg létezik — így a
+     * lista nem tud némán elavulni egy átnevezés után.
+     */
+    public function testEveryRegisteredCronJobIsCallable(): void
+    {
+        $registry = Eloquent\Cron::registry();
+        $this->assertNotEmpty($registry);
+
+        foreach ($registry as $job) {
+            $this->assertTrue(
+                class_exists($job['class']),
+                'Nincs ilyen osztály a cron-registryben: ' . $job['class']
+            );
+            $this->assertTrue(
+                method_exists($job['class'], $job['function']),
+                'Nincs ilyen metódus: ' . $job['class'] . '->' . $job['function'] . '()'
+            );
+        }
+    }
+
     private function createMass(string $title, ?string $comment): Eloquent\CalMass
     {
         return Eloquent\CalMass::create([

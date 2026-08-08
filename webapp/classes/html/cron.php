@@ -11,9 +11,21 @@ class Cron extends Html {
         set_time_limit('300');
         ini_set('memory_limit', '512M');
 
-        // #592: existing production databases do not rerun initdb seed files.
-        // Register the external-calendar job before selecting the next due cron.
-        \ExternalCalendarImporter::ensureCronRegistered();
+        // #638: az éles adatbázis nem futtatja újra az initdb seedet, ezért új cron-függvénynél
+        // eddig kézzel kellett INSERT INTO-t nyomni. A registry (webapp/fajlok/crons.php)
+        // hiányzó sorait itt vesszük fel; meglévőt nem módosít, nem töröl.
+        // Deploy után célzottan is futtatható: /index.php?q=cron&cron_init=1
+        $created = \Eloquent\Cron::init();
+        foreach ($created as $job) {
+            echo "Új cron felvéve: " . htmlspecialchars($job) . "<br>\n";
+        }
+
+        if (\Request::Integer('cron_init')) {
+            if ($created === []) {
+                echo "Minden cron a helyén van, nem kellett újat felvenni.<br>\n";
+            }
+            return;
+        }
 
         if($jobId = \Request::Integer('cron_id')) {
             $nextjob = \Eloquent\Cron::find($jobId);
