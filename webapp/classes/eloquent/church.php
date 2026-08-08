@@ -915,7 +915,19 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             }
 
             // boundaries
-            $return['boundaries'] = $this->boundaries()->pluck('boundary_id')->toArray();    
+            $return['boundaries'] = $this->boundaries()->pluck('boundary_id')->toArray();
+
+            /*
+             * #644: akadálymentesség és csökkentett gluténtartalmú áldozás — szűrhető,
+             * LAPOS mezőként. Az `accessibility` tömb ugyan eddig is kiment, de üres
+             * templomnál üres tömb, ezért az ES-ben mapping se jött rá létre, és nem
+             * lehetett rá szűrni. Itt fix kulcsokkal, mindig kiírjuk (üres stringgel,
+             * ha nincs adat), így a churches indexbe ÉS a mass_index church-részébe is
+             * bekerül — a kereső mindkettőn tud szűrni.
+             */
+            $return['wheelchair'] = (string) ($this->wheelchair ?? '');
+            $return['gluten_free_holidays'] = (string) ($this->{\GlutenFreeCommunion::HOLIDAYS_KEY} ?? '');
+            $return['gluten_free_weekdays'] = (string) ($this->{\GlutenFreeCommunion::WEEKDAYS_KEY} ?? '');
         }
         
         return $return;
