@@ -624,6 +624,77 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         return $formattedMasses;
     }
 
+    /**
+     * #641: hétvégi misék SOK templomra, egyetlen Elasticsearch-lekérdezéssel.
+     *
+     * A térkép bbox-végpontja templomonként hívta a getWeekendMasses()-t, az pedig
+     * templomonként KÉT ES-kört futtat (szombat + vasárnap). 460 templomnál ez 920
+     * hálózati kör — mérve ez tette 4 másodpercessé a térkép minden mozdítását.
+     * A két időablak egybefüggő (szombat 17:00 → vasárnap 23:59), ezért egyben
+     * kérjük le, és PHP-ben bontjuk napokra.
+     *
+     * A visszaadott alak SZÁNDÉKOSAN azonos a getWeekendMasses()-ével, hogy a
+     * frontend-szerződés ne változzon.
+     *
+     * @param  int[] $churchIds
+     * @return array [church_id => ['saturday' => [...], 'sunday' => [...]]]
+     */
+    public static function weekendMassesForChurches(array $churchIds): array
+    {
+        $empty = ['saturday' => [], 'sunday' => []];
+        $result = [];
+        foreach ($churchIds as $id) {
+            $result[(int) $id] = $empty;
+        }
+        if (empty($churchIds)) {
+            return $result;
+        }
+
+        $saturday = (new self())->getTargetSaturdayDate();
+        $sunday = $saturday->copy()->addDay();
+
+        $fromUtc = \Carbon\Carbon::parse($saturday->toDateString() . 'T17:00:00', 'Europe/Budapest')
+            ->setTimezone('UTC')->format('Y-m-d\TH:i:s') . 'Z';
+        $toUtc = \Carbon\Carbon::parse($sunday->toDateString() . 'T23:59:00', 'Europe/Budapest')
+            ->setTimezone('UTC')->format('Y-m-d\TH:i:s') . 'Z';
+
+        try {
+            $byChurch = (new \ExternalApi\ElasticsearchApi())->massesByChurch(
+                $churchIds,
+                $fromUtc,
+                $toUtc,
+                self::getMassTypeKeysFromDefinitions()
+            );
+        } catch (\Throwable $e) {
+            // A térkép a misék nélkül is használható — ne bukjon el az egész válasz.
+            error_log('[#641] hétvégi misék lekérése nem sikerült: ' . $e->getMessage());
+            return $result;
+        }
+
+        $saturdayDate = $saturday->toDateString();
+        $sundayDate = $sunday->toDateString();
+
+        foreach ($byChurch as $churchId => $masses) {
+            foreach ($masses as $mass) {
+                // Ugyanaz a helyi idejű formázás, mint a Search::prepareMassesResults()-ban.
+                $local = \Carbon\Carbon::parse($mass['start_date'])->setTimezone('Europe/Budapest');
+                $day = $local->toDateString();
+                $entry = [
+                    'time' => $local->format('H:i'),
+                    'date' => $day,
+                    'title' => $mass['title'],
+                ];
+                if ($day === $saturdayDate && count($result[$churchId]['saturday']) < 4) {
+                    $result[$churchId]['saturday'][] = $entry;
+                } elseif ($day === $sundayDate && count($result[$churchId]['sunday']) < 4) {
+                    $result[$churchId]['sunday'][] = $entry;
+                }
+            }
+        }
+
+        return $result;
+    }
+
     private static function getMassTypeKeysFromDefinitions(): array
     {
         $massTypeKeys = [];

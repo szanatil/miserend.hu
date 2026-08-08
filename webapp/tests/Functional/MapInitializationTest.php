@@ -49,6 +49,45 @@ final class MapInitializationTest extends PantherTestCase {
     }
 
     /*
+     * #641: pásztázáskor eddig MINDEN templomot letöröltünk és újrarajzoltunk (villódzás).
+     * Most csak a különbséget rajzoljuk — ez a teszt azt őrzi, hogy a képen maradó
+     * gombostűk ugyanazok a DOM-elemek maradnak, tehát tényleg nem rajzolódnak újra.
+     */
+    public function testPanningKeepsTheMarkersThatStayInView(): void {
+        $client = $this->client();
+        $client->request('GET', '/terkep?map=13/47.4979/19.0402');
+
+        $client->wait(15)->until(static function ($driver) {
+            return $driver->executeScript(
+                'return document.querySelectorAll(".leaflet-marker-icon").length > 0;'
+            );
+        });
+
+        // Megjelöljük a jelenlegi gombostűket, hogy felismerjük, ha újak születnek.
+        $client->executeScript(
+            'document.querySelectorAll(".leaflet-marker-icon").forEach(function (m, i) { m.dataset.mapTestSeen = "1"; });'
+        );
+        $before = (int) $client->executeScript('return document.querySelectorAll(".leaflet-marker-icon").length;');
+        self::assertGreaterThan(0, $before, 'Nem jelent meg egyetlen templom sem a térképen.');
+
+        // Kis elmozdulás: a látható templomok túlnyomó része ugyanaz marad.
+        $client->executeScript('window.mymap.panBy([120, 0]); return true;');
+        $client->wait(15)->until(static function ($driver) {
+            return $driver->executeScript('return !window.mymap._panAnim || !window.mymap._panAnim._inProgress;');
+        });
+        usleep(1500000); // az AJAX-válasz beérkezése
+
+        $survivors = (int) $client->executeScript(
+            'return document.querySelectorAll(".leaflet-marker-icon[data-map-test-seen]").length;'
+        );
+        self::assertGreaterThan(
+            0,
+            $survivors,
+            'Pásztázás után egyetlen korábbi gombostű sem maradt meg — újrarajzolás történt.'
+        );
+    }
+
+    /*
      * A templom-adatlap kis térképe a nem-geolokációs ágat járja (kap `center`-t).
      * Itt a másik hiba (svgIcons a rétegek előtt) jött volna elő.
      */
