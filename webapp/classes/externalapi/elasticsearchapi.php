@@ -639,6 +639,72 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 		return true;		
 	}
 
+	/**
+	 * #641: hétvégi misék EGYETLEN lekérdezésben, akárhány templomra.
+	 *
+	 * A térkép bbox-végpontja eddig templomonként KÉT Elasticsearch-kört futtatott
+	 * (szombat + vasárnap). 460 templomnál ez 920 hálózati kör — ez volt a /terkep
+	 * lassúságának fő oka. Terms-aggregáció + top_hits: egy kérés, templomonként
+	 * időrendben az első néhány mise.
+	 *
+	 * @param  int[]    $churchIds
+	 * @param  string[] $titleKeys  cím-szűrő (MASS kategória kulcsai); üres = nincs szűrés
+	 * @return array    [church_id => [ ['start_date'=>..., 'title'=>...], ... ]]
+	 */
+	function massesByChurch(array $churchIds, string $fromUtc, string $toUtc, array $titleKeys = [], int $perChurch = 8): array {
+		if (empty($churchIds)) {
+			return [];
+		}
+
+		$must = [
+			["terms" => ["church_id" => array_values(array_map('intval', $churchIds))]],
+			["range" => ["start_date" => ["gte" => $fromUtc, "lte" => $toUtc]]],
+		];
+		if (!empty($titleKeys)) {
+			$must[] = ["terms" => ["title.keyword" => array_values($titleKeys)]];
+		}
+
+		$this->curl_setopt(CURLOPT_CUSTOMREQUEST, "GET");
+		$this->buildQuery('mass_index/_search', json_encode([
+			"size" => 0,
+			"query" => ["bool" => ["must" => $must]],
+			"aggs" => [
+				"by_church" => [
+					"terms" => ["field" => "church_id", "size" => count($churchIds)],
+					"aggs" => [
+						"masses" => [
+							"top_hits" => [
+								"size" => $perChurch,
+								"sort" => [["start_date" => ["order" => "asc"]]],
+								"_source" => ["includes" => ["start_date", "title"]],
+							],
+						],
+					],
+				],
+			],
+		]));
+		$this->run();
+
+		if ($this->responseCode != 200) {
+			throw new \Exception("Could not search mass_index!\n" . $this->error);
+		}
+
+		$byChurch = [];
+		$buckets = $this->jsonData->aggregations->by_church->buckets ?? [];
+		foreach ($buckets as $bucket) {
+			$masses = [];
+			foreach ($bucket->masses->hits->hits ?? [] as $hit) {
+				$masses[] = [
+					'start_date' => $hit->_source->start_date ?? '',
+					'title' => $hit->_source->title ?? '',
+				];
+			}
+			$byChurch[(int) $bucket->key] = $masses;
+		}
+
+		return $byChurch;
+	}
+
 	function churchIdsWithMassesInPeriod($startDate, $endDate) {
 		$this->curl_setopt(CURLOPT_CUSTOMREQUEST, "GET");
 		$this->buildQuery('mass_index/_search', json_encode([
