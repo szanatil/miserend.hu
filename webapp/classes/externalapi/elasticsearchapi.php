@@ -41,11 +41,24 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 	
 	}
 	
+	/**
+	 * #627: a curl-opciók és a $data az OBJEKTUMON halmozódnak, ezért egy korábbi,
+	 * testtel járó kérés (pl. _search) törzse átszivárogna a következő, test nélküli
+	 * GET-be — az ES pedig 400-zal utasítja el a testtel érkező GET-et
+	 * ("does not support having a body"). Minden test nélküli kérés előtt takarítunk,
+	 * hogy a hívási sorrend ne számítson.
+	 */
+	private function clearRequestBody(): void {
+		$this->data = null;
+		$this->curl_setopt(CURLOPT_POSTFIELDS, '');
+	}
+
 	function isexistsIndex($name) {
-		$this->curl_setopt(CURLOPT_CUSTOMREQUEST ,"GET");		
-		$this->buildQuery("_cat/indices/".$name."?format=json");		
-		$this->run();	
-		
+		$this->clearRequestBody();
+		$this->curl_setopt(CURLOPT_CUSTOMREQUEST ,"GET");
+		$this->buildQuery("_cat/indices/".$name."?format=json");
+		$this->run();
+
 		if($this->responseCode == 404) {
 			return false;
 		}
@@ -60,9 +73,10 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 	}
 
 	function checkIndex($name) {
-		$this->curl_setopt(CURLOPT_CUSTOMREQUEST ,"GET");		
-		$this->buildQuery("_cat/indices/".$name."?format=json");		
-		$this->run();	
+		$this->clearRequestBody();
+		$this->curl_setopt(CURLOPT_CUSTOMREQUEST ,"GET");
+		$this->buildQuery("_cat/indices/".$name."?format=json");
+		$this->run();
 		if($this->responseCode != 200) {
 			throw new \Exception("Could not get indices!\n".$this->error);
 		}
@@ -84,6 +98,7 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 	}
 
 	function getIndexCreationDate(string $name): ?string {
+		$this->clearRequestBody();
 		$this->curl_setopt(CURLOPT_CUSTOMREQUEST, "GET");
 		$this->buildQuery($name . '/_settings?filter_path=*.settings.index.creation_date');
 		$this->run();
@@ -99,7 +114,54 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 		return date('Y-m-d H:i:s', intdiv((int) $creationDate, 1000));
 	}
 
-	function putIndex($name, $data) {	
+	/**
+	 * #627: az index SAJÁT vízjele — mikor épült fel utoljára teljesen, a mapping
+	 * `_meta` mezőjéből. Azért az indexben tároljuk és nem (csak) a crons táblában,
+	 * mert a kettő szétcsúszhat: egy visszaállított ES-snapshot a saját (régi)
+	 * vízjelét hozza magával, míg a MySQL-seed egy attól független cron-siker
+	 * időpontot. A DB nem tudhat az index tartalmáról — az index viszont igen.
+	 */
+	function getIndexMeta(string $name): array {
+		$this->clearRequestBody();
+		$this->curl_setopt(CURLOPT_CUSTOMREQUEST, "GET");
+		$this->buildQuery($name . '/_mapping?filter_path=*.mappings._meta');
+		$this->run();
+		if ($this->responseCode != 200) {
+			throw new \Exception("Could not get index mapping!\n" . $this->error);
+		}
+
+		$meta = $this->jsonData->{$name}->mappings->_meta ?? null;
+		return $meta === null ? [] : (array) json_decode(json_encode($meta), true);
+	}
+
+	function setIndexMeta(string $name, array $meta): bool {
+		$this->curl_setopt(CURLOPT_CUSTOMREQUEST, "PUT");
+		$this->buildQuery($name . '/_mapping', json_encode(['_meta' => $meta]));
+		$this->run();
+
+		if ($this->responseCode != 200) {
+			return false;
+		}
+		return isset($this->jsonData->acknowledged) && $this->jsonData->acknowledged == 1;
+	}
+
+	/** #627: a legkésőbbi indexelt miseidőpont — ebből látszik, meddig ér el az index. */
+	function maxMassStartDate(string $name = 'mass_index'): ?string {
+		$this->curl_setopt(CURLOPT_CUSTOMREQUEST, "GET");
+		$this->buildQuery($name . '/_search', json_encode([
+			"size" => 0,
+			"aggs" => ["max_start" => ["max" => ["field" => "start_date"]]]
+		]));
+		$this->run();
+		if ($this->responseCode != 200) {
+			throw new \Exception("Could not search mass_index!\n" . $this->error);
+		}
+
+		$value = $this->jsonData->aggregations->max_start->value_as_string ?? null;
+		return is_string($value) ? $value : null;
+	}
+
+	function putIndex($name, $data) {
 		$this->curl_setopt(CURLOPT_CUSTOMREQUEST ,"PUT");		
 		$this->buildQuery($name, json_encode($data));
 		$this->run();
@@ -341,18 +403,60 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 		return substr($maxPeriodUpdatedAt, 0, 10) >= substr($lastSuccessAt, 0, 10);
 	}
 
+	/**
+	 * #627: átfogja-e az index a most kért éveket?
+	 *
+	 * Ezt egyetlen időbélyeg-összehasonlítás sem veszi észre: ha semmi nem változik
+	 * az adatbázisban, de átfordul az év, a [Y-1, Y, Y+1] ablak elcsúszik, és az
+	 * index utolsó éve egyszer csak hiányzik. Ilyenkor is teljes futás kell.
+	 *
+	 * @param ?string $maxStartDate a legkésőbbi indexelt miseidőpont (ISO) vagy null
+	 * @param array   $years        a most generálandó évek
+	 */
+	static function indexCoversYears(?string $maxStartDate, array $years): bool {
+		if (empty($years)) return true;
+		// Nem tudjuk megmondani (üres index / hibás agg) -> ne erre hivatkozva döntsünk.
+		if (empty($maxStartDate)) return true;
+
+		$maxYear = (int) substr($maxStartDate, 0, 4);
+		return $maxYear >= (int) max($years);
+	}
+
 	/** A mass_index állapota a teljes újraindexelés eldöntéséhez. */
 	private static function massIndexState(): array {
+		$empty = ['empty' => true, 'created_at' => null, 'indexed_at' => null, 'max_start_date' => null];
+
 		$elastic = new \ExternalApi\ElasticsearchApi();
 		if (!$elastic->isexistsIndex('mass_index')) {
-			return ['empty' => true, 'created_at' => null];
+			return $empty;
 		}
 		$info = $elastic->checkIndex('mass_index');
 		$docs = isset($info->{'docs.count'}) ? (int) $info->{'docs.count'} : 0;
+		if ($docs === 0) {
+			return $empty;
+		}
+
+		$meta = $elastic->getIndexMeta('mass_index');
 		return [
-			'empty' => $docs === 0,
+			'empty' => false,
 			'created_at' => $elastic->getIndexCreationDate('mass_index'),
+			'indexed_at' => $meta['full_reindex_at'] ?? null,
+			'max_start_date' => $elastic->maxMassStartDate(),
 		];
+	}
+
+	/** #627: az index megjelöli magát, hogy mikor épült fel utoljára teljesen. */
+	private static function markFullReindex(array $years, callable $log): void {
+		try {
+			$elastic = new \ExternalApi\ElasticsearchApi();
+			$elastic->setIndexMeta('mass_index', [
+				'full_reindex_at' => date('Y-m-d H:i:s'),
+				'years' => array_values(array_map('intval', $years)),
+			]);
+		} catch (\Throwable $e) {
+			// A vízjel hiánya csak annyit jelent, hogy legközelebb újra lefutunk.
+			$log("#627: az index vízjelét nem sikerült kiírni (" . $e->getMessage() . ").");
+		}
 	}
 
 	/*
@@ -362,49 +466,66 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 	 * #306: a teljes (top-level, $tids nélküli) cron-futás korábban MINDIG mindent
 	 * újragenerált (~40 perc, 500k+ esemény), akkor is, ha semmi nem változott. Most a
 	 * shouldFullReindex() őr csak akkor engedi a teljes futást, ha az index üres, újabb a
-	 * cron sikerénél, vagy a misék/periódusok változtak a legutóbbi sikeres futás óta. A per-
-	 * templom PUT (generate.php) és a rekurzív chunk-hívások mindig nem-üres $tids-szel
-	 * jönnek, ezért érintetlenek.
+	 * legutóbbi indexépítésnél, vagy a misék/periódusok változtak azóta. A per-templom PUT
+	 * (generate.php) és a rekurzív chunk-hívások mindig nem-üres $tids-szel jönnek, ezért
+	 * érintetlenek.
+	 *
+	 * #627: az "azóta" alapja elsősorban az INDEX saját vízjele (`_meta.full_reindex_at`),
+	 * és csak annak hiányában a crons.lastsuccess_at. Így a "friss DB-seed + régi, mentésből
+	 * visszatöltött ES-index" eset (0-ról induló docker compose up) nem tud csendben
+	 * kimaradni: a DB cron-sora nem tudhat az index tartalmáról, a vízjel viszont az
+	 * indexszel együtt utazik. Ugyanezért nézzük az index év-lefedettségét is.
 	 */
 	static function updateMasses($years = [], $tids = [], ?callable $logger = null) {
 		$log = $logger ?? function($msg) {};
 		$startTime = time();
 		set_time_limit(3000); // Hosszabb idő kellhet a frissítéshez
 
+		$isFullRun = empty($tids);
+
+		if (empty($years)) {
+			$years = [date('Y') - 1, date('Y'), date('Y') + 1];
+		}
+
 		// #306: teljes cron-futásnál (üres $tids) döntsük el, kell-e egyáltalán újragenerálni.
-		if (empty($tids)) {
+		if ($isFullRun) {
 			try {
 				$indexState = self::massIndexState();
 			} catch (\Throwable $e) {
 				// ES-hiba az index-ellenőrzésnél: a biztonság kedvéért fussunk le teljesen.
-				$indexState = ['empty' => true, 'created_at' => null];
+				$indexState = ['empty' => true, 'created_at' => null, 'indexed_at' => null, 'max_start_date' => null];
 				$log("#306: index-ellenőrzés hibázott (" . $e->getMessage() . ") — biztonságból teljes futás.");
 			}
 			$cron = \Eloquent\Cron::where('class', '\\ExternalApi\\ElasticsearchApi')
 				->where('function', 'updateMasses')->first();
-			$lastSuccess = $cron->lastsuccess_at ?? null;
+			$cronLastSuccess = $cron->lastsuccess_at ?? null;
+			// #627: az index saját vízjele erősebb bizonyíték, mint a DB cron-sora.
+			$lastSuccess = $indexState['indexed_at'] ?? $cronLastSuccess;
 			$maxUpdated  = \Eloquent\CalGeneratedPeriod::max('updated_at');
 			$maxMassUpdated = \Eloquent\CalMass::max('updated_at');
+			$coversYears = self::indexCoversYears($indexState['max_start_date'], $years);
 
-			if (!self::shouldFullReindex(
+			$needsReindex = self::shouldFullReindex(
 				$lastSuccess,
 				$maxUpdated,
 				$indexState['empty'],
 				$maxMassUpdated,
 				$indexState['created_at']
-			)) {
-				$log("#306: a misék és a generatedPeriods nem változtak a legutóbbi sikeres futás óta ("
-					. $lastSuccess . "), az index pedig régebbi és nem üres — teljes újragenerálás kihagyva.");
+			) || !$coversYears;
+
+			if (!$needsReindex) {
+				$log("#306: a misék és a generatedPeriods nem változtak a legutóbbi indexépítés óta ("
+					. $lastSuccess . "), az index lefedi a(z) " . implode(', ', $years)
+					. " éveket és nem üres — teljes újragenerálás kihagyva.");
 				return;
 			}
 			$log("#306: teljes újragenerálás indul (indexEmpty=" . ($indexState['empty'] ? '1' : '0')
-				. ", indexCreated=" . $indexState['created_at'] . ", lastSuccess=" . $lastSuccess
-				. ", maxPeriodUpdated=" . $maxUpdated . ", maxMassUpdated=" . $maxMassUpdated . ").");
+				. ", indexedAt=" . $indexState['indexed_at'] . ", indexCreated=" . $indexState['created_at']
+				. ", cronLastSuccess=" . $cronLastSuccess . ", maxPeriodUpdated=" . $maxUpdated
+				. ", maxMassUpdated=" . $maxMassUpdated . ", maxStartDate=" . $indexState['max_start_date']
+				. ", coversYears=" . ($coversYears ? '1' : '0') . ").");
 		}
 
-		if (empty($years)) {
-			$years = [date('Y') - 1, date('Y'), date('Y') + 1];
-		}
 		if( empty($tids)) {
 			$tids = \Eloquent\Church::where('ok', 'i')->limit(8000)->pluck('id')->toArray();
 		}
@@ -414,6 +535,7 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 			foreach (array_chunk($tids,  $chunksize) as $chunk) {
 				static::updateMasses($years, $chunk, $logger);
 			}
+			if ($isFullRun) self::markFullReindex($years, $log);
 			return;
 		}
 
@@ -495,6 +617,7 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 		$log("Nos hát szépen minden napra szét bontva így lett nekünk már ".$countAllMasses." misénk.");
 
 		$log("Elkészült a frissítés " . (time() - $startTime) . " másodperc alatt azaz ".round((time() - $startTime)/60,2)." perc alatt.");
+		if ($isFullRun) self::markFullReindex($years, $log);
 		return $debug;
 	}
 
