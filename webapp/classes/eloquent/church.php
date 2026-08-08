@@ -1390,6 +1390,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             'message' => $message,
             'available' => in_array($value, self::CARD_DONATION_AVAILABLE, true),
         ];
+    }
 
     public function getGlutenFreeCommunionAttribute(): array {
         return \GlutenFreeCommunion::details(
