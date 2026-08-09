@@ -118,6 +118,10 @@ services:
       # alapértéke érvényesült, és az .env-ben hiába állított volna bárki mást.
       - MYSQL_MISEREND_USER=${MYSQL_MISEREND_USER:-root}
       - MYSQL_MISEREND_PASSWORD=${MYSQL_MISEREND_PASSWORD:-pw}
+      # #171: a konténer maga ütemezze-e a cront. Alapból ki: az éles telepítés ma a
+      # hosztról ütemez, és ha mindkettő menne, kétszer futna minden munka.
+      - CRON_ENABLED=${CRON_ENABLED:-0}
+      - CRON_INTERVAL=${CRON_INTERVAL:-300}
       - SMTP_HOST=${SMTP_HOST:-}
       - SMTP_PORT=${SMTP_PORT:-25}
       - SMTP_USER=${SMTP_USER:-}
