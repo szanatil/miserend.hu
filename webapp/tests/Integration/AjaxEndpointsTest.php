@@ -92,4 +92,51 @@ class AjaxEndpointsTest extends TestCase {
         $this->assertArrayHasKey('child', $first);
         $this->assertArrayHasKey('lat', $first['parent']);
     }
+
+    /**
+     * #391: a lapozó eddig NYERSEN vette át a `page`/`take` értéket, a hívók pedig
+     * szoroznak vele — `?page=abc` és `?page[]=1` HTTP 500-at adott MINDEN keresőoldalon:
+     *
+     *   PHP Fatal error: Uncaught TypeError: Unsupported operand types: int * string
+     *     in searchresultschurches.php:108
+     *
+     * @dataProvider rosszLapszamok
+     */
+    public function testRosszLapszamNemDontiOsszeAKeresest(string $query): void {
+        $url = $this->baseUrl . '/index.php?q=SearchResultsChurches&kulcsszo=Budapest' . $query;
+        $html = @file_get_contents($url);
+
+        $this->assertNotFalse($html, 'Az oldalnak be kell töltenie: ' . $query);
+        $this->assertMatchesRegularExpression(
+            '#/templom/\d+#',
+            $html,
+            'Hibás lapszámnál is találatokat kell mutatni (az első lapot): ' . $query
+        );
+    }
+
+    public static function rosszLapszamok(): array {
+        return [
+            'szöveg'    => ['&page=abc'],
+            'tömb'      => ['&page[]=1'],
+            'negatív'   => ['&page=-5'],
+            'tört'      => ['&page=1.5'],
+            'rossz take'=> ['&take=abc'],
+        ];
+    }
+
+    /**
+     * ...de az érvényes `take` továbbra is hasson.
+     */
+    public function testErvenyesTakeHat(): void {
+        $html = @file_get_contents(
+            $this->baseUrl . '/index.php?q=SearchResultsChurches&kulcsszo=Budapest&take=5'
+        );
+        $this->assertNotFalse($html);
+
+        preg_match_all('#/templom/(\d+)#', $html, $m);
+        $ids = array_unique($m[1]);
+        $this->assertLessThanOrEqual(5, count($ids), 'take=5 esetén legfeljebb 5 templom.');
+        $this->assertGreaterThan(0, count($ids), 'De legyen találat.');
+    }
+
 }
