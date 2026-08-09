@@ -19,7 +19,8 @@ else
   exit 1
 fi
 
-MYSQL_CMD="$DB_CLIENT --user=root --password=pw ${DB_NAME}"
+# #668: a root jelszava env-ből jön; az alapértelmezés a régi beégetett érték.
+MYSQL_CMD="$DB_CLIENT --user=root --password=${MYSQL_ROOT_PASSWORD:-pw} ${DB_NAME}"
 
 echo "Using client: $DB_CLIENT"
 

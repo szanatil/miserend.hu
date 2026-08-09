@@ -64,7 +64,7 @@ jobs:
             BACKUP_FILE="$BACKUP_DIR/miserend-$TIMESTAMP.sql.gz"
 
             $COMPOSE exec -T mysql mariadb-dump \
-              -u root -ppw \
+              -u root -p"${MYSQL_ROOT_PASSWORD:-pw}" \
               --all-databases \
               --single-transaction \
               --routines \
