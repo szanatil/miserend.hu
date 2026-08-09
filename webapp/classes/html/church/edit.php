@@ -136,6 +136,12 @@ class Edit extends \Html\Html {
         $latLonChanged = $this->church->isDirty('lat') || $this->church->isDirty('lon');
         $this->church->save();
 
+        // #670: a templom adatai a mise-indexbe is be vannak ágyazva, ezért a mentés után
+        // a MISE-kereső még a régi adatot látná (pl. a most felvitt gluténmentes vagy
+        // akadálymentességi információt). Mérve ~0,5 mp templomonként — kézi mentésnél ez
+        // belefér, cron-útvonalon szándékosan nem fut.
+        $this->church->refreshMassSearchIndex();
+
         // #44: koordináta-módosításkor újraszámoljuk a szomszédságot (distances), különben
         // a szomszédok listája elavulna az új pozícióhoz képest. Az esetleges hiba ne buktassa
         // a mentést.
