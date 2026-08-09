@@ -76,8 +76,11 @@ class Cron extends Html {
             $job->success();
         }
         $elapsed = microtime(true) - $start;
+        // A `%` egészre vár, az $elapsed viszont float: PHP 8.1 óta minden cron-futás
+        // "Implicit conversion from float ... to int loses precision" figyelmeztetést
+        // hagyott maga után. fmod()-dal ugyanaz az eredmény, zaj nélkül.
         $hours = (int) floor($elapsed / 3600);
-        $minutes = (int) floor(($elapsed % 3600) / 60);
+        $minutes = (int) floor(fmod($elapsed, 3600) / 60);
         $seconds = $elapsed - ($hours * 3600) - ($minutes * 60);
         $s = round($seconds, 2);
 
