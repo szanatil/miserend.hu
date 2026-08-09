@@ -14,6 +14,7 @@ class Health extends Html {
     public $churchesWithNoElasticMassesCount;
     public $externalapis;
     public $boundariesStats;
+    public $schemaCheck;
     public $emails;
     public $mailing;
     public $foremail;
@@ -233,6 +234,18 @@ class Health extends Html {
 		 * Enélkül a fenti „soha nem ellenőrzött" sor félrevezető: lehet 0, miközben a
 		 * templomok fele mégsem kereshető területre.
 		 */
+		/*
+		 * #706: az adatbázis-struktúra összevetése azzal, amit az initdb.d leír.
+		 * Az élesen mindig kézzel ment végig minden migráció, ezért elcsúszhat:
+		 * maradhat rég kivezetett tábla, hiányozhat egy újabb oszlop vagy index.
+		 * A hiba SOHA ne vigye le a /health-et — a többi ellenőrzés fontosabb.
+		 */
+		try {
+			$this->schemaCheck = \SchemaCheck::check();
+		} catch (\Throwable $e) {
+			$this->schemaCheck = ['available' => false, 'reason' => 'Az ellenőrzés hibára futott: ' . $e->getMessage()];
+		}
+
 		$churchesWithBoundary = DB::table('lookup_boundary_church')
 			->join('templomok', 'templomok.id', '=', 'lookup_boundary_church.church_id')
 			->where('templomok.ok', 'i')
