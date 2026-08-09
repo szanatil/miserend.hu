@@ -42,6 +42,11 @@ export interface CompressionOptions {
   eveningStartHour?: number;
   /** Minimum „nagy lyuk" amit megéri tömöríteni (óra). Default: 3. */
   minGapHours?: number;
+  /**
+   * Ennél rövidebb összefüggő üres sávot NEM húzunk össze (óra). Default: 1.
+   * Ez védi a misék közti apró réseket a túl-tömörítéstől (#358 review).
+   */
+  minCollapseRunHours?: number;
   /** Minimum eseményszám amelynél tömörítünk. Kevesebbnél nem érdemes. Default: 3. */
   minEventsThreshold?: number;
   /** Hozzáad puffer-órákat a `slotMinTime` előtt és a `slotMaxTime` után. Default: 0. */
@@ -92,6 +97,7 @@ export class WeekCompressionUtil {
     morningEndHour: 12,
     eveningStartHour: 14,
     minGapHours: 3,
+    minCollapseRunHours: 1,
     minEventsThreshold: 3,
     paddingHours: 0,
     slotDurationMinutes: 30,
@@ -99,6 +105,22 @@ export class WeekCompressionUtil {
 
   /** A FullCalendar `getEvents()` visszaadta esemény minimális alakja. */
   static readonly DEFAULT_EVENT_MINUTES = 60;
+
+  /**
+   * #358: a nap hányadik percében kezdődik ez az időpont — a NAPTÁR faliórája szerint.
+   *
+   * A naptár a templom saját időzónájában fut (`timeZone: 'Europe/Budapest'`), de
+   * időzóna-plugin NINCS betöltve (dayGrid/timeGrid/list/interaction/rrule). Ilyenkor a
+   * FullCalendar a dátumokat UTC-alapon kezeli: a faliidő a Date UTC-mezőiben van.
+   * A `getHours()` ezért a böngésző zónájával eltolva olvasna — nyáron +2 órával.
+   *
+   * Ez nem elméleti: emiatt látszott a 08:00-s vasárnapi mise 10:00-nak, a levágás
+   * `slotMinTime`-ja 10:00 lett (a `slotMinTime` viszont faliidőt vár), és a 8 órás
+   * mise egyszerűen eltűnt a heti nézetből.
+   */
+  static minuteOfDay(d: Date): number {
+    return d.getUTCHours() * 60 + d.getUTCMinutes();
+  }
 
   /**
    * #358: a FullCalendar eseményeiből WeekEvent-lista.
@@ -159,8 +181,8 @@ export class WeekCompressionUtil {
     let eveningEarliestMin = 24 * 60;  // legkorábbi esti (eveningStartHour után kezdődő) esemény eleje
 
     for (const e of weekEvents) {
-      const startMin = e.start.getHours() * 60 + e.start.getMinutes();
-      const endMin = e.end.getHours() * 60 + e.end.getMinutes();
+      const startMin = WeekCompressionUtil.minuteOfDay(e.start);
+      const endMin = WeekCompressionUtil.minuteOfDay(e.end);
       // Ha az esemény ENDe „átnyúlik másnapra", clamp 24:00-ra (a gap-analízis a napon belül érvényes).
       const cappedEnd = endMin > 0 && endMin < startMin ? 24 * 60 : endMin;
 
@@ -211,8 +233,8 @@ export class WeekCompressionUtil {
       }
     };
     for (const e of weekEvents) {
-      const startMin = e.start.getHours() * 60 + e.start.getMinutes();
-      const endMin = e.end.getHours() * 60 + e.end.getMinutes();
+      const startMin = WeekCompressionUtil.minuteOfDay(e.start);
+      const endMin = WeekCompressionUtil.minuteOfDay(e.end);
       if (endMin > startMin) {
         markRange(startMin, endMin);
       } else if (endMin === startMin) {
@@ -225,21 +247,43 @@ export class WeekCompressionUtil {
       }
     }
 
-    // 7. Collapsed slotok: CSAK a detektált középső gap-en belül
-    //    (`[morningLatestMin, eveningEarliestMin)`), NEM a teljes [slotMin, slotMax)
-    //    ablakban. Ez a szándék (12-15. sori komment): a reggel↔este közti holt
-    //    sávot húzzuk össze, a reggeli (vagy esti) misék közti apró réseket NEM
-    //    — különben a misék jobban összenyomódnak, mint kéne (#358 review).
-    //    A gap-en belüli FOGLALT slotok (pl. középső Nagyszombat) továbbra is
-    //    kimaradnak, ezért köréjük „törik" a tengely.
-    const gapFirstSlot = Math.ceil(morningLatestMin / slot) * slot;
-    const gapLastSlot = Math.floor(eveningEarliestMin / slot) * slot;
+    // 7. Collapsed slotok: MINDEN elég hosszú összefüggő üres futam a látható
+    //    [slotMin, slotMax) ablakon belül.
+    //
+    //    Korábban ez csak a detektált „reggel↔este" sávra (`[morningLatestMin,
+    //    eveningEarliestMin)`) korlátozódott, ami következetlen képet adott: a
+    //    Szent István-bazilikán a 11:00–16:00 sáv összement, a 17:00–18:00 viszont
+    //    nyitva maradt, pedig az is ugyanolyan üres — csak épp a legkorábbi esti
+    //    mise (16:00) UTÁN van, tehát kívül esett a sávon.
+    //
+    //    A `minCollapseRunHours` küszöb védi meg attól, amit a #358 review kifogásolt
+    //    (túl-tömörítés): a misék közti apró, félórás rések nyitva maradnak, csak a
+    //    tényleg hosszú holt sávok húzódnak össze. A FOGLALT slotok sosem kerülnek
+    //    a listába, ezért a középső misék (Nagyszombat, extra alkalom) a helyükön
+    //    maradnak, és köréjük „törik" a tengely.
+    const minRunSlots = Math.max(1, Math.round((opts.minCollapseRunHours * 60) / slot));
     const collapsedSlotMinutes: number[] = [];
-    for (let s = gapFirstSlot; s < gapLastSlot; s += slot) {
-      if (!occupied.has(s)) {
-        collapsedSlotMinutes.push(s);
+    let runStart: number | null = null;
+
+    const flushRun = (endExclusive: number) => {
+      if (runStart === null) return;
+      const runSlots = (endExclusive - runStart) / slot;
+      if (runSlots >= minRunSlots) {
+        for (let s = runStart; s < endExclusive; s += slot) {
+          collapsedSlotMinutes.push(s);
+        }
+      }
+      runStart = null;
+    };
+
+    for (let s = slotMinMin; s < slotMaxMin; s += slot) {
+      if (occupied.has(s)) {
+        flushRun(s);
+      } else if (runStart === null) {
+        runStart = s;
       }
     }
+    flushRun(slotMaxMin);
 
     return {
       shouldCompress: true,

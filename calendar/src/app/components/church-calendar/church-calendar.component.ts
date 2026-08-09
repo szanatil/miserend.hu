@@ -390,13 +390,13 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
       eventsSet: () => this.onEventsSetForCompression(),
       // #358: a KÖZÉPSŐ üres slotok megjelölése. A lane-td MINDEN sorban renderel
       // (a :30-as axis-cellával ellentétben, ami class-generator nélküli bare td),
-      // ezért a slotLaneClassNames a megbízható horog. A getHours/getMinutes
-      // ugyanaz a kinyerés mint a util occupancy-jében -> a megjelölt lane-ek
-      // bizonyíthatóan pont az esemény-mentesek, timezone-biztosan.
+      // ezért a slotLaneClassNames a megbízható horog. A faliidő kinyerése UGYANAZ,
+      // mint a utilban (minuteOfDay) — a naptár időzóna-plugin nélkül UTC-mezőkben
+      // tartja a faliidőt, ezért getHours() helyett getUTCHours() kell.
       slotLaneClassNames: (arg: any) =>
         (this.weekCompressionEnabled
           && this.currentViewType === 'timeGridWeek'
-          && this.collapsedSlotMinutes.has(arg.date.getHours() * 60 + arg.date.getMinutes()))
+          && this.collapsedSlotMinutes.has(WeekCompressionUtil.minuteOfDay(arg.date)))
           ? ['fc-empty-slot'] : [],
       // Render custom event content so we can append a language flag ant types in list views
       eventContent: (info: any) => this.renderEventContent(info),
@@ -2069,8 +2069,16 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
         return { html: shouldShowDetails ? `${monthHtml} ${detailsHtml}` : monthHtml };
       }
 
-      // For other non-list views include icons
-      const combinedHtml = `${timeHtml} <span class="fc-event-title-wrap">${titleHtml} ${flagHtml} ${typesHtml} ${commentHtml}</span>`;
+      // #358: az ikonok az IDŐ sorába kerülnek, nem a cím mellé.
+      //
+      // A heti rácsban egy nap-oszlop ~75px széles: a „Szentmise" cím kitölti, mellé
+      // a zászló és a típus-ikonok már nem férnek. Korábban ezért új sorba törtek és
+      // kilógtak a színes blokkból (63px tartalom 48px dobozban); ha meg nowrappal
+      // levágtuk őket, egyszerűen eltűntek. Az idő („18:00") viszont rövid — ott
+      // elférnek mellette, és a cím kap egy saját, teljes sort.
+      const combinedHtml =
+        `<span class="mcal-event-head">${timeHtml}${flagHtml}${typesHtml}${commentHtml}</span>`
+        + `<span class="fc-event-title-wrap">${titleHtml}</span>`;
       return { html: combinedHtml };
     } catch (e) {
       return { html: info.event.title };

@@ -1,18 +1,22 @@
 import {WeekCompressionUtil, WeekEvent} from './week-compression-util';
 
+/**
+ * #358: az események UTC-MEZŐKBEN hordozzák a faliidőt — pontosan úgy, ahogy a
+ * FullCalendar adja őket, amikor névvel megadott időzónában fut (`timeZone:
+ * 'Europe/Budapest'`) és nincs betöltve időzóna-plugin.
+ *
+ * Korábban ez a helper `setHours()`-t használt, tehát a GÉP zónája szerint épített
+ * dátumot. Nyáron ez két órával eltolta a tesztadatot a valóságtól — a hiba, ami
+ * miatt élesben a 08:00-s mise 10:00-nak látszott, itt nem tudott megjelenni.
+ */
 function ev(dayOffset: number, hStart: number, mStart: number, hEnd: number, mEnd: number, title = 'mise'): WeekEvent {
-  const weekStart = new Date(2026, 2, 9); // 2026-03-09 Monday (UTC-naive helper)
-  const start = new Date(weekStart);
-  start.setDate(weekStart.getDate() + dayOffset);
-  start.setHours(hStart, mStart, 0, 0);
-  const end = new Date(weekStart);
-  end.setDate(weekStart.getDate() + dayOffset);
-  end.setHours(hEnd, mEnd, 0, 0);
+  const start = new Date(Date.UTC(2026, 2, 9 + dayOffset, hStart, mStart, 0, 0));
+  const end = new Date(Date.UTC(2026, 2, 9 + dayOffset, hEnd, mEnd, 0, 0));
   return {start, end, title};
 }
 
-const WEEK_START = new Date(2026, 2, 9);  // Mon 2026-03-09
-const WEEK_END = new Date(2026, 2, 16);   // Mon 2026-03-16 (exclusive)
+const WEEK_START = new Date(Date.UTC(2026, 2, 9));   // Mon 2026-03-09
+const WEEK_END = new Date(Date.UTC(2026, 2, 16));    // Mon 2026-03-16 (exclusive)
 
 describe('WeekCompressionUtil.analyze', () => {
 
@@ -100,32 +104,86 @@ describe('WeekCompressionUtil.analyze', () => {
     }
   });
 
-  it('over-compression fix: a REGGELI misék közti rés NEM collapsed, csak a középső gap', () => {
+  /**
+   * A collapse MINDEN elég hosszú üres futamra vonatkozik, nem csak a „reggel↔este"
+   * sávra. Korábban az utóbbira korlátoztuk, ami következetlen képet adott: a
+   * Szent István-bazilikán a 11:00–16:00 összement, a 17:00–18:00 viszont nyitva
+   * maradt — pedig az is ugyanolyan üres, csak a legkorábbi esti mise UTÁN van.
+   */
+  it('minden elég hosszú üres futam collapsed — a reggeli holt sáv is', () => {
     const result = WeekCompressionUtil.analyze({
       weekStart: WEEK_START, weekEnd: WEEK_END,
       events: [
         ev(0, 6, 0, 7, 0),    // reggel korán (06:00-07:00)
-        ev(0, 10, 0, 11, 0),  // késő reggel (10:00-11:00) — a kettő közt 3 órás reggeli rés
+        ev(0, 10, 0, 11, 0),  // késő reggel (10:00-11:00) — a kettő közt 3 órás rés
         ev(2, 6, 0, 7, 0),
         ev(2, 10, 0, 11, 0),
         ev(4, 18, 0, 19, 0),  // este
       ],
     });
-    // morningLatestMin=11:00 (660), eveningEarliestMin=18:00 (1080)
     expect(result.shouldCompress).toBe(true);
     const collapsed = new Set(result.collapsedSlotMinutes);
-    // a REGGELI rés (07:00-10:00) a morningLatestMin ELŐTT → NEM collapsed (nem nyomjuk össze)
-    expect(collapsed.has(480)).toBe(false);  // 08:00
-    expect(collapsed.has(540)).toBe(false);  // 09:00
-    // a KÖZÉPSŐ gap (11:00-18:00) IGEN collapsed
+
+    // A reggeli 3 órás holt sáv is összemegy — ugyanolyan üres, mint a délutáni.
+    expect(collapsed.has(480)).toBe(true);   // 08:00
+    expect(collapsed.has(540)).toBe(true);   // 09:00
+    // A középső gap természetesen szintén.
     expect(collapsed.has(720)).toBe(true);   // 12:00
     expect(collapsed.has(900)).toBe(true);   // 15:00
     expect(collapsed.has(1020)).toBe(true);  // 17:00
-    // minden collapsed slot a középső gap-en belül
-    for (const s of result.collapsedSlotMinutes) {
-      expect(s).toBeGreaterThanOrEqual(660);
-      expect(s).toBeLessThan(1080);
-    }
+
+    // De a MISÉK slotjai sosem.
+    [360, 600, 1080].forEach(min => {
+      expect(collapsed.has(min)).toBe(false);
+    });
+  });
+
+  /**
+   * Ez véd a túl-tömörítéstől, amit a #358 review kifogásolt: a misék közti apró
+   * rés maradjon nyitva, csak a tényleg hosszú holt sáv menjen össze.
+   */
+  it('a küszöbnél rövidebb rés NEM collapsed', () => {
+    const result = WeekCompressionUtil.analyze({
+      weekStart: WEEK_START, weekEnd: WEEK_END,
+      events: [
+        ev(0, 7, 0, 7, 30),   // 07:00-07:30
+        ev(0, 8, 0, 8, 30),   // 08:00-08:30 — köztük CSAK 30 perc
+        ev(0, 18, 0, 19, 0),  // este
+        ev(2, 7, 0, 7, 30),
+        ev(2, 18, 0, 19, 0),
+      ],
+    });
+    expect(result.shouldCompress).toBe(true);
+    const collapsed = new Set(result.collapsedSlotMinutes);
+
+    // A 07:30-08:00 rés fél óra: az alapértelmezett 1 órás küszöb alatt van.
+    expect(collapsed.has(450)).toBe(false);  // 07:30
+    // A délelőtt-esti holt sáv viszont bőven fölötte.
+    expect(collapsed.has(600)).toBe(true);   // 10:00
+  });
+
+  it('a küszöb hangolható', () => {
+    const events = [
+      ev(0, 7, 0, 7, 30),
+      ev(0, 8, 0, 8, 30),
+      ev(0, 18, 0, 19, 0),
+      ev(2, 7, 0, 7, 30),
+      ev(2, 18, 0, 19, 0),
+    ];
+    // Fél órás küszöbbel a 07:30-as rés is összemegy.
+    const lazabb = WeekCompressionUtil.analyze({
+      weekStart: WEEK_START, weekEnd: WEEK_END, events,
+      options: {minCollapseRunHours: 0.5},
+    });
+    expect(new Set(lazabb.collapsedSlotMinutes).has(450)).toBe(true);
+
+    // Három órás küszöbbel viszont csak a nagy sáv.
+    const szigorubb = WeekCompressionUtil.analyze({
+      weekStart: WEEK_START, weekEnd: WEEK_END, events,
+      options: {minCollapseRunHours: 3},
+    });
+    expect(new Set(szigorubb.collapsedSlotMinutes).has(450)).toBe(false);
+    expect(new Set(szigorubb.collapsedSlotMinutes).has(600)).toBe(true);
   });
 
   it('nagyszombat: egy KÖZÉPSŐ mise slotjai NEM collapsed-ek (körülötte törik a tengely)', () => {

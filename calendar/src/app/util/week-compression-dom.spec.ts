@@ -53,9 +53,11 @@ describe('#358 week-compression DOM collapse (valódi render)', () => {
     ];
 
     // A collapsed-halmazt UGYANAZZAL a util-lal számoljuk, amit a komponens is használ.
-    const weekEvents: WeekEvent[] = events.map(e => ({start: new Date(e.start), end: new Date(e.end), title: e.title}));
+    // #358: UTC-mezős faliidő — ahogy a FullCalendar adja `timeZone` beállítás mellett.
+    const utc = (iso: string) => new Date(iso + 'Z');
+    const weekEvents: WeekEvent[] = events.map(e => ({start: utc(e.start), end: utc(e.end), title: e.title}));
     const result = WeekCompressionUtil.analyze({
-      weekStart: new Date(2026, 2, 9), weekEnd: new Date(2026, 2, 16),
+      weekStart: new Date(Date.UTC(2026, 2, 9)), weekEnd: new Date(Date.UTC(2026, 2, 16)),
       events: weekEvents, options: {slotDurationMinutes: 30},
     });
     expect(result.shouldCompress).toBe(true);
@@ -64,6 +66,10 @@ describe('#358 week-compression DOM collapse (valódi render)', () => {
     calendar = new Calendar(host, {
       plugins: [timeGridPlugin],
       initialView: 'timeGridWeek',
+      // #358: ahogy a valós app (church-calendar) is teszi — névvel megadott időzóna.
+      // Enélkül a FullCalendar 'local'-ban fut, és a Date-ek a GÉP zónáját hordoznák,
+      // tehát a teszt nem azt mérné, ami élesben történik.
+      timeZone: 'Europe/Budapest',
       initialDate: DAY,
       slotDuration: '00:30',
       slotMinTime: result.slotMinTime,
@@ -72,7 +78,8 @@ describe('#358 week-compression DOM collapse (valódi render)', () => {
       headerToolbar: false,
       allDaySlot: false,
       slotLaneClassNames: (arg: any) =>
-        collapsed.has(arg.date.getHours() * 60 + arg.date.getMinutes()) ? ['fc-empty-slot'] : [],
+        // Ugyanaz a faliidő-kinyerés, mint a komponensben (UTC-mezők).
+        collapsed.has(WeekCompressionUtil.minuteOfDay(arg.date)) ? ['fc-empty-slot'] : [],
       events,
     });
     calendar.render();
@@ -129,6 +136,10 @@ describe('#358 week-compression DOM collapse (valódi render)', () => {
     calendar = new Calendar(host, {
       plugins: [timeGridPlugin],
       initialView: 'timeGridWeek',
+      // #358: ahogy a valós app (church-calendar) is teszi — névvel megadott időzóna.
+      // Enélkül a FullCalendar 'local'-ban fut, és a Date-ek a GÉP zónáját hordoznák,
+      // tehát a teszt nem azt mérné, ami élesben történik.
+      timeZone: 'Europe/Budapest',
       initialDate: DAY,
       slotDuration: '00:30:00',
       headerToolbar: false,
@@ -148,7 +159,7 @@ describe('#358 week-compression DOM collapse (valódi render)', () => {
     });
 
     const result = WeekCompressionUtil.analyze({
-      weekStart: new Date(2026, 2, 9), weekEnd: new Date(2026, 2, 16),
+      weekStart: new Date(Date.UTC(2026, 2, 9)), weekEnd: new Date(Date.UTC(2026, 2, 16)),
       events: weekEvents, options: {slotDurationMinutes: 30},
     });
 
@@ -169,7 +180,7 @@ describe('#358 week-compression DOM collapse (valódi render)', () => {
    */
   it('a start nélküli eseményt kihagyja', () => {
     const mapped = WeekCompressionUtil.toWeekEvents([
-      {start: new Date('2026-03-09T08:00:00')},
+      {start: new Date('2026-03-09T08:00:00Z')},
       {start: null},
     ]);
     expect(mapped.length).toBe(1);
@@ -198,11 +209,11 @@ describe('#358 week-compression DOM collapse (valódi render)', () => {
     ];
 
     const weekEvents = WeekCompressionUtil.toWeekEvents(
-      MASSES.map(([d, t]) => ({start: new Date(`${d}T${t}:00`), title: 'Szentmise'}))
+      MASSES.map(([d, t]) => ({start: new Date(`${d}T${t}:00Z`), title: 'Szentmise'}))
     );
 
     const result = WeekCompressionUtil.analyze({
-      weekStart: new Date(2026, 2, 9), weekEnd: new Date(2026, 2, 16),
+      weekStart: new Date(Date.UTC(2026, 2, 9)), weekEnd: new Date(Date.UTC(2026, 2, 16)),
       events: weekEvents, options: {slotDurationMinutes: 30},
     });
 
@@ -228,7 +239,7 @@ describe('#358 week-compression DOM collapse (valódi render)', () => {
     // ...és közben EGYETLEN misés slot sem esett ki.
     const collapsed = new Set(result.collapsedSlotMinutes);
     weekEvents.forEach(e => {
-      const slot = Math.floor((e.start.getHours() * 60 + e.start.getMinutes()) / 30) * 30;
+      const slot = Math.floor(WeekCompressionUtil.minuteOfDay(e.start) / 30) * 30;
       expect(collapsed.has(slot))
         .toBe(false, `A ${WeekCompressionUtil.minutesToTimeString(slot)} misés slot nem tömöríthető.`);
     });
@@ -267,6 +278,10 @@ describe('#358 week-compression DOM collapse (valódi render)', () => {
     calendar = new Calendar(host, {
       plugins: [timeGridPlugin],
       initialView: 'timeGridWeek',
+      // #358: ahogy a valós app (church-calendar) is teszi — névvel megadott időzóna.
+      // Enélkül a FullCalendar 'local'-ban fut, és a Date-ek a GÉP zónáját hordoznák,
+      // tehát a teszt nem azt mérné, ami élesben történik.
+      timeZone: 'Europe/Budapest',
       initialDate: DAY,
       slotDuration: '00:30:00',
       headerToolbar: false,
@@ -288,7 +303,7 @@ describe('#358 week-compression DOM collapse (valódi render)', () => {
     // Most collapse-oljuk a középső üres slotokat, ahogy a komponens teszi.
     const weekEvents = WeekCompressionUtil.toWeekEvents(calendar.getEvents());
     const result = WeekCompressionUtil.analyze({
-      weekStart: new Date(2026, 2, 9), weekEnd: new Date(2026, 2, 16),
+      weekStart: new Date(Date.UTC(2026, 2, 9)), weekEnd: new Date(Date.UTC(2026, 2, 16)),
       events: weekEvents, options: {slotDurationMinutes: 30},
     });
     expect(result.shouldCompress).toBe(true);
