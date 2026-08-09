@@ -199,6 +199,48 @@
 		{% endfor %}
 	</table>
 
+	{# #706: az éles adatbázison kézzel ment végig minden migráció, ezért elcsúszhat
+	   attól, amit az initdb.d leír. Itt látszik, hogy hol. #}
+	<h3 id="schema">Adatbázis-struktúra</h3>
+	{% if not schemaCheck.available %}
+		<p><span class="badge bg-warning">Nem ellenőrizhető</span> {{ schemaCheck.reason }}</p>
+	{% elseif schemaCheck.findings is empty %}
+		<p><span class="badge bg-success">Rendben</span>
+		   A(z) <code>{{ schemaCheck.schema }}</code> adatbázis szerkezete pontosan megegyezik azzal, amit a
+		   <code>docker/mysql/initdb.d</code> leír.</p>
+	{% else %}
+		<p>A(z) <code>{{ schemaCheck.schema }}</code> adatbázis szerkezetének összevetése azzal, amit a
+		   <code>docker/mysql/initdb.d</code> leír:</p>
+		<p>
+			{% if schemaCheck.counts.danger > 0 %}
+				<span class="badge bg-danger">{{ schemaCheck.counts.danger }} hiba</span>
+			{% else %}
+				<span class="badge bg-success">0 hiba</span>
+			{% endif %}
+			<span class="badge bg-warning">{{ schemaCheck.counts.warning }} figyelmeztetés</span>
+			<span class="badge bg-secondary">{{ schemaCheck.counts.info }} megjegyzés</span>
+		</p>
+		<p><small class="text-muted">
+			<strong>Hiba</strong>: a kód el fog hasalni rajta (hiányzó tábla/oszlop, szigorúbb NOT NULL, hiányzó egyedi index).
+			<strong>Figyelmeztetés</strong>: működik, de eltér (elhagyott tábla/oszlop, hiányzó index, más típus).
+			<strong>Megjegyzés</strong>: jellemzően karakterkészlet és alapértelmezés.
+		</small></p>
+		<table class="table table-hover table-condensed table-striped">
+			<tr><th>Tábla</th><th>Eltérés</th></tr>
+			{% for finding in schemaCheck.findings %}
+				<tr>
+					<td>
+						{% if finding.severity == 'danger' %}<span class="badge bg-danger">hiba</span>
+						{% elseif finding.severity == 'warning' %}<span class="badge bg-warning">figy</span>
+						{% else %}<span class="badge bg-secondary">megj</span>{% endif %}
+						<code>{{ finding.table }}</code>
+					</td>
+					<td>{{ finding.message }}</td>
+				</tr>
+			{% endfor %}
+		</table>
+	{% endif %}
+
 	<h3 id="boundaries">Területi elhelyezkedési adatok (Boundaries) állapota</h3>
 	<p>Azt, hogy melyik megyében/egyházmegyében/városban/körzetben van egy templom, azt az OSM (OpenStreetMap) adatokból az overpassapi-val olvassuk ki.</p>
 
