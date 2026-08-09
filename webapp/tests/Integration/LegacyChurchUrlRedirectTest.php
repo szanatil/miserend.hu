@@ -107,4 +107,58 @@ final class LegacyChurchUrlRedirectTest extends TestCase {
 
         self::assertSame('http://localhost:8000/templom/1254', $response['location']);
     }
+
+    /*
+     * #658: a záró perjelet levágó szabály ugyanebbe a csapdába esett, csak a
+     * #642-es javítás nem terjedt ki rá — relatív cél maradt, ráadásul a PROTO
+     * beállítása ELŐTT. Így minden záró perjeles URL (nem csak a templomlapok)
+     * a kívülről elérhetetlen http://miserend.hu:8000/... címre irányított.
+     */
+    public static function trailingSlashPathProvider(): array {
+        return [
+            'templomlap'  => ['/templom/1254/', 'https://miserend.hu/templom/1254'],
+            'kereses'     => ['/kereses/',      'https://miserend.hu/kereses'],
+            'mely utvonal' => ['/templom/1254/naptar/', 'https://miserend.hu/templom/1254/naptar'],
+        ];
+    }
+
+    /** @dataProvider trailingSlashPathProvider */
+    public function testTrailingSlashRedirectsToCleanHttpsUrl(string $path, string $expected): void {
+        $response = $this->head($path, [
+            'Host: miserend.hu',
+            'X-Forwarded-Proto: https',
+        ]);
+
+        self::assertSame(301, $response['status']);
+        self::assertSame($expected, $response['location']);
+    }
+
+    /** @dataProvider trailingSlashPathProvider */
+    public function testTrailingSlashRedirectNeverLeaksTheInternalPort(string $path): void {
+        $response = $this->head($path, ['Host: miserend.hu', 'X-Forwarded-Proto: https']);
+
+        self::assertStringNotContainsString(':8000', (string) $response['location']);
+    }
+
+    /* A puszta gyökeret nem szabad átirányítani (különben végtelen ciklus). */
+    public function testRootIsNotRedirected(): void {
+        $response = $this->head('/', ['Host: miserend.hu', 'X-Forwarded-Proto: https']);
+
+        self::assertSame(200, $response['status']);
+        self::assertNull($response['location']);
+    }
+
+    /* Perjel nélkül nincs átirányítás — a lapnak egyből ki kell szolgálódnia. */
+    public function testPathWithoutTrailingSlashIsServedDirectly(): void {
+        $response = $this->head('/templom/1254', ['Host: miserend.hu', 'X-Forwarded-Proto: https']);
+
+        self::assertSame(200, $response['status']);
+    }
+
+    /* Fejlesztői környezetben itt is marad a port. */
+    public function testTrailingSlashKeepsDevelopmentPort(): void {
+        $response = $this->head('/kereses/', ['Host: localhost:8000']);
+
+        self::assertSame('http://localhost:8000/kereses', $response['location']);
+    }
 }
