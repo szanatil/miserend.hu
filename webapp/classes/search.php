@@ -304,6 +304,42 @@ class Search {
         }
     }
 
+    /**
+     * #89: távolság-alapú szűrés egy pont körül.
+     *
+     * A `churches` index `location` mezője geo_point — a mappingben eddig is szerepelt,
+     * csak soha nem volt feltöltve, ezért a keresőben a „hely + távolság" páros néma
+     * no-op maradt: a találatok teljesen figyelmen kívül hagyták a megadott helyet
+     * (innen a jegy példája: Szentendre + 10 km -> Micske, Szirmabesenyő).
+     *
+     * A mise-indexben NINCS geo_point, ezért ott ez a szűrő nem használható közvetlenül —
+     * a hívó előbb templom-azonosítókat keres ezzel, majd churchIds()-szal szűkít.
+     *
+     * @param float  $lat
+     * @param float  $lon
+     * @param float  $km    sugár kilométerben
+     * @param string $label emberi felirat a szűrő-listához
+     */
+    function nearLocation(float $lat, float $lon, float $km, string $label = ''): void {
+        if ($this->massOrChurch === 'mass') {
+            throw new \Exception('A geo_distance szűrő csak a templom-indexen használható.');
+        }
+        if ($km <= 0) {
+            return;
+        }
+
+        $this->query['bool']['filter'][] = [
+            'geo_distance' => [
+                'distance' => $km . 'km',
+                'location' => ['lat' => $lat, 'lon' => $lon],
+            ],
+        ];
+
+        $this->filters[] = $label !== ''
+            ? 'Legfeljebb <b>' . (int) $km . ' km</b>-re innen: <b>' . htmlspecialchars($label) . '</b>'
+            : 'Legfeljebb <b>' . (int) $km . ' km</b>-re a megadott helytől';
+    }
+
     function timeRange($fromDatetime, $toDatetime) {
         // Keep human-readable filter text in the configured timezone
         $filter = "Időpont: <b>" . htmlspecialchars(twig_hungarian_date_format($fromDatetime)) . "</b> - <b>" . htmlspecialchars(twig_hungarian_date_format($toDatetime)) . "</b>";

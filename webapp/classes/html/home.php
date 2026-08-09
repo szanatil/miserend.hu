@@ -67,7 +67,10 @@ class Home extends Html {
                 'size' => 1,
                 'id' => 'tavolsag',
                 'class' => 'keresourlap',
-                'value' => \Request::IntegerwDefault('tavolsag',4)
+                // #89: az alapértelmezés 0 („bárhol"). A 4 km-es korábbi alapérték
+                // sosem érvényesült — az űrlapon nem is volt mező hozzá —, viszont a
+                // legördülőben nem szerepel, tehát semmi nem látszana kiválasztva.
+                'value' => \Request::IntegerwDefault('tavolsag', 0)
             )
         );
         

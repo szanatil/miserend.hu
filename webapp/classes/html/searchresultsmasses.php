@@ -61,9 +61,53 @@ class SearchResultsMasses extends Html {
         // ha 0 találat van, hogy legalább valamit visszaadjunk.
         $hasNarrowingFilters = !empty($typesReq) || !empty($ritesReq) || !empty($categoriesReq);
 
+        // #89: hely körüli keresés. A `hely`/`tavolsag` paramétert a kereső EDDIG IS
+        // beolvasta, de soha nem alkalmazta — a találatok teljesen figyelmen kívül
+        // hagyták a megadott helyet (a jegy példája: Szentendre + 10 km -> Micske).
+        //
+        // A mise-indexben nincs geo_point, ezért kétlépcsős: a templom-indexből
+        // geo_distance-szal kikeressük a sugáron belüli misézőhelyeket, majd azok
+        // azonosítóival szűkítjük a mise-keresést.
+        $nearbyChurchIds = null;
+        if (!empty($params['hely']) && (int) $params['tavolsag'] > 0) {
+            $point = \Html\SearchResultsChurches::geocodePlace($params['hely']);
+            if ($point === false) {
+                addMessage(
+                    'Nem találtuk meg ezt a helyet: „' . htmlspecialchars($params['hely'])
+                    . '”. A távolság szerinti szűrést kihagytuk.',
+                    'warning'
+                );
+            } else {
+                $geoSearch = new \Search('churches');
+                $geoSearch->nearLocation($point['lat'], $point['lon'], (float) $params['tavolsag'], $params['hely']);
+                // A sugáron belül elvileg akárhány templom lehet; a felső korlát az
+                // ES terms-lekérdezésének gyakorlati határa.
+                $nearbyChurchIds = array_map(
+                    fn($hit) => (int) $hit->id,
+                    (array) $geoSearch->getResults(0, 10000)
+                );
+
+                if (empty($nearbyChurchIds)) {
+                    addMessage(
+                        'Nincs misézőhely ' . (int) $params['tavolsag'] . ' km-en belül innen: „'
+                        . htmlspecialchars($params['hely']) . '”.',
+                        'info'
+                    );
+                }
+            }
+        }
+
         // ---- BASE szűrők (mindig megmaradnak): hely, egyházmegye, nyelv, kulcsszó, időtartam ----
-        $applyBaseFilters = function (\Search $search) use ($params, $from, $until) {
+        $applyBaseFilters = function (\Search $search) use ($params, $from, $until, $nearbyChurchIds) {
             if ($params['timezone']) $search->timezone = $params['timezone'];
+
+            // #89: a hely-szűrő eredménye — üres lista esetén szándékosan nulla találat,
+            // mert a felhasználó kifejezetten egy területre szűkített.
+            if (is_array($nearbyChurchIds)) {
+                $search->churchIds($nearbyChurchIds ?: [-1]);
+                $search->filters[] = 'Legfeljebb <b>' . (int) $params['tavolsag']
+                    . ' km</b>-re innen: <b>' . htmlspecialchars($params['hely']) . '</b>';
+            }
 
             // Boundaries' based search
             if (!empty($params['boundaries'])) {
