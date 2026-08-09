@@ -20,8 +20,13 @@ class Cron extends Html {
             echo "Új cron felvéve: " . htmlspecialchars($job) . "<br>\n";
         }
 
+        $healed = \Eloquent\Cron::healUnschedulable();
+        foreach ($healed as $job) {
+            echo "Ütemezhetővé tett cron (hiányzott a deadline_at): " . htmlspecialchars($job) . "<br>\n";
+        }
+
         if (\Request::Integer('cron_init')) {
-            if ($created === []) {
+            if ($created === [] && $healed === []) {
                 echo "Minden cron a helyén van, nem kellett újat felvenni.<br>\n";
             }
             return;
@@ -57,7 +62,11 @@ class Cron extends Html {
         $start = microtime(true);
         try {
             $this->runJob($job);
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
+            // \Throwable, nem \Exception: a TypeError/Error a PHP 8-ban NEM \Exception,
+            // ezért eddig átment ezen a catch-en, megölte az egész kérést, és a job
+            // némán annyiban maradt — se hibaüzenet, se success. Így akadt el hónapokra
+            // a \User::deleteNonActivatedUsers() is.
             $this->error = true;
             echo "<strong>" . $job->class . "->" . $job->function . "() futtatása sikertelen.</strong>\n";
             $this->printExceptionVerbose($exception);
