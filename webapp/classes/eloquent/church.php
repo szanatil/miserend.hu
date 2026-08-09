@@ -706,6 +706,24 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         return $massTypeKeys;
     }
     
+    /**
+     * #667: mely rítusokban van (bármikor) liturgia ebben a templomban?
+     *
+     * A rítus nem a templom tulajdonsága, hanem a miséké — a keresőnek viszont
+     * templomonként kell tudnia, hogy „van-e itt valaha görögkatolikus liturgia".
+     * Pontosan úgy származtatjuk, ahogy a nyelveket (l. getLanguagesAttribute).
+     *
+     * @return string[]
+     */
+    public function getRitusokAttribute() {
+        return $this->massrules()
+                    ->pluck('rite')
+                    ->filter(function($v) { return $v !== null && $v !== ''; })
+                    ->unique()
+                    ->values()
+                    ->toArray();
+    }
+
     public function getLanguagesAttribute() {
         // Grab the 'lang' column from related massrules, remove empty values, unique and return as array
         return $this->massrules()
@@ -976,6 +994,11 @@ class Church extends \Illuminate\Database\Eloquent\Model {
              * ha nincs adat), így a churches indexbe ÉS a mass_index church-részébe is
              * bekerül — a kereső mindkettőn tud szűrni.
              */
+            // #667: mely rítusokban van itt liturgia — a `nyelvek` mintájára, hogy a
+            // templomkereső rítusra is tudjon szűrni (eddig a felület gombjai megvoltak,
+            // de a templom-index nem tudott róluk semmit).
+            $return['ritusok'] = $this->ritusok;
+
             $return['wheelchair'] = (string) ($this->wheelchair ?? '');
             $return['gluten_free_holidays'] = (string) ($this->{\GlutenFreeCommunion::HOLIDAYS_KEY} ?? '');
             $return['gluten_free_weekdays'] = (string) ($this->{\GlutenFreeCommunion::WEEKDAYS_KEY} ?? '');
