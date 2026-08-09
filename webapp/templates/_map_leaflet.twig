@@ -639,19 +639,21 @@
         if (mymap.hasLayer(relationshipsLayer)) {
             $.getJSON( "/ajax/churchrelationshipsinbbox?bbox=" + params , function( data ) {
                 if(data && data.relationships) {
-                    var relationshipStyles = {
-                        'subordinate':              { color: '#3388ff', dashArray: null,   weight: 4, arrowSymbol: '>' },
-                        'associated':               { color: '#33aa33', dashArray: '4, 4', weight: 4, arrowSymbol: '<>' },
-                        'territorially_independent':{ color: '#aa33aa', dashArray: '8, 4', weight: 4, arrowSymbol: '>' }
-                    };
+                    /*
+                     * #663: a kapcsolatoknak eddig háromféle stílusuk volt a
+                     * church_relationships.type szerint. A type kivezetésre került —
+                     * minden kapcsolat alárendeltség —, ezért egyetlen, egységes stílus
+                     * maradt: lilás, folytonos vonal.
+                     */
+                    var relationshipStyle = { color: '#aa33aa', dashArray: null, weight: 4 };
                     
                     // Új vonalak ID-jainak gyűjtése
                     var newRelationshipIds = new Set();
                     var newRelationships = [];
                     
                     $.each(data.relationships, function(key, rel) {
-                        // Egyedi azonosító a relációhoz: parent_id-child_id-type
-                        var relId = rel.parent.id + '-' + rel.child.id + '-' + rel.type;
+                        // Egyedi azonosító a relációhoz: parent_id-child_id (#663: a type kiesett)
+                        var relId = rel.parent.id + '-' + rel.child.id;
                         newRelationshipIds.add(relId);
                         newRelationships.push({
                             id: relId,
@@ -675,7 +677,7 @@
                     $.each(newRelationships, function(key, relObj) {
                         if (!currentRelationshipIds.has(relObj.id)) {
                             var rel = relObj.data;
-                            var style = relationshipStyles[rel.type] || relationshipStyles['subordinate'];
+                            var style = relationshipStyle;
                             var latlngs = [
                                 [rel.child.lat, rel.child.lon],
                                 [rel.parent.lat, rel.parent.lon]
@@ -707,11 +709,9 @@
                                 ]
                             });
                             
-                            polyline.bindPopup(
-                                rel.parent.name + ' → ' + rel.child.name +
-                                '<br/>(' + rel.type_label + ')'
-                            );
-                            
+                            // #663: popup nem kell — a nyíl iránya önmagában elmondja,
+                            // mi a kapcsolat, a típus-felirat pedig okafogyottá vált.
+
                             // Azonosító tárolása a layer-en
                             polyline._relId = relObj.id;
                             decorator._relId = relObj.id;

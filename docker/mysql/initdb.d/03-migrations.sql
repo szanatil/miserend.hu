@@ -40,3 +40,16 @@ CREATE TABLE IF NOT EXISTS `church_relationships` (
   CONSTRAINT `fk_cr_child`  FOREIGN KEY (`child_church_id`)
     REFERENCES `templomok` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+
+-- #663: a church_relationships.type kivezetése.
+-- Minden kapcsolat alárendeltség — az "alárendelt plébánia" (oldallagosan ellátva) és az
+-- "alárendelt fília" között a megjelenítésben sincs különbség, tehát nincs mit tárolni.
+-- A térkép mostantól egységes (lilás, folytonos) vonallal rajzol, popup nélkül.
+--
+-- ÉLES ADATBÁZISON KÉT LÉPÉSBEN, hogy ne legyen kieső ablak (nincs migrációs rendszerünk):
+--   1) MERGE ELŐTT bármikor:  ALTER TABLE church_relationships MODIFY COLUMN `type`
+--        enum('subordinate','associated','territorially_independent') NULL DEFAULT NULL;
+--      Ezzel a RÉGI kód (ami még ír bele) és az ÚJ kód (ami már nem) is működik.
+--   2) MERGE UTÁN bármikor:   ALTER TABLE church_relationships DROP COLUMN `type`;
+ALTER TABLE `church_relationships`
+    DROP COLUMN IF EXISTS `type`;

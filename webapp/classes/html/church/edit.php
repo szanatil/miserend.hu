@@ -107,7 +107,6 @@ class Edit extends \Html\Html {
             \Eloquent\ChurchRelationship::create([
                 'parent_church_id' => $parentId,
                 'child_church_id' => $this->tid,
-                'type' => 'subordinate',
             ]);
         } else {
             // Nincs kiválasztva semmi (0 vagy hiányzó): nincs ellátó plébánia.

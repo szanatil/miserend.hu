@@ -63,7 +63,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
     /**
      * Rekurziv felfelé járás: az összes ős-lánc.
      * Max 10 szint, ciklus-védelem visited set-tel.
-     * Visszatér: [ ['church' => Church, 'type' => '...', 'children' => [...]], ... ]
+     * Visszatér: [ ['church' => Church, 'children' => [...]], ... ]
      */
     public function getAncestorsAttribute(): array {
         return $this->_getAncestors([$this->id]);
@@ -80,7 +80,6 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             $newVisited = array_merge($visited, [$rel->parent_church_id]);
             $result[] = [
                 'church'   => $parent,
-                'type'     => $rel->type,
                 'children' => $parent->_getAncestors($newVisited, $depth + 1),
             ];
         }
@@ -106,7 +105,6 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             $newVisited = array_merge($visited, [$rel->child_church_id]);
             $result[] = [
                 'church'   => $child,
-                'type'     => $rel->type,
                 'children' => $child->_getDescendants($newVisited, $depth + 1),
             ];
         }
@@ -118,7 +116,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
      * Egy flat lista, amely az indentálást és nyilakat a template-ben jeleníti meg.
      *
      * Struktura: [
-     *   ['church' => Church, 'type' => 'type', 'level' => 0, 'isCurrent' => false, 'isLast' => true],
+     *   ['church' => Church, 'level' => 0, 'isCurrent' => false, 'isLast' => true],
      *   ...
      * ]
      */
@@ -134,7 +132,6 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         foreach ($ancestors as $ancestor) {
             $network[] = [
                 'church' => $ancestor['church'],
-                'type' => $ancestor['type'],
                 'level' => $level,
                 'isCurrent' => false,
                 'isLast' => false
@@ -146,7 +143,6 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         $currentChurch = Church::find($this->id);
         $network[] = [
             'church' => $currentChurch,
-            'type' => null,
             'level' => $level,
             'isCurrent' => true,
             'isLast' => false
@@ -157,7 +153,6 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         foreach ($descendants as $descendant) {
             $network[] = [
                 'church' => $descendant['church'],
-                'type' => $descendant['type'],
                 'level' => $descendant['level'],
                 'isCurrent' => false,
                 'isLast' => false
@@ -199,8 +194,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             
             // Majd az őt magát
             $result[] = [
-                'church' => $parent,
-                'type' => $rel->type
+                'church' => $parent
             ];
         }
         return $result;
@@ -220,7 +214,6 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             
             $result[] = [
                 'church' => $child,
-                'type' => $rel->type,
                 'level' => $depth
             ];
             
