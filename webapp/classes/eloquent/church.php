@@ -1392,6 +1392,67 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         );
 
     }
+
+    /*
+     * #671: hány aktív misézőhelyről tudunk EGYÁLTALÁN valamit az adott témában.
+     *
+     * Akadálymentességnél a „nem akadálymentes" IS adat — azt is tudjuk. Ezért itt
+     * bármilyen kitöltött érték számít, nem csak a pozitív.
+     *
+     * Azért kell, mert a szűrő ma szinte üres adathalmazon dolgozik (a seedben egyetlen
+     * templomnak sincs `wheelchair` attribútuma), és a felhasználó a nulla találatot
+     * hibának hinné. Inkább mondjuk meg neki, hol tartunk.
+     */
+    public static function facilityCoverage(): array {
+        $count = function (array $keys): int {
+            return (int) \Eloquent\Attribute::whereIn('key', $keys)
+                ->whereIn('church_id', function ($q) {
+                    $q->select('id')->from('templomok')
+                      ->where('ok', 'i')->whereNull('deleted_at');
+                })
+                ->distinct()
+                ->count('church_id');
+        };
+
+        return [
+            'wheelchair' => $count(['wheelchair']),
+            'gluten_free' => $count([
+                \GlutenFreeCommunion::HOLIDAYS_KEY,
+                \GlutenFreeCommunion::WEEKDAYS_KEY,
+            ]),
+        ];
+    }
+
+    /**
+     * #671: a keresési eredményhez tartozó tájékoztató üzenetek — csak azokra a
+     * témákra, amikre a felhasználó ténylegesen szűrt.
+     *
+     * @param  bool $wheelchair  aktív-e az akadálymentesség-szűrő
+     * @param  bool $glutenFree  aktív-e a gluténmentes szűrő
+     * @return string[]
+     */
+    public static function facilityCoverageMessages(bool $wheelchair, bool $glutenFree): array {
+        if (!$wheelchair && !$glutenFree) {
+            return [];
+        }
+
+        $coverage = self::facilityCoverage();
+        $messages = [];
+
+        if ($wheelchair) {
+            $messages[] = 'Az akadálymentességi adatokat még gyűjtjük, ez nálunk új dolog: eddig '
+                . '<strong>' . $coverage['wheelchair'] . ' misézőhelyről</strong> tudjuk, hogy '
+                . 'akadálymentes-e. Most ezek között keresünk. Ha tudsz másról, küldd el nekünk észrevételként!';
+        }
+
+        if ($glutenFree) {
+            $messages[] = 'A csökkentett gluténtartalmú áldozás lehetőségeit csak nemrég kezdtük gyűjteni, '
+                . 'ezért eddig <strong>' . $coverage['gluten_free'] . ' misézőhelynek</strong> van ilyen adata. '
+                . 'Most ezek között keresünk. Ha tudsz másról, küldd el nekünk észrevételként!';
+        }
+
+        return $messages;
+    }
 	
     /*
      * What does 'M' mean?
