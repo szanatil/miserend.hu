@@ -113,8 +113,46 @@ class SearchResultsMasses extends Html {
         // ha 0 találat van, hogy legalább valamit visszaadjunk.
         $hasNarrowingFilters = !empty($typesReq) || !empty($ritesReq) || !empty($categoriesReq);
 
+        // #89: hely körüli keresés HELYNÉVVEL. A `hely`/`tavolsag` paramétert a kereső
+        // EDDIG IS beolvasta, de soha nem alkalmazta — a találatok teljesen figyelmen
+        // kívül hagyták a megadott helyet (a jegy példája: Szentendre + 10 km -> Micske).
+        //
+        // A körkeresést magát a #608 már megoldotta (Search::nearby, geo_distance a
+        // mise-indexen), ezért itt csak a helynevet kell koordinátára váltani, és
+        // ugyanabba a mechanizmusba beadni. Egy kódút, és a távolság szerinti rendezés
+        // is jár hozzá — a korábbi kétlépcsős (templom-index -> 10 000 azonosító ->
+        // terms-szűrő) kerülőútra nincs többé szükség.
+        //
+        // Ha koordináta IS érkezett, az nyer: az pontosabb, mint egy geokódolt helynév.
+        $nearbyPlaceName = null;
+        if ($nearby === null && !empty($params['hely']) && (int) $params['tavolsag'] > 0) {
+            $radius = (float) $params['tavolsag'];
+
+            if ($radius > 200) {
+                addMessage('A sugárnak 0 és 200 km között kell lennie. A hely szerinti szűrést kihagytam.', 'error');
+            } else {
+                $point = \Html\SearchResultsChurches::geocodePlace($params['hely']);
+                if ($point === false) {
+                    addMessage(
+                        'Nem találtuk meg ezt a helyet: „' . htmlspecialchars($params['hely'])
+                        . '”. A távolság szerinti szűrést kihagytuk.',
+                        'warning'
+                    );
+                } else {
+                    $nearby = [
+                        'lat' => (float) $point['lat'],
+                        'lon' => (float) $point['lon'],
+                        'radius' => $radius,
+                    ];
+                    $nearbyPlaceName = $params['hely'];
+                    $this->nearbyOrigin = ['lat' => $nearby['lat'], 'lon' => $nearby['lon']];
+                    $this->nearbyRadius = $nearby['radius'];
+                }
+            }
+        }
+
         // ---- BASE szűrők (mindig megmaradnak): hely, egyházmegye, nyelv, kulcsszó, időtartam ----
-        $applyBaseFilters = function (\Search $search, $rangeFrom = null, $rangeUntil = null, $sortByDistance = true) use ($params, $from, $until, $nearby) {
+        $applyBaseFilters = function (\Search $search, $rangeFrom = null, $rangeUntil = null, $sortByDistance = true) use ($params, $from, $until, $nearby, $nearbyPlaceName) {
             if ($params['timezone']) $search->timezone = $params['timezone'];
 
             // Boundaries' based search
@@ -170,6 +208,12 @@ class SearchResultsMasses extends Html {
             $search->timeRange($rangeFrom ?? $from, $rangeUntil ?? $until);
             if ($nearby) {
                 $search->nearby($nearby['lat'], $nearby['lon'], $nearby['radius'], $sortByDistance);
+
+                // #89: koordinátánál a puszta „legfeljebb X km" elég, helynévnél viszont
+                // mondjuk is meg, MITŐL — a felhasználó azt írta be, azt akarja viszontlátni.
+                if ($nearbyPlaceName !== null) {
+                    $search->filters[] = 'Innen: <b>' . htmlspecialchars($nearbyPlaceName) . '</b>';
+                }
             }
         };
 

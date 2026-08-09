@@ -979,6 +979,18 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             // boundaries
             $return['boundaries'] = $this->boundaries()->pluck('boundary_id')->toArray();
 
+            // #89: a `location` mező geo_point-ként SZEREPEL a mappingben
+            // (fajlok/elasticsearch/mappings/church.json), de eddig SENKI nem töltötte
+            // fel — nulla dokumentumban volt benne érték. Emiatt semmilyen távolság-alapú
+            // szűrés nem működhetett, és a kereső `hely`+`tavolsag` paramétere néma
+            // no-op maradt: a találatok teljesen figyelmen kívül hagyták a helyet.
+            //
+            // Csak érvényes koordinátánál írjuk ki: a 0,0 az Atlanti-óceán (Null Island),
+            // az rosszabb lenne, mint a hiányzó adat.
+            if ((float) $this->lat != 0.0 || (float) $this->lon != 0.0) {
+                $return['location'] = ['lat' => (float) $this->lat, 'lon' => (float) $this->lon];
+            }
+
             /*
              * #644: akadálymentesség és csökkentett gluténtartalmú áldozás — szűrhető,
              * LAPOS mezőként. Az `accessibility` tömb ugyan eddig is kiment, de üres
