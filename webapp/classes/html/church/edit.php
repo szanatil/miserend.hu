@@ -10,12 +10,33 @@ class Edit extends \Html\Html {
     public $input;
     public $nearbyChurches;
 
+    /* #639: mit tegyünk a beküldött ellátó-plébánia választással. */
+    public const PARENT_REPLACE = 'replace';
+    public const PARENT_REMOVE  = 'remove';
+    public const PARENT_INVALID = 'invalid';
+
+    /**
+     * #639: a legördülő "0" értéke a placeholder-opció ("– válassz templomot –"), vagyis
+     * "nincs ellátó plébánia". Ezt korábban se nem mentettük kapcsolatként, se nem
+     * töröltük vele a meglévőt — így a beállított ellátó plébániát nem lehetett
+     * visszavonni. A döntés szándékosan tiszta (se DB, se kérés), hogy tesztelhető legyen.
+     *
+     * @param int $parentId a beküldött érték (0 = nincs kiválasztva / hiányzik)
+     * @param int $churchId a szerkesztett misézőhely
+     */
+    public static function parentChurchAction(int $parentId, int $churchId): string {
+        if ($parentId > 0 && $parentId === $churchId) {
+            return self::PARENT_INVALID;
+        }
+        return $parentId > 0 ? self::PARENT_REPLACE : self::PARENT_REMOVE;
+    }
+
     public function __construct($path) {
         global $user;
    
         // #545: többdimenziós szerkesztő-űrlap nyers inputja. A mezőnkénti
         // \Request:: átírás staging-tesztet igényel (mentés-folyamat), ezért marad.
-        $this->input = $_REQUEST;
+        $this->input = \Request::all();
         $this->tid = $path[0];
         $this->church = \Eloquent\Church::find($this->tid);
         if (!$this->church) {
@@ -29,7 +50,8 @@ class Edit extends \Html\Html {
         }
 
         $isForm = \Request::Text('submit');
-        $isRelationshipAction = isset($_REQUEST['relationship']['add']) || isset($_REQUEST['relationship']['delete']);
+        $isRelationshipAction = \Request::get('relationship[add]') !== false
+            || \Request::get('relationship[delete]') !== false;
         if ($isForm || $isRelationshipAction) {
             $this->modify();
         }
@@ -37,10 +59,14 @@ class Edit extends \Html\Html {
     }
 
     function modify() {
-        $hasChurchForm = isset($this->input['church']['id']);
+        // #391: a szerkesztő-űrlap mezőcsoportja a \Request::Fields()-en át jön —
+        // ellenőrzött másolat, hiányzó vagy nem-tömb bemenetnél false, tehát nincs
+        // „Undefined array key" figyelmeztetés a naplóban.
+        $churchFields = \Request::Fields('church');
+        $hasChurchForm = ($churchFields !== false && isset($churchFields['id']));
 
         // --- Teljes church form mentése (beleértve a kapcsolat kiválasztást) ---
-        if ($hasChurchForm && $this->input['church']['id'] != $this->tid) {
+        if ($hasChurchForm && $churchFields['id'] != $this->tid) {
             throw new \Exception("Gond van a módosítandó templom azonosítójával.");
         }
 
@@ -55,64 +81,54 @@ class Edit extends \Html\Html {
             'lat','lon'];
 
         foreach ($allowedFields as $field) {
-            if (array_key_exists($field, $this->input['church'])) {
-                $this->church->$field = $this->input['church'][$field];
+            if (array_key_exists($field, $churchFields)) {
+                $this->church->$field = $churchFields[$field];
             }
         }
 
         // --- Kapcsolat kezelése (parent templom kiválasztás) ---
-        if (isset($this->input['church']['parent_id']) && $this->input['church']['parent_id'] !== '') {
-            $parentId = (int) $this->input['church']['parent_id'];
-            // Kapcsolat csak akkor kerül mentésre, ha érvényes parent ID van és nem önmagára mutat
-            if ($parentId !== 0 && $parentId !== (int)$this->tid) {
-                // #521: egy templomnak egy ellátó plébániája (parent) van a formon
-                // keresztül. A korábbi updateOrCreate a (parent,child) PÁRRA matchelt,
-                // ezért új plébánia választásakor ÚJ sort hozott létre, a régit meghagyva
-                // ("hozzáadja, de nem cserél"). Előbb töröljük a meglévő parent-kapcsolatot,
-                // hogy a választás CSERÉLJEN (és a korábbi duplikátumok is kitakarodjanak).
-                \Eloquent\ChurchRelationship::where('child_church_id', $this->tid)->delete();
-                \Eloquent\ChurchRelationship::create([
-                    'parent_church_id' => $parentId,
-                    'child_church_id' => $this->tid,
-                    'type' => 'subordinate',
-                ]);
-            }
+        /*
+         * #639: a "0" a legördülő placeholder-opciója ("– válassz templomot –"), vagyis
+         * "nincs ellátó plébánia". Eddig ez a beküldött érték se nem állított be
+         * kapcsolatot, se nem törölte a meglévőt (a külső if beengedte, a belső `!== 0`
+         * kidobta), ezért a már beállított ellátó plébániát NEM lehetett visszavonni.
+         * Most a 0 és a hiányzó érték egyaránt a törlés ága.
+         */
+        $parentId = isset($churchFields['parent_id'])
+            ? (int) $churchFields['parent_id']
+            : 0;
+        $parentAction = self::parentChurchAction($parentId, (int) $this->tid);
+
+        if ($parentAction === self::PARENT_INVALID) {
+            // Önmagára mutató választás: érvénytelen, de ettől még ne dobjuk el a meglévőt.
+            addMessage('Egy misézőhely nem lehet a saját ellátó plébániája, ezért ezt a mezőt nem módosítottuk.', 'warning');
+        } elseif ($parentAction === self::PARENT_REPLACE) {
+            // #521: egy templomnak egy ellátó plébániája (parent) van a formon
+            // keresztül. A korábbi updateOrCreate a (parent,child) PÁRRA matchelt,
+            // ezért új plébánia választásakor ÚJ sort hozott létre, a régit meghagyva
+            // ("hozzáadja, de nem cserél"). Előbb töröljük a meglévő parent-kapcsolatot,
+            // hogy a választás CSERÉLJEN (és a korábbi duplikátumok is kitakarodjanak).
+            \Eloquent\ChurchRelationship::where('child_church_id', $this->tid)->delete();
+            \Eloquent\ChurchRelationship::create([
+                'parent_church_id' => $parentId,
+                'child_church_id' => $this->tid,
+            ]);
         } else {
-            // Ha üres a kiválasztás, törlődnek az összes parent kapcsolat
+            // Nincs kiválasztva semmi (0 vagy hiányzó): nincs ellátó plébánia.
             \Eloquent\ChurchRelationship::where('child_church_id', $this->tid)->delete();
         }
 
         // Handle external calendar URL
-        if (isset($this->input['church']['external_calendar_url'])) {
-            $newUrl = trim($this->input['church']['external_calendar_url']);
-            
-            if (!empty($newUrl)) {
-                // URL validation
-                if (!filter_var($newUrl, FILTER_VALIDATE_URL)) {
-                    throw new \Exception('Érvénytelen URL formátum!');
-                }
-                
-                // Update or create external calendar
-                $externalCal = \Eloquent\ExternalCalendar::where('church_id', $this->tid)
-                    ->where('active', 1)
-                    ->first();
-                
-                if ($externalCal) {
-                    $externalCal->url = $newUrl;
-                    $externalCal->save();
-                } else {
-                    \Eloquent\ExternalCalendar::create([
-                        'church_id' => $this->tid,
-                        'name' => 'Google Calendar',
-                        'url' => $newUrl,
-                        'active' => 1
-                    ]);
-                }
-            } else {
-                // Empty URL: deactivate external calendar
-                \Eloquent\ExternalCalendar::where('church_id', $this->tid)
-                    ->update(['active' => 0]);
-            }
+        if (isset($churchFields['external_calendar_url'])) {
+            $newUrl = trim($churchFields['external_calendar_url']);
+            \ExternalCalendarImporter::saveCalendarUrl((int)$this->tid, $newUrl);
+        }
+
+        // #484: a részletes beállítások mentése + a származtatott OSM-címke azonnali
+        // felküldése, hogy ne kelljen külön az /editosm-en is elmenteni.
+        $glutenFreeOsmValue = \GlutenFreeCommunion::save($this->tid, $churchFields);
+        if ($glutenFreeOsmValue !== null) {
+            \GlutenFreeCommunion::syncToOsm($this->church, $glutenFreeOsmValue);
         }
 
        
@@ -123,6 +139,12 @@ class Edit extends \Html\Html {
         // #44: figyeljük, változott-e a koordináta (save UTÁN már nem látszana a dirty-állapot).
         $latLonChanged = $this->church->isDirty('lat') || $this->church->isDirty('lon');
         $this->church->save();
+
+        // #670: a templom adatai a mise-indexbe is be vannak ágyazva, ezért a mentés után
+        // a MISE-kereső még a régi adatot látná (pl. a most felvitt gluténmentes vagy
+        // akadálymentességi információt). Mérve ~0,5 mp templomonként — kézi mentésnél ez
+        // belefér, cron-útvonalon szándékosan nem fut.
+        $this->church->refreshMassSearchIndex();
 
         // #44: koordináta-módosításkor újraszámoljuk a szomszédságot (distances), különben
         // a szomszédok listája elavulna az új pozícióhoz képest. Az esetleges hiba ne buktassa
@@ -135,7 +157,7 @@ class Edit extends \Html\Html {
             }
         }
 
-        switch ($this->input['modosit']) {
+        switch (\Request::Text('modosit')) {
             case 'n':
                 $this->redirect("/church/catalogue");
                 break;
@@ -168,16 +190,34 @@ class Edit extends \Html\Html {
         // Meglévő kapcsolatok betöltése (szülő irányban)
         $this->church->load('parentRelationships.parent');
         
-        // Add external calendar URL field
+        $externalCalendar = $this->getExternalCalendar();
+        $lastImport = $externalCalendar && $externalCalendar->last_import_at
+            ? $externalCalendar->last_import_at->format('Y.m.d. H:i')
+            : 'még nem futott le sikeresen';
+
         $this->form['external_calendar_url'] = [
             'type' => 'text',
             'name' => 'church[external_calendar_url]',
             'id' => 'external_calendar_url',
             'class' => 'form-control',
             'placeholder' => 'https://calendar.google.com/calendar/ical/...',
-            'value' => $this->getExternalCalendarUrl(),
-            'labelback' => 'Külső naptár (iCalendar ICS URL) - maximum 1'
+            'value' => $externalCalendar ? $externalCalendar->url : '',
+            'labelback' => 'Külső naptár (publikus HTTPS iCalendar URL). Napi automatikus szinkron; utolsó sikeres import: ' . $lastImport
         ];
+
+        foreach ([
+            'gluten_free_holidays' => [\GlutenFreeCommunion::HOLIDAYS_KEY, 'Ünnepnapokon'],
+            'gluten_free_weekdays' => [\GlutenFreeCommunion::WEEKDAYS_KEY, 'Hétköznapokon'],
+        ] as $formKey => [$attributeKey, $label]) {
+            $this->form[$formKey] = [
+                'type' => 'select',
+                'name' => 'church[' . $attributeKey . ']',
+                'id' => $formKey,
+                'options' => \GlutenFreeCommunion::options(),
+                'selected' => $this->church->getAttribute($attributeKey) ?? '',
+                'labelback' => $label,
+            ];
+        }
     
   $this->form['misemegj'] = array(
 			'class' => 'tinymce',
@@ -225,11 +265,10 @@ class Edit extends \Html\Html {
         }
     }
 
-    private function getExternalCalendarUrl() {
-        $externalCal = \Eloquent\ExternalCalendar::where('church_id', $this->tid)
+    private function getExternalCalendar(): ?\Eloquent\ExternalCalendar {
+        return \Eloquent\ExternalCalendar::where('church_id', $this->tid)
             ->where('active', 1)
             ->first();
-        return $externalCal ? $externalCal->url : '';
     }
     
     function addFormAdministrative() {

@@ -10,7 +10,7 @@
 | Cél | Host | Port | Mire kell | Forrás (osztály) |
 |---|---|---|---|---|
 | **OSM Nominatim** | `nominatim.openstreetmap.org` | 443 | Cím vagy terület neve → koordináta keresés (geocoding) | `\ExternalApi\NominatimApi` |
-| **OSM Overpass** | `overpass-api.de` | 80 | Templom-elemek és határok lekérése OSM-ből (`url:miserend` tag) | `\ExternalApi\OverpassApi` |
+| **OSM Overpass** | `overpass-api.de` | 443 | Templom-elemek és határok lekérése OSM-ből (`url:miserend` tag) | `\ExternalApi\OverpassApi` |
 | **OSM opening_hours evaluator** | `openingh.openstreetmap.de` | 443 | `opening_hours` mező parse / evaluate | `\ExternalApi\OpeninghApi` |
 | **OSM OAuth** | fejlesztéshez `master.apis.dev.openstreetmap.org`, élesen:  `api.openstreetmap.org` | 443 | OSM adatok módosítása | `\ExternalApi\OpenStreetMapApi` |
 | **Mapquest Directions** | `open.mapquestapi.com` | 80 | Útvonal-távolság számítás templomok között (cron) | `\ExternalApi\MapquestApi` |
@@ -62,6 +62,37 @@ egyetlen SPF rekord maradjon. Ne a relay fogadó A rekordját vegyük fel talál
 IP eltérhet tőle. A módosítás után külső címre küldött tesztlevél fejlécében ellenőrizni
 kell az SPF eredményt; ha nem `pass`, a relay naplója alapján kell azonosítani a tényleges
 kimenő címet.
+
+## A BÖNGÉSZŐ által betöltött külső erőforrások
+
+> Ezek nem a szerverről mennek ki, hanem a látogató böngészőjéből — tehát egy szerver-oldali
+> egress-allowlist NEM fedi le őket. Akkor számítanak, ha zárt hálózatban (vagy szigorú CSP
+> mellett) kell működnie az oldalnak: ha ezek nem érhetők el, a térkép egyszerűen nem jelenik meg.
+> Ezért kerültek ide. (#653)
+
+| Cél | Host | Mire kell | Hol |
+|---|---|---|---|
+| **CARTO Voyager csempék** | `{a,b,c,d}.basemaps.cartocdn.com` | a térkép alaprétege | `_map_leaflet.twig` |
+| html5shiv, respond.js | `oss.maxcdn.com` | régi IE-polyfillek | `layout.twig` |
+| OpenLayers | `openlayers.org` | régi térkép-kód | (legacy) |
+
+Amit érdemes tudni róluk:
+
+- **A Leaflet és bővítményei már NEM külső forrásból jönnek** (#661): a `webapp/package.json`-ból
+  telepítjük és magunk szolgáljuk ki őket (`/node_modules/leaflet/...`), egységesen **1.9.4**
+  verzióban. Korábban három sablon háromféle verziót töltött be az unpkg-ról (1.7.1 / 1.9.3 /
+  1.9.4), a Leaflet.TextPath pedig egy GitHub Pages-ről (`makinacorpus.github.io`) — az nem is CDN.
+  Ezzel öt külső kérés és két idegen hoszt esett ki a térképes oldalak kritikus útjáról.
+- A `leaflet.polylinedecorator.css` hivatkozás **HTTP 404** volt (nem létezik az unpkg-n); a #653-ban
+  töröltük.
+- A **Stamen csempeszerver** (`stamen-tiles-*.a.ssl.fastly.net`) mérve **HTTP 503**-at adott: a Stamen
+  2023-ban a Stadiához költözött. A réteg soha nem is volt kiválasztható (definiálva volt, de sehol
+  nem használtuk), ezért a #653-ban töröltük. Az utód (`tiles.stadiamaps.com`) kulcs nélkül **HTTP
+  401** — ha valaha kell terep-alapréteg, az regisztrációt és API-kulcsot igényel.
+
+A #653 arról szól, hogy ezek nagy részét saját kiszolgálásra váltsuk (a jQuery, a Bootstrap és a
+FontAwesome már ma is a `webapp/package.json`-ból jön) — akkor ez a szakasz a csempeszerverre
+zsugorodik.
 
 ## Container image registry-k
 

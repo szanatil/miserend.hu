@@ -41,11 +41,11 @@ class ChurchRelationshipTest extends TestCase {
         ]);
     }
 
-    private function createRelationship(int $parentId, int $childId, string $type = 'subordinate'): int {
+    /* #663: a `type` oszlop kivezetésre került — minden kapcsolat alárendeltség. */
+    private function createRelationship(int $parentId, int $childId): int {
         return DB::table('church_relationships')->insertGetId([
             'parent_church_id' => $parentId,
             'child_church_id'  => $childId,
-            'type'             => $type,
         ]);
     }
 
@@ -53,34 +53,32 @@ class ChurchRelationshipTest extends TestCase {
         $parent = $this->createChurch('Anyaplébánia');
         $child  = $this->createChurch('Fília');
 
-        $relId = $this->createRelationship($parent, $child, 'subordinate');
+        $relId = $this->createRelationship($parent, $child);
 
         $rel = DB::table('church_relationships')->where('id', $relId)->first();
         $this->assertNotNull($rel);
         $this->assertEquals($parent, $rel->parent_church_id);
         $this->assertEquals($child, $rel->child_church_id);
-        $this->assertEquals('subordinate', $rel->type);
     }
 
     public function testCannotCreateDuplicateRelationship(): void {
         $parent = $this->createChurch('Anyaplébánia');
         $child  = $this->createChurch('Fília');
 
-        $this->createRelationship($parent, $child, 'subordinate');
+        $this->createRelationship($parent, $child);
 
         $this->expectException(\Exception::class);
         // A UNIQUE KEY unique_pair megakadályozza a duplikátumot
         DB::table('church_relationships')->insert([
             'parent_church_id' => $parent,
             'child_church_id'  => $child,
-            'type'             => 'associated',
         ]);
     }
 
     public function testDeleteCascadesWhenChurchDeleted(): void {
         $parent = $this->createChurch('Anyaplébánia');
         $child  = $this->createChurch('Fília');
-        $this->createRelationship($parent, $child, 'subordinate');
+        $this->createRelationship($parent, $child);
 
         // Közvetlen DB törlés (a CASCADE-t teszteljük)
         DB::table('templomok')->where('id', $parent)->delete();
@@ -96,8 +94,8 @@ class ChurchRelationshipTest extends TestCase {
         $parent      = $this->createChurch('Szülő');
         $child       = $this->createChurch('Gyerek');
 
-        $this->createRelationship($grandparent, $parent, 'subordinate');
-        $this->createRelationship($parent, $child, 'subordinate');
+        $this->createRelationship($grandparent, $parent);
+        $this->createRelationship($parent, $child);
 
         $churchModel = \Eloquent\Church::find($child);
         $ancestors = $churchModel->ancestors;
@@ -114,8 +112,8 @@ class ChurchRelationshipTest extends TestCase {
         $child1 = $this->createChurch('Gyerek1');
         $child2 = $this->createChurch('Gyerek2');
 
-        $this->createRelationship($parent, $child1, 'subordinate');
-        $this->createRelationship($parent, $child2, 'associated');
+        $this->createRelationship($parent, $child1);
+        $this->createRelationship($parent, $child2);
 
         $churchModel = \Eloquent\Church::find($parent);
         $descendants = $churchModel->descendants;
@@ -128,6 +126,28 @@ class ChurchRelationshipTest extends TestCase {
         $this->assertContains($child2, $ids);
     }
 
+    public function testFullNetworkKeepsEveryGenerationOnItsOwnLevel(): void {
+        $grandparent = $this->createChurch('Nagyszülő');
+        $parent = $this->createChurch('Szülő');
+        $current = $this->createChurch('Aktuális');
+        $child = $this->createChurch('Gyerek');
+
+        $this->createRelationship($grandparent, $parent);
+        $this->createRelationship($parent, $current);
+        $this->createRelationship($current, $child);
+
+        $network = \Eloquent\Church::find($current)->fullNetwork;
+
+        $this->assertSame(
+            [$grandparent, $parent, $current, $child],
+            array_map(static fn(array $item): int => (int) $item['church']->id, $network)
+        );
+        $this->assertSame(
+            [0, 1, 2, 3],
+            array_column($network, 'level')
+        );
+    }
+
     public function testCircularRelationshipDoesNotCauseInfiniteLoop(): void {
         $a = $this->createChurch('A');
         $b = $this->createChurch('B');
@@ -135,9 +155,9 @@ class ChurchRelationshipTest extends TestCase {
 
         // A -> B -> C -> A (kör)
         DB::table('church_relationships')->insert([
-            ['parent_church_id' => $a, 'child_church_id' => $b, 'type' => 'subordinate'],
-            ['parent_church_id' => $b, 'child_church_id' => $c, 'type' => 'subordinate'],
-            ['parent_church_id' => $c, 'child_church_id' => $a, 'type' => 'subordinate'],
+            ['parent_church_id' => $a, 'child_church_id' => $b],
+            ['parent_church_id' => $b, 'child_church_id' => $c],
+            ['parent_church_id' => $c, 'child_church_id' => $a],
         ]);
 
         $church = \Eloquent\Church::find($a);
@@ -150,7 +170,7 @@ class ChurchRelationshipTest extends TestCase {
         $parent = $this->createChurch('Szülő');
         $child  = $this->createChurch('Gyerek');
 
-        $this->createRelationship($parent, $child, 'subordinate');
+        $this->createRelationship($parent, $child);
 
         $churchModel = \Eloquent\Church::find($parent);
         $ids = $churchModel->descendantIds;
@@ -162,7 +182,7 @@ class ChurchRelationshipTest extends TestCase {
     public function testInheritedWriteAccessFromAncestorHolder(): void {
         $parent = $this->createChurch('Anyaplébánia');
         $child  = $this->createChurch('Fília');
-        $this->createRelationship($parent, $child, 'subordinate');
+        $this->createRelationship($parent, $child);
 
         // Felhasználó létrehozása (fixture user uid=2 az adatbázisban)
         $childChurch = \Eloquent\Church::find($child);
@@ -216,14 +236,6 @@ class ChurchRelationshipTest extends TestCase {
 
         $access = $church2Model->checkWriteAccess($userMock);
         $this->assertFalse($access, 'Nem kapcsolódó templomhoz nem szabad hozzáférést adni.');
-    }
-
-    public function testAllEnumTypesAreValid(): void {
-        $validTypes = \Eloquent\ChurchRelationship::validTypes();
-        $this->assertContains('subordinate', $validTypes);
-        $this->assertContains('associated', $validTypes);
-        $this->assertContains('territorially_independent', $validTypes);
-        $this->assertCount(3, $validTypes);
     }
 
     public function testAllEnumRanksAreValid(): void {

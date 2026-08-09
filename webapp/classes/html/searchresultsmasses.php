@@ -38,6 +38,9 @@ class SearchResultsMasses extends Html {
             'types' => \Request::ArrayArray('types'),  // Be aware: this is a nested array with rite keys, e.g. types[rite1][should], types[rite1][must_not], types[rite2][should], etc.
             'rites' => \Request::StringArray('rites'), // Be aware: this is an array with 'should' and 'must_not' keys, e.g. rites[should], rites[must_not]
             'categories' => \Request::Text('categories'), // Simple comma-separated list of selected category keys
+            // #644: akadálymentesség és gluténmentes áldozás szűrők (vesszős lista).
+            'wheelchair' => \Request::Text('wheelchair'),
+            'gluten_free' => \Request::Text('gluten_free'),
             'start_date' => \Request::Text('start_date'),
             'start_time' => \Request::Text('start_time'),
             'end_date' => \Request::Text('end_date'),
@@ -153,12 +156,37 @@ class SearchResultsMasses extends Html {
                 $search->keyword($params['kulcsszo']);
             }
 
+            // #644: a templom adottságai (akadálymentesség, gluténmentes áldozás).
+            // BASE szűrők, tehát a 0-találatos fallback SEM dobja el őket: aki
+            // kerekesszékkel keres, annak nem segít egy nem akadálymentes templom.
+            if ($params['wheelchair']) {
+                $search->wheelchair(array_filter(array_map('trim', explode(',', $params['wheelchair']))));
+            }
+            if ($params['gluten_free']) {
+                $search->glutenFree(array_filter(array_map('trim', explode(',', $params['gluten_free']))));
+            }
+
             // Time range
             $search->timeRange($rangeFrom ?? $from, $rangeUntil ?? $until);
             if ($nearby) {
                 $search->nearby($nearby['lat'], $nearby['lon'], $nearby['radius'], $sortByDistance);
             }
         };
+
+        /*
+         * #671: az adottság-adat még nagyon hiányos (a seedben egyetlen misézőhelynek
+         * sincs `wheelchair` attribútuma), ezért a szűrt keresés könnyen nulla találatot
+         * ad — amit a felhasználó hibának hisz. Megmondjuk, hány helyről tudunk valamit.
+         *
+         * Szándékosan ITT, a closure-ön KÍVÜL: az $applyBaseFilters a 0-találatos
+         * fallback-ágon még egyszer lefut, az üzenetet viszont csak egyszer akarjuk.
+         */
+        foreach (\Eloquent\Church::facilityCoverageMessages(
+            (bool) $params['wheelchair'],
+            (bool) $params['gluten_free']
+        ) as $facilityMessage) {
+            addMessage($facilityMessage, 'info');
+        }
 
         // ---- SZŰKÍTŐ szűrők (típus / rítus / kategória) — ezeket dobjuk a fallback-ban ----
         $applyNarrowingFilters = function (\Search $search) use ($typesReq, $ritesReq, $categoriesReq) {
@@ -245,15 +273,7 @@ class SearchResultsMasses extends Html {
             if (!empty($categoriesReq)) {
                 $selectedCategories = array_filter(array_map('trim', explode(',', $categoriesReq)));
 
-                $massDefinitionsPath = dirname(__DIR__) . '/../mass-definitions.json';
-                $massDefinitions = json_decode(file_get_contents($massDefinitionsPath), true);
-                $titlesByCategory = $massDefinitions['titlesByCategory'] ?? [];
-                $allTitles = [];
-                foreach ($selectedCategories as $cat) {
-                    if (isset($titlesByCategory[$cat])) {
-                        $allTitles = array_merge($allTitles, $titlesByCategory[$cat]);
-                    }
-                }
+                $allTitles = (new \MassDefinitions())->titlesByCategories($selectedCategories);
                 if (!empty($allTitles)) {
                     foreach ($allTitles as $title) {
                         $cleanTitle = preg_replace('/^MASS_TITLE\./', '', $title);

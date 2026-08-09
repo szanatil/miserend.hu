@@ -12,6 +12,12 @@ services:
       - tmp:/data
     command: sh -c "chown -R 33:33 /data"
     restart: "no"
+  sqlite-init:
+    image: busybox
+    volumes:
+      - sqlite:/data
+    command: sh -c "chown -R 33:33 /data"
+    restart: "no"
   data-init:
     image: ghcr.io/szentjozsefhackathon/miserend-elasticsearch-data:2026.4.18
     volumes:
@@ -27,11 +33,17 @@ services:
     ports:
       - ${MYSQL_PORT:-3306}:3306
     restart: always
+    # #668: a jelszavak eddig ide voltak égetve. Az alapértelmezés a régi érték, tehát
+    # `.env` nélkül minden ugyanúgy megy; egyedit az .env-ben lehet adni.
+    # A MYSQL_USER/MYSQL_PASSWORD párost maga az image hozza létre, a miserend
+    # adatbázisra korlátozott jogokkal (ezt használja a kézi restore, l. server.md).
     environment:
-      MYSQL_ROOT_PASSWORD: pw
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-pw}
       MYSQL_DATABASE: miserend
+      MYSQL_USER: ${MYSQL_USER:-user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-pw}
     healthcheck:
-      test: [CMD, mariadb-admin, ping, -h, localhost, -u, user, -ppw]
+      test: [CMD, mariadb-admin, ping, -h, localhost, -u, "${MYSQL_USER:-user}", "-p${MYSQL_PASSWORD:-pw}"]
       timeout: 5s
       retries: 10
     networks:
@@ -81,6 +93,7 @@ services:
        - vendor_data:/miserend/webapp/vendor
        - node_modules_data:/miserend/webapp/node_modules    
        - tmp:/miserend/webapp/fajlok/tmp
+       - sqlite:/miserend/webapp/fajlok/sqlite
        - ./miserend/apache/ports.conf:/etc/apache2/ports.conf
 
     ports:
@@ -88,6 +101,8 @@ services:
     user: "www-data"
     restart: "always"
     depends_on:
+      sqlite-init:
+        condition: service_completed_successfully
       mysql:
         condition: service_healthy
       elasticsearch:
@@ -99,6 +114,14 @@ services:
     # A `.env` a compose.yml mellé (docker/.env) kerül.
     environment:
       - MISEREND_WEBAPP_ENVIRONMENT=production
+      # #668: eddig ez NEM volt átadva, ezért a config.php beégetett root/pw
+      # alapértéke érvényesült, és az .env-ben hiába állított volna bárki mást.
+      - MYSQL_MISEREND_USER=${MYSQL_MISEREND_USER:-root}
+      - MYSQL_MISEREND_PASSWORD=${MYSQL_MISEREND_PASSWORD:-pw}
+      # #171: a konténer maga ütemezze-e a cront. Alapból ki: az éles telepítés ma a
+      # hosztról ütemez, és ha mindkettő menne, kétszer futna minden munka.
+      - CRON_ENABLED=${CRON_ENABLED:-0}
+      - CRON_INTERVAL=${CRON_INTERVAL:-300}
       - SMTP_HOST=${SMTP_HOST:-}
       - SMTP_PORT=${SMTP_PORT:-25}
       - SMTP_USER=${SMTP_USER:-}
@@ -121,6 +144,6 @@ volumes:
   db_data: {}
   elasticsearch_data: {}
   tmp: {}
+  sqlite: {}
   vendor_data:
   node_modules_data:
-  

@@ -25,16 +25,25 @@ on:
     branches: [master]
   workflow_dispatch: {}
 
+# #662: a staging ÉS a production UGYANAZON a gépen fut, és mindkét deploy teljes
+# `docker build`-et csinál (Angular + PHP multi-stage). Külön csoportban egyszerre
+# indulhattak, és több merge után egymásra torlódtak — a gép ettől elérhetetlenné vált.
+# Közös csoport: egyszerre csak EGY deploy nyúlhat a szerverhez.
+#
+# A `cancel-in-progress` szándékosan false: a job leállítása a GitHub oldalán öli meg a
+# futást, a szerveren a docker daemonban FUTÓ build viszont attól még dolgozik tovább —
+# tehát a cancel nem szabadítja fel a gépet, csak elveszti a naplót. Sorbaállítunk
+# helyette, és a lentebbi "nincs új commit" rövidzár teszi gyorssá a torlódást.
 concurrency:
-  group: deploy-staging
-  cancel-in-progress: true
+  group: deploy-server
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.STAGING_SSH_HOST }}
           username: ${{ secrets.STAGING_SSH_USER }}
@@ -49,7 +58,23 @@ jobs:
 
             # Tiszta lap: fetch + hard reset a master-re (nem 'git pull').
             git fetch --prune origin master
+
+            # #662: több merge után a sorban álló deployok mind ugyanazt a commitot
+            # építenék újra. Ha már a célállapoton vagyunk, nincs mit tenni — így egy
+            # 14 merge-ös hullámból egy-két valódi build lesz, nem tizennégy.
+            # Kézi indításnál (workflow_dispatch) mindig épít.
+            if [ "${{ github.event_name }}" != "workflow_dispatch" ] \
+               && [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/master)" ]; then
+              echo "✅ Már a legfrissebb commiton vagyunk ($(git rev-parse --short HEAD)) — deploy kihagyva."
+              exit 0
+            fi
+
             git reset --hard origin/master
+
+            # #652: a lábléc verzió-jelzéséhez kell. Eddig egy git post-checkout hookra
+            # bíztuk, de a hookok nem verziókövetettek, és a `git pull` amúgy sem indít
+            # post-checkoutot — ezért a fájl élesben soha nem jött létre, a lábléc üres volt.
+            bash scripts/write-git-hash.sh || echo "⚠ A git_hash kiírása nem sikerült — a lábléc verzió nélkül marad."
 
             # A staging env-értékek (projekt-név, image-tag, portok) betöltése.
             set -a
@@ -71,5 +96,13 @@ jobs:
 
             # Indítás a frissen épített image-dzsel.
             $COMPOSE up -d
+
+            # ── Cron-registry szinkron (#638) ────────────────────────────────
+            # A registry (webapp/fajlok/crons.php) hiányzó sorait a deploy veszi fel;
+            # meglévőt NEM módosít és nem töröl. Ha most nem sikerül, a következő
+            # cron-futás úgyis elvégzi.
+            echo "▶ Cron registry szinkronizálása..."
+            $COMPOSE exec -T miserend php index.php q=cron cron_init=1 \
+              || echo "⚠ A cron-registry szinkron nem futott le most — a következő cron-futás pótolja."
 
             $COMPOSE ps
