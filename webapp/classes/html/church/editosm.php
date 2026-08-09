@@ -194,6 +194,10 @@ class EditOsm extends \Html\Html {
 				);
 			}			
 						
+			// #670: az OSM-tagok (pl. wheelchair) a templom keresési adatai közé kerülnek,
+			// és a mise-indexbe is beágyazódnak — frissítsük, hogy a kereső rögtön lássa.
+			$this->church->refreshMassSearchIndex();
+
 			addMessage ('Közvelenül OSM adatokat is módosítottunk. Nagyon izgalmas. <a href="'.$messageurl.'">changeset/'.$changesetID.'</a>','success');
 			
 		}

@@ -1728,5 +1728,44 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             // Ha a templom nem engedélyezett (ok != 'i'), akkor töröljük az Elasticsearchből
             ElasticsearchApi::deleteChurches([$this->id]);
         }
+
+        // A parent::save() visszatérési értéke eddig elveszett: a save() null-lal tért
+        // vissza bool helyett, tehát a hívó nem tudta megnézni, sikerült-e a mentés.
+        return $return;
+    }
+
+    /*
+     * #670: a templom adatai a mise-indexbe is BE VANNAK ÁGYAZVA (a mass_index minden
+     * dokumentumában ott ül a templom `church` alobjektumként). A save() csak a
+     * `churches` indexet frissíti, ezért mentés után a MISE-kereső még a régi
+     * templom-adatot látta — pl. az újonnan felvitt gluténmentes vagy akadálymentességi
+     * adatra nem talált rá, amíg a napi cron le nem futott.
+     *
+     * SZÁNDÉKOSAN NEM a save()-ben van: azt az OSM-szinkron (akár több ezer templom) és a
+     * boundary-cron (50 templom / 5 perc) is hívja, a mise-újraindexelés viszont mérve
+     * ~0,5 másodperc templomonként — ott ez órákat jelentene. A felhasználói mentés-
+     * útvonalak (/edit, /editosm) hívják, ahol egy ember épp most írt át valamit, és
+     * joggal várja, hogy a kereső is tudjon róla.
+     *
+     * Hiba esetén csak naplózunk: egy ES-akadás ne buktassa a templom mentését.
+     */
+    /**
+     * Tiszta döntés (se DB, se ES), hogy tesztelhető legyen: van-e értelme frissíteni.
+     * Nem engedélyezett templom miséi nincsenek is az indexben — ott nincs mit tenni.
+     */
+    public static function shouldRefreshMassSearchIndex(?string $ok): bool {
+        return $ok === 'i';
+    }
+
+    public function refreshMassSearchIndex(): void {
+        if (!self::shouldRefreshMassSearchIndex($this->ok)) {
+            return;
+        }
+        try {
+            ElasticsearchApi::updateMasses([], [$this->id], function ($msg) {});
+        } catch (\Throwable $e) {
+            error_log('[#670] a misék újraindexelése nem sikerült a(z) ' . $this->id
+                . ' templomnál: ' . $e->getMessage());
+        }
     }
 }
