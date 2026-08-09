@@ -156,8 +156,16 @@ class GeoSearchTest extends TestCase {
     }
 
     /**
-     * A mise-kereső kétlépcsős útja: a mise-indexben nincs geo_point, ezért előbb
-     * templom-azonosítókat keresünk, majd azokkal szűkítünk.
+     * A mise-kereső is szűr helyre.
+     *
+     * A helynevet geokódoljuk, onnantól ugyanaz a kör-keresés fut, mint koordinátánál
+     * (#608, `Search::nearby`): geo_distance a MISE-indexen, a `church.lat`/`church.lon`
+     * mezőkből képzett futásidejű geo_point-tal.
+     *
+     * Ezért itt a mise-indexet kérdezzük vissza, nem a templom-indexet: a keresés is
+     * abból dolgozik. (A templom-index `location` mezője a tesztadatban csak arra a néhány
+     * templomra van feltöltve, amit a setUpBeforeClass újraindexel — az ellene mért
+     * ellenőrzés a többi találatot tévesen „körön kívülinek" látná.)
      */
     public function testMisekeresoIsSzurHelyre(): void {
         $html = $this->fetch('q=SearchResultsMasses&kulcsszo=&hely=Szentendre&tavolsag=10');
@@ -167,16 +175,47 @@ class GeoSearchTest extends TestCase {
         }
 
         $this->assertStringNotContainsString('HIBA!', $html);
+        $this->assertStringContainsString('Innen: <b>Szentendre', $html, 'A szűrő nevezze meg a helyet.');
 
         $ids = $this->churchIds($html);
         if ($ids === []) {
             $this->markTestSkipped('Ezen a napon nincs mise a környéken.');
         }
 
-        $inRadius = $this->esCount(['bool' => ['filter' => [
-            ['terms' => ['id' => $ids]],
-            ['geo_distance' => ['distance' => '10km', 'location' => ['lat' => self::LAT, 'lon' => self::LON]]],
-        ]]]);
-        $this->assertSame(count($ids), $inRadius, 'A misék templomainak is a körön belül kell lenniük.');
+        foreach ($ids as $id) {
+            $distance = $this->massIndexDistanceKm($id);
+            if ($distance === null) {
+                $this->fail("A(z) $id templomnak nincs koordinátája a mise-indexben, mégis bekerült a körre szűrt találatok közé.");
+            }
+            // Fél kilométer ráhagyás: az ES gömbi, a lenti számítás sík közelítés.
+            $this->assertLessThanOrEqual(10.5, $distance, "A(z) $id templom $distance km-re van, kívül a 10 km-es körön.");
+        }
+    }
+
+    /** A templom távolsága Szentendrétől, a mise-indexben tárolt koordináta alapján. */
+    private function massIndexDistanceKm(int $churchId): ?float {
+        $ctx = stream_context_create(['http' => [
+            'method' => 'POST',
+            'header' => "Content-Type: application/json\r\n",
+            'content' => json_encode([
+                'size' => 1,
+                'query' => ['term' => ['church_id' => $churchId]],
+                '_source' => ['includes' => ['church.lat', 'church.lon']],
+            ]),
+            'timeout' => 15, 'ignore_errors' => true,
+        ]]);
+        $raw = @file_get_contents('http://elasticsearch:9200/mass_index/_search', false, $ctx);
+        if ($raw === false) {
+            return null;
+        }
+
+        $source = json_decode($raw, true)['hits']['hits'][0]['_source']['church'] ?? null;
+        if (!isset($source['lat'], $source['lon'])) {
+            return null;
+        }
+
+        $dx = deg2rad($source['lon'] - self::LON) * cos(deg2rad(self::LAT)) * 6371;
+        $dy = deg2rad($source['lat'] - self::LAT) * 6371;
+        return sqrt($dx * $dx + $dy * $dy);
     }
 }
