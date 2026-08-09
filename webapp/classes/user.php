@@ -602,7 +602,9 @@ class User {
 			$lastEmail = DB::table('emails')
 				->where('type','user_pleaseactivate')
 				->where('to',$user->email)
-				->whereIn('status',['queued','sent'])				
+				// A 'sending'/'error' is megpróbált értesítés: ha kimaradnának, a következő
+				// futás újra kiküldené ugyanazt a levelet ugyanannak. (l. Email::attemptedStatuses)
+				->whereIn('status', \Eloquent\Email::attemptedStatuses())
 				->orderBy('updated_at','desc')				
 				->first();
 					
@@ -644,7 +646,9 @@ class User {
 			$lastEmail = DB::table('emails')
 				->where('type','user_pleaselogin')
 				->where('to',$user->email)
-				->whereIn('status',['queued','sent'])				
+				// A 'sending'/'error' is megpróbált értesítés: ha kimaradnának, a következő
+				// futás újra kiküldené ugyanazt a levelet ugyanannak. (l. Email::attemptedStatuses)
+				->whereIn('status', \Eloquent\Email::attemptedStatuses())
 				->orderBy('updated_at','desc')				
 				->first();
 					
@@ -703,7 +707,7 @@ class User {
 					FROM emails
 					WHERE
 						`type` = 'user_pleaseupdate' AND 
-						`status` IN ('sent','queued') AND
+						`status` IN ('sent','queued','sending','error') AND
 						emails.to = user.email AND
 						updated_at > '".date('Y-m-d H:i:s',strtotime('-2 weeks'))."'
 						ORDER BY updated_at DESC
@@ -810,7 +814,7 @@ class User {
 			->select('user.*')
 			->join('church_holders', 'templomok.id', '=', 'church_holders.church_id')
 			->join('user', 'user.uid', '=', 'church_holders.user_id')
-			->whereRaw(" NOT EXISTS ( SELECT 1 FROM emails WHERE `type` = ? AND `status` IN ('sent','queued') AND emails.to = user.email AND updated_at > ? LIMIT 1 ) ",
+			->whereRaw(" NOT EXISTS ( SELECT 1 FROM emails WHERE `type` = ? AND `status` IN ('sent','queued','sending','error') AND emails.to = user.email AND updated_at > ? LIMIT 1 ) ",
 				[$type, date('Y-m-d H:i:s', strtotime('-2 weeks'))])
 			->where('church_holders.status', 'allowed')
 			->whereNull('church_holders.deleted_at')
