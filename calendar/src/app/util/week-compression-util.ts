@@ -97,6 +97,37 @@ export class WeekCompressionUtil {
     slotDurationMinutes: 30,
   };
 
+  /** A FullCalendar `getEvents()` visszaadta esemény minimális alakja. */
+  static readonly DEFAULT_EVENT_MINUTES = 60;
+
+  /**
+   * #358: a FullCalendar eseményeiből WeekEvent-lista.
+   *
+   * Ez a lépés eddig a komponensbe volt beágyazva, és pont ITT bújt meg a hiba: a
+   * régi szűrő `!!e.start && !!e.end`-et követelt, a misék viszont pont-események
+   * `end` NÉLKÜL — így minden eseményt kidobott, a tömörítés némán nem csinált
+   * semmit, a kapcsoló holt volt. Kiemelve, hogy tesztelhető legyen.
+   *
+   * `end` hiányában a FullCalendar saját alapértelmezésével egyezően +1 órát veszünk.
+   */
+  static toWeekEvents(
+    events: ReadonlyArray<{start: Date | null; end?: Date | null; title?: string; extendedProps?: unknown}>
+  ): WeekEvent[] {
+    const fallbackMs = WeekCompressionUtil.DEFAULT_EVENT_MINUTES * 60 * 1000;
+
+    return events
+      .filter(e => !!e.start)
+      .map(e => {
+        const start = e.start as Date;
+        return {
+          start,
+          end: e.end ?? new Date(start.getTime() + fallbackMs),
+          title: e.title || '',
+          extendedProps: e.extendedProps as Record<string, any>,
+        };
+      });
+  }
+
   /**
    * Központi belépő. Idempotens, pure-function — semmi side-effect.
    */

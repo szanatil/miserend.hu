@@ -104,4 +104,145 @@ describe('#358 week-compression DOM collapse (valódi render)', () => {
     expect(morn).toBeLessThan(naga);
     expect(naga).toBeLessThan(eve);
   });
+
+  /**
+   * #358 regresszió: a misék a backendből PONT-ESEMÉNYKÉNT jönnek, `end` nélkül.
+   *
+   * Az eredeti hiba pontosan itt bújt meg: a komponens `!!e.start && !!e.end`-del
+   * szűrt, ezért minden misét kidobott — a tömörítés némán nem csinált semmit, a
+   * kapcsoló holt volt. A fenti teszt azért nem fogta meg, mert `end`-del adott
+   * eseményeket, és a WeekEvent-listát kézzel építette, kihagyva ezt a lépést.
+   *
+   * Itt ugyanazt a leképezést hívjuk, amit a komponens (WeekCompressionUtil.toWeekEvents),
+   * és valódi FullCalendaron mérjük a geometriát.
+   */
+  it('end nélküli pont-eseményeknél is tömörít (a toggle nem holt)', () => {
+    const DAY = '2026-03-09';
+    // Se `end`, se `allDay` — pont úgy, ahogy a miserend adja.
+    const events = [
+      {title: 'reggeli mise', start: `${DAY}T08:00:00`},
+      {title: 'esti mise', start: `${DAY}T18:00:00`},
+      {title: 'reggeli mise 2', start: `2026-03-10T08:00:00`},
+      {title: 'esti mise 2', start: `2026-03-10T18:00:00`},
+    ];
+
+    calendar = new Calendar(host, {
+      plugins: [timeGridPlugin],
+      initialView: 'timeGridWeek',
+      initialDate: DAY,
+      slotDuration: '00:30:00',
+      headerToolbar: false,
+      height: 'auto',
+      events,
+    });
+    calendar.render();
+
+    // A komponens útja: a FullCalendar eseményeiből WeekEvent-lista.
+    const weekEvents = WeekCompressionUtil.toWeekEvents(calendar.getEvents());
+
+    expect(weekEvents.length)
+      .toBe(events.length, 'Egyetlen end nélküli eseményt sem szabad kidobni.');
+    weekEvents.forEach(we => {
+      expect(we.end.getTime())
+        .toBeGreaterThan(we.start.getTime(), 'end hiányában is legyen értelmes időtartam.');
+    });
+
+    const result = WeekCompressionUtil.analyze({
+      weekStart: new Date(2026, 2, 9), weekEnd: new Date(2026, 2, 16),
+      events: weekEvents, options: {slotDurationMinutes: 30},
+    });
+
+    expect(result.shouldCompress)
+      .toBe(true, 'Reggel 8 és este 6 között van mit összehúzni.');
+    expect(result.collapsedSlotMinutes.length).toBeGreaterThan(0);
+
+    // A foglalt slotok nem tömörödnek.
+    const collapsed = new Set(result.collapsedSlotMinutes);
+    expect(collapsed.has(8 * 60)).toBe(false, 'A reggeli mise slotja marad.');
+    expect(collapsed.has(18 * 60)).toBe(false, 'Az esti mise slotja marad.');
+    expect(collapsed.has(12 * 60)).toBe(true, 'A délelőtt-délutáni holt sáv összehúzódik.');
+  });
+
+  /**
+   * A `toWeekEvents` a start nélküli eseményt eldobja — az FullCalendarban elvileg
+   * nem fordul elő, de ha mégis, ne szálljon el a mérés.
+   */
+  it('a start nélküli eseményt kihagyja', () => {
+    const mapped = WeekCompressionUtil.toWeekEvents([
+      {start: new Date('2026-03-09T08:00:00')},
+      {start: null},
+    ]);
+    expect(mapped.length).toBe(1);
+  });
+
+
+  /**
+   * #358 kimérés VALÓDI adaton: a Szent István-bazilika 2026-03-09..15 hete, ahogy az
+   * Elasticsearchből kijön (20 mise: hétköznap 07:00 és 18:00, vasárnap 08:30-tól 18:00-ig).
+   *
+   * Ez a teszt nem csak azt mondja, hogy „tömörít", hanem meg is méri, MENNYIT — és
+   * hogy közben egyetlen misés slot sem tűnik el. A vasárnapi 10:00/12:00/16:00 pont az
+   * a „valami extra", amit a jegy kivételként említ.
+   */
+  it('valódi heti miserenden mérhetően kisebb a rács, és egy mise sem vész el', () => {
+    const MASSES: Array<[string, string]> = [
+      ['2026-03-09', '07:00'], ['2026-03-09', '18:00'],   // hétfő
+      ['2026-03-10', '07:00'], ['2026-03-10', '18:00'],   // kedd
+      ['2026-03-11', '07:00'], ['2026-03-11', '18:00'],   // szerda
+      ['2026-03-12', '07:00'], ['2026-03-12', '18:00'],   // csütörtök
+      ['2026-03-13', '07:00'], ['2026-03-13', '18:00'],   // péntek
+      ['2026-03-14', '07:00'], ['2026-03-14', '18:00'],   // szombat
+      ['2026-03-15', '08:30'], ['2026-03-15', '10:00'],   // vasárnap
+      ['2026-03-15', '12:00'], ['2026-03-15', '16:00'],
+      ['2026-03-15', '18:00'],
+    ];
+
+    const weekEvents = WeekCompressionUtil.toWeekEvents(
+      MASSES.map(([d, t]) => ({start: new Date(`${d}T${t}:00`), title: 'Szentmise'}))
+    );
+
+    const result = WeekCompressionUtil.analyze({
+      weekStart: new Date(2026, 2, 9), weekEnd: new Date(2026, 2, 16),
+      events: weekEvents, options: {slotDurationMinutes: 30},
+    });
+
+    expect(result.shouldCompress).toBe(true);
+
+    // Mennyi marad? A levágott fej/láb + a collapsed közép után.
+    const visibleFrom = result.slotMinTime;
+    const visibleTo = result.slotMaxTime;
+    const toMin = (t: string) => {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    };
+    const teljes = 24 * 60 / 30;                                   // 48 slot egy teljes nap
+    const ablak = (toMin(visibleTo) - toMin(visibleFrom)) / 30;    // fej/láb levágás után
+    const marad = ablak - result.collapsedSlotMinutes.length;      // a közép összehúzása után
+
+    // Konkrét, ellenőrizhető számok — ha a logika elcsúszik, itt bukik.
+    expect(teljes).toBe(48);
+    expect(ablak).toBeLessThan(teljes);
+    expect(marad).toBeLessThan(ablak);
+    expect(marad).toBeLessThanOrEqual(teljes / 2);
+
+    // ...és közben EGYETLEN misés slot sem esett ki.
+    const collapsed = new Set(result.collapsedSlotMinutes);
+    weekEvents.forEach(e => {
+      const slot = Math.floor((e.start.getHours() * 60 + e.start.getMinutes()) / 30) * 30;
+      expect(collapsed.has(slot))
+        .toBe(false, `A ${WeekCompressionUtil.minutesToTimeString(slot)} misés slot nem tömöríthető.`);
+    });
+
+    // A vasárnapi „extra" (10:00, 12:00, 16:00) épp a holt sávba esne — ezért marad nyitva.
+    [10 * 60, 12 * 60, 16 * 60].forEach(min => {
+      expect(collapsed.has(min))
+        .toBe(false, `A ${WeekCompressionUtil.minutesToTimeString(min)} vasárnapi mise miatt nyitva marad.`);
+    });
+
+    // Diagnosztika a PR-hez.
+    // eslint-disable-next-line no-console
+    console.log(`[#358 mérés] teljes nap ${teljes} slot -> fej/láb levágva ${ablak} (${visibleFrom}..${visibleTo})`
+      + ` -> ${result.collapsedSlotMinutes.length} slot összehúzva -> ${marad} látható`);
+  });
+
 });
