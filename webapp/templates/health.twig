@@ -210,8 +210,19 @@
 		   <code>schema-reference.json</code> készült{% if schemaCheck.generated_at %}
 		   ({{ schemaCheck.generated_at }}){% endif %} — ezért az összevetés eredménye
 		   <strong>nem megbízható</strong>, se a „rendben", se az eltérés-lista.</p>
-		<p><small class="text-muted">Újragenerálás:
-		   <code>docker compose exec miserend php /miserend/webapp/tools/schema-reference.php</code></small></p>
+		{% if schemaCheck.stale_details %}
+			<p>Ami változott:</p>
+			<ul class="kicsi">
+				{% for line in schemaCheck.stale_details %}<li><code>{{ line }}</code></li>{% endfor %}
+			</ul>
+		{% else %}
+			<p><small class="text-muted">Fájlszintű összevetés nincs: a referencia még a
+			   fájlonkénti ujjlenyomat bevezetése előtt készült. Egy újragenerálás után
+			   itt fog látszani, pontosan mi tér el.</small></p>
+		{% endif %}
+		<p><small class="text-muted">Újragenerálás — <strong>frissen épített konténerben</strong>,
+		   különben az ujjlenyomat megint nem fog egyezni:
+		   <code>docker exec &lt;konténer&gt; php /miserend/webapp/tools/schema-reference.php</code></small></p>
 	{% elseif schemaCheck.findings is empty %}
 		<p><span class="badge bg-success">Rendben</span>
 		   A(z) <code>{{ schemaCheck.schema }}</code> adatbázis szerkezete pontosan megegyezik azzal, amit a
