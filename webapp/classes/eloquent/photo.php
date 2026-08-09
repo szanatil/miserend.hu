@@ -155,20 +155,7 @@ class Photo extends \Illuminate\Database\Eloquent\Model {
          * a képkönyvtárból csak kép-kiterjesztésű fájl adható ki. A kettő együtt
          * véd; egyik sem hagyható el.
          */
-        $imageInfo = @\getimagesize($inputFile['tmp_name']);
-        if ($imageInfo === false) {
-            throw new \Exception("A feltöltött fájl nem kép.");
-        }
-
-        $allowedTypes = [
-            IMAGETYPE_JPEG => '.jpg',
-            IMAGETYPE_PNG  => '.png',
-            IMAGETYPE_GIF  => '.gif',
-        ];
-        if (!isset($allowedTypes[$imageInfo[2]])) {
-            throw new \Exception("Nem támogatott képformátum. Csak JPEG, PNG és GIF tölthető fel.");
-        }
-        $safeExtension = $allowedTypes[$imageInfo[2]];
+        $safeExtension = self::safeExtensionFor($inputFile['tmp_name']);
         $konyvtar = $this->pathToPhotos . "/" . $this->church_id;
         if (!is_dir("$konyvtar")) {
             if (!mkdir("$konyvtar", 0775)) {
@@ -273,6 +260,40 @@ class Photo extends \Illuminate\Database\Eloquent\Model {
         
         // Return the smallest limit
         return $php_limit;
+    }
+
+    /**
+     * #709: milyen kiterjesztéssel menthető el biztonságosan ez a fájl?
+     *
+     * A döntés KIZÁRÓLAG a fájl tartalmán alapul — se a kliens fájlnevét, se az
+     * általa küldött Content-Type-ot nem vesszük figyelembe. Ez a védelem lelke:
+     * a támadás pontosan azon múlt, hogy a `.php` kiterjesztés a kliens
+     * fájlnevéből átjött, a típusellenőrzés pedig a kliens állítását hitte el.
+     *
+     * Külön, statikus függvény, mert így adatbázis és képkönyvtár nélkül,
+     * önmagában tesztelhető — a biztonsági állítások ne múljanak azon, hogy a
+     * futtató környezetben írható-e a kepek/ könyvtár.
+     *
+     * @return string a pontot is tartalmazó kiterjesztés, pl. ".jpg"
+     * @throws \Exception ha a fájl nem kép, vagy nem engedett formátum
+     */
+    static function safeExtensionFor(string $path): string {
+        $imageInfo = @\getimagesize($path);
+        if ($imageInfo === false) {
+            throw new \Exception("A feltöltött fájl nem kép.");
+        }
+
+        $allowedTypes = [
+            IMAGETYPE_JPEG => '.jpg',
+            IMAGETYPE_PNG  => '.png',
+            IMAGETYPE_GIF  => '.gif',
+        ];
+
+        if (!isset($allowedTypes[$imageInfo[2]])) {
+            throw new \Exception("Nem támogatott képformátum. Csak JPEG, PNG és GIF tölthető fel.");
+        }
+
+        return $allowedTypes[$imageInfo[2]];
     }
 
     /**
