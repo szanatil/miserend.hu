@@ -31,6 +31,43 @@ class SchemaCheck {
         return __DIR__ . '/../schema-reference.json';
     }
 
+    /** A sémát leíró fájlok könyvtára. A Dockerfile `COPY . .`-ja miatt élesben is ott van. */
+    static function initdbDirectory(): string {
+        return __DIR__ . '/../../docker/mysql/initdb.d';
+    }
+
+    /**
+     * #706: ujjlenyomat a séma FORRÁSÁRÓL, hogy az elavult referencia kiderüljön.
+     *
+     * A referencia egy pillanatkép. Ha valaki hozzányúl az initdb.d-hez és nem
+     * generálja újra, a beversenyzett fájl csendben hazudni kezdene, és a /health
+     * „minden rendben"-t mutatna. A CI-ban ezt teszt fogja meg — de csak ott.
+     *
+     * Ezért a referenciába beletesszük a sémafájlok ujjlenyomatát, és futásidőben
+     * újraszámoljuk. Ha eltér, a /health azt mondja meg, ami igaz: a referencia
+     * elavult, az összevetés eredménye nem megbízható. Így élesben sem kell azon
+     * múlnia, hogy valaki emlékezett-e az újragenerálásra.
+     *
+     * NULL, ha a könyvtár nem olvasható — akkor egyszerűen nem állítunk semmit.
+     */
+    static function initdbFingerprint(): ?string {
+        $dir = self::initdbDirectory();
+        if (!is_dir($dir) || !is_readable($dir)) return null;
+
+        $files = glob($dir . '/*.{sql,sh}', GLOB_BRACE);
+        if ($files === false || !$files) return null;
+
+        sort($files);
+
+        $hash = hash_init('sha256');
+        foreach ($files as $file) {
+            hash_update($hash, basename($file));
+            hash_update_file($hash, $file);
+        }
+
+        return hash_final($hash);
+    }
+
     /**
      * Egy adatbázis szerkezete normalizált alakban, az information_schema-ból.
      *
@@ -310,11 +347,24 @@ class SchemaCheck {
 
         $findings = self::compare($reference, $actual);
 
+        /*
+         * Ha a séma forrása azóta változott, hogy a referencia készült, akkor az
+         * összevetés eredménye nem megbízható — se a „minden rendben", se az
+         * eltérés-lista. Ezt meg kell mondani, nem elhallgatni.
+         */
+        $storedFingerprint  = $reference['_meta']['initdb_fingerprint'] ?? null;
+        $currentFingerprint = self::initdbFingerprint();
+        $stale = $storedFingerprint !== null
+              && $currentFingerprint !== null
+              && $storedFingerprint !== $currentFingerprint;
+
         return [
-            'available' => true,
-            'schema'    => $schema,
-            'findings'  => $findings,
-            'counts'    => self::summarise($findings),
+            'available'    => true,
+            'schema'       => $schema,
+            'findings'     => $findings,
+            'counts'       => self::summarise($findings),
+            'stale'        => $stale,
+            'generated_at' => $reference['_meta']['generated_at'] ?? null,
         ];
     }
 }

@@ -17,12 +17,24 @@ require __DIR__ . '/../load.php';
 
 $schema = $argv[1] ?? \Illuminate\Database\Capsule\Manager::connection()->getDatabaseName();
 
+$generatedAt = date('c');
 $structure = \SchemaCheck::readStructure($schema);
 
 if (!$structure['tables']) {
     fwrite(STDERR, "Az adatbázis („$schema\") üres vagy nem olvasható — nem írok referenciát.\n");
     exit(1);
 }
+
+/*
+ * #706: az ujjlenyomat is bekerül, hogy az elavulás futásidőben is kiderüljön —
+ * ne csak a CI-ban. A /health ezt veti össze a ténylegesen telepített
+ * sémafájlokkal, és ha eltér, megmondja, hogy a referencia elavult.
+ */
+$structure['_meta'] = [
+    'generated_at'       => $generatedAt,
+    'source_schema'      => $schema,
+    'initdb_fingerprint' => \SchemaCheck::initdbFingerprint(),
+];
 
 $json = json_encode(
     $structure,
@@ -34,3 +46,4 @@ file_put_contents(\SchemaCheck::referenceFile(), $json . "\n");
 printf("Referencia frissítve: %s\n", \SchemaCheck::referenceFile());
 printf("  forrás adatbázis: %s\n", $schema);
 printf("  táblák: %d\n", count($structure['tables']));
+printf("  initdb ujjlenyomat: %s\n", substr((string) $structure['_meta']['initdb_fingerprint'], 0, 16));

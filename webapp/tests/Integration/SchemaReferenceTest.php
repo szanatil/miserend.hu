@@ -51,6 +51,42 @@ final class SchemaReferenceTest extends TestCase {
     }
 
     /*
+     * #706: a referencia hordozza a sémafájlok ujjlenyomatát, hogy az elavulás
+     * FUTÁSIDŐBEN is kiderüljön — ne csak itt, a CI-ban. Enélkül az éles /health
+     * „minden rendben"-t mondana akkor is, ha valaki elfelejtette újragenerálni.
+     */
+    public function testReferenceCarriesTheInitdbFingerprint(): void {
+        $reference = \SchemaCheck::loadReference();
+
+        self::assertArrayHasKey('_meta', $reference, 'hiányzik a _meta blokk. ' . self::REGENERATE);
+        self::assertNotEmpty($reference['_meta']['initdb_fingerprint'] ?? null);
+        self::assertNotEmpty($reference['_meta']['generated_at'] ?? null);
+    }
+
+    /* A ténylegesen telepített sémafájlokkal egyeznie kell. */
+    public function testFingerprintMatchesTheDeployedSchemaFiles(): void {
+        $reference = \SchemaCheck::loadReference();
+        $current   = \SchemaCheck::initdbFingerprint();
+
+        if ($current === null) {
+            self::markTestSkipped('az initdb.d nem olvasható ebben a környezetben');
+        }
+
+        self::assertSame(
+            $reference['_meta']['initdb_fingerprint'], $current,
+            "A sémafájlok változtak a referencia készítése óta.\n" . self::REGENERATE
+        );
+    }
+
+    /* Az elavulást a check() jelezze is, ne csak tudja. */
+    public function testCheckReportsStaleness(): void {
+        $result = \SchemaCheck::check();
+
+        self::assertArrayHasKey('stale', $result);
+        self::assertFalse($result['stale'], 'a beversenyzett referencia nem lehet elavult. ' . self::REGENERATE);
+    }
+
+    /*
      * Néhány tábla, aminek biztosan benne kell lennie. Ha a referencia valaha
      * csonkán generálódik (pl. félig felállt adatbázisról), ez fogja meg.
      */

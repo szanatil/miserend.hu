@@ -97,6 +97,12 @@
                     "default": null,
                     "extra": ""
                 },
+                "iso3166_1": {
+                    "type": "varchar(2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
                 "osmtype": {
                     "type": "varchar(9)",
                     "nullable": true,
@@ -135,6 +141,12 @@
                     "columns": [
                         "osmtype",
                         "osmid"
+                    ]
+                },
+                "index3": {
+                    "unique": false,
+                    "columns": [
+                        "iso3166_1"
                     ]
                 },
                 "PRIMARY": {
@@ -3105,5 +3117,10 @@
                 }
             }
         }
+    },
+    "_meta": {
+        "generated_at": "2026-08-09T19:06:13+02:00",
+        "source_schema": "miserend",
+        "initdb_fingerprint": "60d96d83d308bbf15c8184dd2e1db3e12bf0d5411bc0d2eb4a7c16c49975fe23"
     }
 }
