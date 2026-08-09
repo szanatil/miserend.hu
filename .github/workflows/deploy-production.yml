@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.STAGING_SSH_HOST }}
           username: ${{ secrets.STAGING_SSH_USER }}
@@ -83,7 +83,7 @@ jobs:
             BACKUP_FILE="$BACKUP_DIR/miserend-$TIMESTAMP.sql.gz"
 
             $COMPOSE exec -T mysql mariadb-dump \
-              -u root -ppw \
+              -u root -p"${MYSQL_ROOT_PASSWORD:-pw}" \
               --all-databases \
               --single-transaction \
               --routines \

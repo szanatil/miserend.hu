@@ -47,6 +47,9 @@ class SearchResultsChurches extends Html {
 		    // alkalmazta; a templomkereső pedig nem is ismerte őket.
 		    'hely' => \Request::Text('hely'),
 		    'tavolsag' => \Request::IntegerwDefault('tavolsag', 0),
+		    // #667: a keresőűrlap rítus-gombjai (zöld/piros/semleges) eddig csak a
+		    // mise-keresőre hatottak; a templomkereső némán figyelmen kívül hagyta őket.
+		    'rites' => \Request::StringArray('rites'),
 		    'ehm' => \Request::IntegerwDefault('ehm', 0),
 		    // #666: az „Adottságok" szűrő eddig csak a misekeresésre hatott, pedig a
 		    // címlap ugyanabból az űrlapból indítja a templomkeresést is — a paraméterek
@@ -105,6 +108,32 @@ class SearchResultsChurches extends Html {
                 $search->addMustNot([ 'terms' => ['nyelvek' => $langsMustNot] ]);
                 $translated = array_map(function($l){ return t('LANGUAGES.'.$l); }, $langsMustNot);
                 $search->filters[] = "Amelyik templomban nincs liturgia <b>" . implode('</b> se <b>', $translated) . "</b> nyelven.";                              
+            }
+        }
+        
+        // #667: rítus-szűrő. A `ritusok` a templom származtatott mezője az indexben:
+        // mely rítusokban van (bármikor) liturgia nála. Ugyanaz a should/must_not
+        // hármas-állapot, mint a nyelveknél.
+        //
+        // A `.keyword` alváltozatra szűrünk, nem a mezőre magára: az elemzett `text`
+        // mezőben a "GREEK_CATHOLIC" kisbetűsen áll, tehát a terms-lekérdezés nulla
+        // találatot adna. (A nyelveknél ez csak azért nem gond, mert a kódok eleve
+        // kisbetűsek.)
+        $rites = $params['rites'];
+        if (!empty($rites)) {
+            $ritesShould = isset($rites['should']) ? array_filter(array_map('trim', explode(',', $rites['should']))) : [];
+            $ritesMustNot = isset($rites['must_not']) ? array_filter(array_map('trim', explode(',', $rites['must_not']))) : [];
+
+            if (!empty($ritesShould)) {
+                $search->addMust([ 'terms' => ['ritusok.keyword' => $ritesShould] ]);
+                $translated = array_map(function($r){ return t($r); }, $ritesShould);
+                $search->filters[] = "Amelyik templomban van <b>" . implode('</b> vagy <b>', $translated) . "</b> liturgia.";
+            }
+
+            if (!empty($ritesMustNot)) {
+                $search->addMustNot([ 'terms' => ['ritusok.keyword' => $ritesMustNot] ]);
+                $translated = array_map(function($r){ return t($r); }, $ritesMustNot);
+                $search->filters[] = "Amelyik templomban nincs <b>" . implode('</b> se <b>', $translated) . "</b> liturgia.";
             }
         }
 

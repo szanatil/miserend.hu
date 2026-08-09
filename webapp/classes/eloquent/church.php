@@ -699,6 +699,24 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         return $massTypeKeys;
     }
     
+    /**
+     * #667: mely rítusokban van (bármikor) liturgia ebben a templomban?
+     *
+     * A rítus nem a templom tulajdonsága, hanem a miséké — a keresőnek viszont
+     * templomonként kell tudnia, hogy „van-e itt valaha görögkatolikus liturgia".
+     * Pontosan úgy származtatjuk, ahogy a nyelveket (l. getLanguagesAttribute).
+     *
+     * @return string[]
+     */
+    public function getRitusokAttribute() {
+        return $this->massrules()
+                    ->pluck('rite')
+                    ->filter(function($v) { return $v !== null && $v !== ''; })
+                    ->unique()
+                    ->values()
+                    ->toArray();
+    }
+
     public function getLanguagesAttribute() {
         // Grab the 'lang' column from related massrules, remove empty values, unique and return as array
         return $this->massrules()
@@ -981,6 +999,11 @@ class Church extends \Illuminate\Database\Eloquent\Model {
              * ha nincs adat), így a churches indexbe ÉS a mass_index church-részébe is
              * bekerül — a kereső mindkettőn tud szűrni.
              */
+            // #667: mely rítusokban van itt liturgia — a `nyelvek` mintájára, hogy a
+            // templomkereső rítusra is tudjon szűrni (eddig a felület gombjai megvoltak,
+            // de a templom-index nem tudott róluk semmit).
+            $return['ritusok'] = $this->ritusok;
+
             $return['wheelchair'] = (string) ($this->wheelchair ?? '');
             $return['gluten_free_holidays'] = (string) ($this->{\GlutenFreeCommunion::HOLIDAYS_KEY} ?? '');
             $return['gluten_free_weekdays'] = (string) ($this->{\GlutenFreeCommunion::WEEKDAYS_KEY} ?? '');
@@ -1325,19 +1348,96 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         /* Adminisrative Boundaries(Country,County, City, District) */
         $boundaries = $this->boundaries()
                 ->where('boundary','administrative')
-                ->whereIn('admin_level',[2,6,8,9,10])
-                ->orderBy('admin_level')              
+                ->whereIn('admin_level',[2,4,6,8,9,10])
+                ->orderBy('admin_level')
                 ->get()->toArray();
+
+        $boundaries = self::pickAdministrativeBoundaries($boundaries);
 
         if(array_key_exists(0, $boundaries)) $location->country = $boundaries[0];
         if(array_key_exists(1, $boundaries)) $location->county = $boundaries[1];
-        if(array_key_exists(2, $boundaries)) $location->city = $boundaries[2];   
-        if(array_key_exists(3, $boundaries)) $location->district = $boundaries[3];        
-                
+        if(array_key_exists(2, $boundaries)) $location->city = $boundaries[2];
+        if(array_key_exists(3, $boundaries)) $location->district = $boundaries[3];
+
         return $location;
     }
-	
-	
+
+    /**
+     * #496/#497/#498: az admin_level ország/megye/település sorrendbe rendezése.
+     *
+     * A location() pozíció szerint címkéz: a rendezett lista 0., 1., 2., 3. eleme
+     * lesz az ország, megye, település, kerület. Ez addig működik, amíg minden
+     * ország ugyanazokat a szinteket használja — de nem használják:
+     *
+     *   Magyarország  2 ország | 4 nagyrégió | 6 vármegye | 8 település | 9 kerület
+     *   Szlovákia     2 ország | 4 kraj      | 6 okres    | 8 obec
+     *   Szerbia       2 ország | 4 tartomány | 6 okrug    | 8 opstina    | 9 település
+     *   Ukrajna       2 ország | 4 oblaszty  | 6 rajon    |              | 9 település
+     *   Románia       2 ország | 4 judet     |    -       | 8 comuna/oras
+     *
+     * Romániában NINCS 6-os szint: a megyét a 4-es hordozza. A korábbi
+     * whereIn([2,6,8,9,10]) ezt kizárta, így a román templomoknál a lista
+     * [ország, település] lett — vagyis a TELEPÜLÉS csúszott a megye helyére,
+     * a location->city pedig NULL maradt. Ez 538 templomot érint (a határon túli
+     * állomány 80%-a), és mindenhová továbbgyűrűzik, ahol location.city-t
+     * használunk (home.twig ajánló, szomszédos templomok panel, Angular naptár).
+     *
+     * Ezért a 4-es szintet is behúzzuk, de CSAK akkor hagyjuk bent, ha nincs
+     * 6-os. Magyarországon van 6-os (vármegye), így a nagyrégió kiesik és a
+     * viselkedés bitre azonos marad a korábbival — a templomok 87%-át ez a
+     * változás nem érinti.
+     *
+     * @param array $boundaries admin_level szerint növekvőn rendezve
+     */
+    static function pickAdministrativeBoundaries(array $boundaries): array {
+        $hasCounty = false;
+        foreach ($boundaries as $boundary) {
+            if ((int) ($boundary['admin_level'] ?? 0) === 6) {
+                $hasCounty = true;
+                break;
+            }
+        }
+
+        if (!$hasCounty) {
+            return array_values($boundaries);
+        }
+
+        return array_values(array_filter(
+            $boundaries,
+            fn($boundary) => (int) ($boundary['admin_level'] ?? 0) !== 4
+        ));
+    }
+
+    /**
+     * #498: a templom országkódja (ISO 3166-1 alpha-2) az OSM-határból.
+     *
+     * A `templomok.orszag` oszlop kivezetésének az volt az egyik akadálya, hogy az
+     * „ország -> kód" leképezés kizárólag rajta keresztül létezett: az `orszagok`
+     * táblában nincs ISO-kód, csak `telkod`. A statisztika (`stat.php`, orszag=12)
+     * és az Angular naptárnak átadott országkód is emiatt ragadt hozzá.
+     *
+     * Az OSM országrelációi hordozzák az `ISO3166-1` taget, ezt a boundary-szinkron
+     * mostantól eltárolja. Itt csak kiolvassuk.
+     *
+     * NULL-t ad, ha a templomnak nincs országhatára (nincs koordinátája, vagy a
+     * szinkron még nem ért oda), illetve ha a szinkron az oszlop bevezetése óta még
+     * nem futott le rá. A hívónak KEZELNIE kell a NULL-t — ezért nem esünk vissza
+     * csendben a régi oszlopra, hogy a hiányzó lefedettség látható maradjon.
+     */
+    public function countryCode(): ?string {
+        $code = $this->boundaries()
+                ->where('boundary', 'administrative')
+                ->where('admin_level', 2)
+                ->whereNotNull('iso3166_1')
+                ->orderBy('boundaries.id')
+                ->value('iso3166_1');
+
+        $code = strtoupper(trim((string) $code));
+
+        return $code === '' ? null : $code;
+    }
+
+
 	public function getKozossegekAttribute($value) {
 		$api = new \ExternalApi\KozossegekApi();		
 		$api->query = "miserend/".$this->id;
@@ -1739,6 +1839,45 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         } else {
             // Ha a templom nem engedélyezett (ok != 'i'), akkor töröljük az Elasticsearchből
             ElasticsearchApi::deleteChurches([$this->id]);
+        }
+
+        // A parent::save() visszatérési értéke eddig elveszett: a save() null-lal tért
+        // vissza bool helyett, tehát a hívó nem tudta megnézni, sikerült-e a mentés.
+        return $return;
+    }
+
+    /*
+     * #670: a templom adatai a mise-indexbe is BE VANNAK ÁGYAZVA (a mass_index minden
+     * dokumentumában ott ül a templom `church` alobjektumként). A save() csak a
+     * `churches` indexet frissíti, ezért mentés után a MISE-kereső még a régi
+     * templom-adatot látta — pl. az újonnan felvitt gluténmentes vagy akadálymentességi
+     * adatra nem talált rá, amíg a napi cron le nem futott.
+     *
+     * SZÁNDÉKOSAN NEM a save()-ben van: azt az OSM-szinkron (akár több ezer templom) és a
+     * boundary-cron (50 templom / 5 perc) is hívja, a mise-újraindexelés viszont mérve
+     * ~0,5 másodperc templomonként — ott ez órákat jelentene. A felhasználói mentés-
+     * útvonalak (/edit, /editosm) hívják, ahol egy ember épp most írt át valamit, és
+     * joggal várja, hogy a kereső is tudjon róla.
+     *
+     * Hiba esetén csak naplózunk: egy ES-akadás ne buktassa a templom mentését.
+     */
+    /**
+     * Tiszta döntés (se DB, se ES), hogy tesztelhető legyen: van-e értelme frissíteni.
+     * Nem engedélyezett templom miséi nincsenek is az indexben — ott nincs mit tenni.
+     */
+    public static function shouldRefreshMassSearchIndex(?string $ok): bool {
+        return $ok === 'i';
+    }
+
+    public function refreshMassSearchIndex(): void {
+        if (!self::shouldRefreshMassSearchIndex($this->ok)) {
+            return;
+        }
+        try {
+            ElasticsearchApi::updateMasses([], [$this->id], function ($msg) {});
+        } catch (\Throwable $e) {
+            error_log('[#670] a misék újraindexelése nem sikerült a(z) ' . $this->id
+                . ' templomnál: ' . $e->getMessage());
         }
     }
 }
