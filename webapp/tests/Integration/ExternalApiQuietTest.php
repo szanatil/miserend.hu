@@ -22,6 +22,17 @@ final class ExternalApiQuietTest extends TestCase {
 
     protected function setUp(): void {
         parent::setUp();
+
+        /*
+         * Ez a viselkedés VALÓDI, elhasalt HTTP-híváson mérhető: a runQuery() catch-ága
+         * dönti el, kikerül-e a hiba a lapra. Kikapcsolt külső API-knál (#695) a hívás
+         * még a próbálkozás előtt visszatér, tehát ez az elágazás el sem érhető — a
+         * teszt ilyenkor nem bukhat el, de nem is állíthat semmit.
+         */
+        if (\ExternalApi\ExternalApi::isOffline()) {
+            $this->markTestSkipped('A külső API-k ki vannak kapcsolva (EXTERNAL_APIS_OFFLINE).');
+        }
+
         global $config;
         $this->originalDebug = $config['debug'] ?? 0;
         $config['debug'] = 2;
