@@ -36,7 +36,7 @@ class Edit extends \Html\Html {
    
         // #545: többdimenziós szerkesztő-űrlap nyers inputja. A mezőnkénti
         // \Request:: átírás staging-tesztet igényel (mentés-folyamat), ezért marad.
-        $this->input = $_REQUEST;
+        $this->input = \Request::all();
         $this->tid = $path[0];
         $this->church = \Eloquent\Church::find($this->tid);
         if (!$this->church) {
@@ -50,7 +50,8 @@ class Edit extends \Html\Html {
         }
 
         $isForm = \Request::Text('submit');
-        $isRelationshipAction = isset($_REQUEST['relationship']['add']) || isset($_REQUEST['relationship']['delete']);
+        $isRelationshipAction = \Request::get('relationship[add]') !== false
+            || \Request::get('relationship[delete]') !== false;
         if ($isForm || $isRelationshipAction) {
             $this->modify();
         }

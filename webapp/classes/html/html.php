@@ -29,7 +29,7 @@ class Html {
         // szűretlen $_REQUEST-ként. Kiváltása a html/ mappa mind a ~73 ->input[...]
         // használatának átírását + staging-tesztet igényel (form-mentés, kép-feltöltés),
         // ezért külön, tesztelt lépésben megy — nem itt, vakon.
-        $this->input = $_REQUEST;
+        $this->input = \Request::all();
         $this->initPagination();
     }
 

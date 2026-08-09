@@ -13,7 +13,7 @@ class EditPhotos extends \Html\Html {
    
         // #545: kép-szerkesztő nyers inputja. A mezőnkénti \Request:: átírás
         // staging-tesztet igényel (kép-feltöltés/-törlés), ezért marad.
-        $this->input = $_REQUEST;
+        $this->input = \Request::all();
         $this->tid = $path[0];
         $this->church = \Eloquent\Church::find($this->tid);
         if (!$this->church) {

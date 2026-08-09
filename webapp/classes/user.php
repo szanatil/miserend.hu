@@ -78,6 +78,13 @@ class User {
             $this->username = '*vendeg*';
             $this->nickname = '*vendég*';
             $this->responsible = false;
+            // #391: a vendégnek eddig `roles = null` maradt (a bejelentkezett ág állítja
+            // csak be). A regisztráció jogosultság-védelme `in_array($key, $user->roles)`-t
+            // hív, ami PHP 8-ban TypeError-t dob null-ra — vagyis egy kézzel beküldött
+            // `edituser[roles][...]` mezőtől FATAL lett a regisztráció, és épp az a
+            // védelem hasalt el, aminek a jogosultság-lopást kellene megakadályoznia.
+            // A roles mindig tömb.
+            $this->roles = [];
         } 
     }
 

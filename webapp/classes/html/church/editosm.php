@@ -20,7 +20,7 @@ class EditOsm extends \Html\Html {
 
         // #545: többdimenziós OSM-szerkesztő nyers inputja. A mezőnkénti
         // \Request:: átírás staging-tesztet igényel (OSM-kötés), ezért marad.
-        $this->input = $_REQUEST;
+        $this->input = \Request::all();
         $this->tid = $path[0];
         $this->church = \Eloquent\Church::find($this->tid);
         if (!$this->church) {
