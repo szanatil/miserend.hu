@@ -1,7 +1,6 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
-use Illuminate\Database\Capsule\Manager as DB;
 
 /**
  * Hibakereső üzemmódban a külső API hibája eddig MINDIG kikerült a lapra, teljes
@@ -11,6 +10,11 @@ use Illuminate\Database\Capsule\Manager as DB;
  *
  * Ahol a sikertelenség VÁRT kimenet és a hívó kezeli is, ott a $quiet elnyomja a
  * kiírást — a hiba maga viszont továbbra is elérhető marad.
+ *
+ * A kiírás két úton történhet: `debug > 1` esetén közvetlen echo, `debug == 1`
+ * esetén lapüzenet. Itt az echo-ágat mérjük, mert az ugyanazon az egy elágazáson
+ * dől el, viszont nem függ sem munkamenettől, sem adatbázistól — így minden
+ * környezetben ugyanazt jelenti.
  */
 final class ExternalApiQuietTest extends TestCase {
 
@@ -20,22 +24,13 @@ final class ExternalApiQuietTest extends TestCase {
         parent::setUp();
         global $config;
         $this->originalDebug = $config['debug'] ?? 0;
-        // A lapra írás csak hibakereső üzemmódban történik — épp azt teszteljük.
-        $config['debug'] = 1;
-
-        if (session_id() === '') {
-            @session_start();
-        }
+        $config['debug'] = 2;
     }
 
     protected function tearDown(): void {
         global $config;
         $config['debug'] = $this->originalDebug;
         parent::tearDown();
-    }
-
-    private function messageCount(): int {
-        return (int) DB::table('messages')->where('sid', session_id())->count();
     }
 
     /** Elérhetetlen végpont, hogy a hiba biztosan bekövetkezzen. */
@@ -47,41 +42,50 @@ final class ExternalApiQuietTest extends TestCase {
         return $api;
     }
 
-    public function testQuietFailureDoesNotWriteOnThePage(): void {
-        $before = $this->messageCount();
+    /** @return string amit a hívás a kimenetre írt */
+    private function captureOutput(callable $call): string {
+        ob_start();
+        try {
+            $call();
+        } finally {
+            return (string) ob_get_clean();
+        }
+    }
 
+    public function testQuietFailureWritesNothing(): void {
         $api = $this->unreachableOverpass();
         $api->quiet = true;
-        $api->downloadEnclosingBoundaries(47.5, 19.05);
+
+        $output = $this->captureOutput(fn() => $api->downloadEnclosingBoundaries(47.5, 19.05));
 
         self::assertTrue($api->hasError(), 'a hívásnak el kellett hasalnia');
-        self::assertSame($before, $this->messageCount(), 'csendes módban nem kerülhet üzenet a lapra');
+        self::assertSame('', $output, 'csendes módban semmi nem kerülhet a lapra');
     }
 
     /* A csendes mód nem nyeli el a hibát, csak nem teszi ki: a hívó lássa. */
     public function testQuietStillRecordsTheError(): void {
         $api = $this->unreachableOverpass();
         $api->quiet = true;
-        $api->downloadEnclosingBoundaries(47.5, 19.05);
+
+        $this->captureOutput(fn() => $api->downloadEnclosingBoundaries(47.5, 19.05));
 
         self::assertTrue($api->hasError());
         self::assertNotSame('', $api->getErrorMessage());
     }
 
     /* Alapértelmezésben marad a régi viselkedés: hibakereső módban kiírjuk. */
-    public function testLoudFailureStillWritesOnThePage(): void {
-        $before = $this->messageCount();
-
+    public function testLoudFailureStillWrites(): void {
         $api = $this->unreachableOverpass();
-        $api->downloadEnclosingBoundaries(47.5, 19.05);
+
+        $output = $this->captureOutput(fn() => $api->downloadEnclosingBoundaries(47.5, 19.05));
 
         self::assertTrue($api->hasError());
-        self::assertGreaterThan($before, $this->messageCount(), 'csendes mód nélkül a hibának ki kell kerülnie');
+        self::assertNotSame('', $output, 'csendes mód nélkül a hibának ki kell kerülnie');
     }
 
     /*
-     * A területi adatok pótlása ilyen „várt kudarc" hely: null-lal tér vissza, és a
-     * hívó ezt kezeli — közben semmit nem ír a lapra.
+     * A területi adatok pótlása ilyen „várt kudarc" hely: null-lal tér vissza, a hívó
+     * ezt kezeli — közben semmit nem ír a lapra. Ez a templomoldal esete.
      */
     public function testBoundaryDownloadStaysSilentOnFailure(): void {
         global $config;
@@ -89,11 +93,13 @@ final class ExternalApiQuietTest extends TestCase {
         $config['overpass']['apiUrl'] = 'http://127.0.0.1:9/nincs-itt-semmi';
 
         try {
-            $before = $this->messageCount();
-            $result = (new \OSM())->downloadBoundaries(47.5, 19.05);
+            $result = null;
+            $output = $this->captureOutput(function () use (&$result) {
+                $result = (new \OSM())->downloadBoundaries(47.5, 19.05);
+            });
 
             self::assertNull($result, 'elérhetetlen Overpassnál null a helyes válasz');
-            self::assertSame($before, $this->messageCount(), 'a templomoldal nem kaphat hibakiírást');
+            self::assertSame('', $output, 'a templomoldal nem kaphat hibakiírást');
         } finally {
             if ($originalUrl === null) {
                 unset($config['overpass']['apiUrl']);
