@@ -353,7 +353,10 @@ class User {
         if ($this->uid == 0)
             return false;
 
-        \Eloquent\ChurchHolder::where('user_id',$this->uid)->delete();
+        // #110: a ChurchHolder soft-delete-es, tehát a sima delete() csak deleted_at-et
+        // ír — a sor a user_id-vel együtt ottmaradt egy olyan felhasználóra hivatkozva,
+        // aki már nincs. Fiók törlésekor tényleg tűnjön el.
+        \Eloquent\ChurchHolder::withTrashed()->where('user_id',$this->uid)->forceDelete();
         \Eloquent\Favorite::where('uid',$this->uid)->delete();
         
         \Eloquent\Remark::where('login', $this->username)->update([
@@ -498,6 +501,21 @@ class User {
         $user->loggedin = true;
         $user->active();
         return $user;
+    }
+
+    /**
+     * #110: jelszó-ellenőrzés mellékhatás nélkül. A login() ugyanezt csinálja, de közben
+     * tokent is cserél és lastlogin-t ír — a "biztosan te vagy az?" kérdéshez (saját
+     * fiók törlése) ezek nem kellenek.
+     */
+    function verifyPassword($password) {
+        if ($this->uid == 0 OR !is_string($password) OR $password === '') {
+            return false;
+        }
+        if (!isset($this->jelszo) OR !is_string($this->jelszo) OR $this->jelszo === '') {
+            return false;
+        }
+        return password_verify($password, $this->jelszo);
     }
 
     static function login($name, $password) {
