@@ -1395,8 +1395,37 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             fn($boundary) => (int) ($boundary['admin_level'] ?? 0) !== 4
         ));
     }
-	
-	
+
+    /**
+     * #498: a templom országkódja (ISO 3166-1 alpha-2) az OSM-határból.
+     *
+     * A `templomok.orszag` oszlop kivezetésének az volt az egyik akadálya, hogy az
+     * „ország -> kód" leképezés kizárólag rajta keresztül létezett: az `orszagok`
+     * táblában nincs ISO-kód, csak `telkod`. A statisztika (`stat.php`, orszag=12)
+     * és az Angular naptárnak átadott országkód is emiatt ragadt hozzá.
+     *
+     * Az OSM országrelációi hordozzák az `ISO3166-1` taget, ezt a boundary-szinkron
+     * mostantól eltárolja. Itt csak kiolvassuk.
+     *
+     * NULL-t ad, ha a templomnak nincs országhatára (nincs koordinátája, vagy a
+     * szinkron még nem ért oda), illetve ha a szinkron az oszlop bevezetése óta még
+     * nem futott le rá. A hívónak KEZELNIE kell a NULL-t — ezért nem esünk vissza
+     * csendben a régi oszlopra, hogy a hiányzó lefedettség látható maradjon.
+     */
+    public function countryCode(): ?string {
+        $code = $this->boundaries()
+                ->where('boundary', 'administrative')
+                ->where('admin_level', 2)
+                ->whereNotNull('iso3166_1')
+                ->orderBy('boundaries.id')
+                ->value('iso3166_1');
+
+        $code = strtoupper(trim((string) $code));
+
+        return $code === '' ? null : $code;
+    }
+
+
 	public function getKozossegekAttribute($value) {
 		$api = new \ExternalApi\KozossegekApi();		
 		$api->query = "miserend/".$this->id;
