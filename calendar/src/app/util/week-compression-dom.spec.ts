@@ -245,4 +245,116 @@ describe('#358 week-compression DOM collapse (valódi render)', () => {
       + ` -> ${result.collapsedSlotMinutes.length} slot összehúzva -> ${marad} látható`);
   });
 
+
+  /**
+   * #358 — borazslo képernyőképe: a mise-blokkok vékony csíkká lapulnak, a „10:00 –"
+   * felirat elvágódik, a „Szentmise" szöveg és a zászló kilóg a dobozból.
+   *
+   * A FullCalendar a timegrid eseményeit ABSZOLÚT, SZÁZALÉKOS pozícióval rakja ki, a
+   * teljes [slotMinTime, slotMaxTime) sávra vetítve. Ha CSS-sel sorokat húzunk 0
+   * magasságúra, a rács-konténer zsugorodik — az események százalékos `top`/`height`
+   * értéke viszont marad, tehát velük együtt lapulnak. Ez a teszt ezt MÉRI.
+   */
+  it('MÉRÉS: mit tesz a collapse a kirajzolt esemény-blokkokkal', () => {
+    const DAY = '2026-03-09';
+    const events = [
+      {title: 'reggeli mise', start: `${DAY}T07:00:00`},
+      {title: 'esti mise', start: `${DAY}T18:00:00`},
+      {title: 'reggeli mise 2', start: '2026-03-10T07:00:00'},
+      {title: 'esti mise 2', start: '2026-03-10T18:00:00'},
+    ];
+
+    calendar = new Calendar(host, {
+      plugins: [timeGridPlugin],
+      initialView: 'timeGridWeek',
+      initialDate: DAY,
+      slotDuration: '00:30:00',
+      headerToolbar: false,
+      height: 'auto',
+      events,
+    });
+    calendar.render();
+
+    const harnessHeights = () =>
+      Array.from(host.querySelectorAll('.fc-timegrid-event-harness'))
+        .map(el => Math.round((el as HTMLElement).getBoundingClientRect().height));
+    const gridHeight = () =>
+      Math.round((host.querySelector('.fc-timegrid-slots') as HTMLElement).getBoundingClientRect().height);
+
+    const elotte = harnessHeights();
+    const racsElotte = gridHeight();
+    expect(elotte.length).toBeGreaterThan(0, 'Legyenek kirajzolt események.');
+
+    // Most collapse-oljuk a középső üres slotokat, ahogy a komponens teszi.
+    const weekEvents = WeekCompressionUtil.toWeekEvents(calendar.getEvents());
+    const result = WeekCompressionUtil.analyze({
+      weekStart: new Date(2026, 2, 9), weekEnd: new Date(2026, 2, 16),
+      events: weekEvents, options: {slotDurationMinutes: 30},
+    });
+    expect(result.shouldCompress).toBe(true);
+
+    const collapsed = new Set(result.collapsedSlotMinutes);
+    host.querySelectorAll('.fc-timegrid-slot-lane').forEach(lane => {
+      const t = (lane as HTMLElement).dataset['time'];
+      if (!t) { return; }
+      const [h, m] = t.split(':').map(Number);
+      if (collapsed.has(h * 60 + m)) { lane.classList.add('fc-empty-slot'); }
+    });
+
+    // A komponens a collapse után slotMinTime/slotMaxTime-ot állít, height:'auto'-t tesz,
+    // és újrarendereltet — itt is ugyanezt tesszük, hogy a mérés hű legyen.
+    calendar.setOption('slotMinTime', result.slotMinTime);
+    calendar.setOption('slotMaxTime', result.slotMaxTime);
+    calendar.setOption('height', 'auto');
+    calendar.render();
+    // a re-render új lane-eket rajzol, az osztályokat újra rá kell tenni
+    host.querySelectorAll('.fc-timegrid-slot-lane').forEach(lane => {
+      const t = (lane as HTMLElement).dataset['time'];
+      if (!t) { return; }
+      const [h, m] = t.split(':').map(Number);
+      if (collapsed.has(h * 60 + m)) { lane.classList.add('fc-empty-slot'); }
+    });
+
+    const utana = harnessHeights();
+
+    // eslint-disable-next-line no-console
+    console.log(`[#358 esemény-mérés] blokk-magasságok collapse ELŐTT: ${elotte.join(', ')}`
+      + ` | UTÁNA: ${utana.join(', ')}`);
+
+    // A kérdés, amire a képernyőkép utal: marad-e olvasható a doboz?
+    const laposak = utana.filter(h => h < 12);
+    expect(laposak)
+      .toEqual([], `Minden mise-blokknak olvashatónak kell maradnia. Lapos blokkok: ${laposak.join(', ')}`
+        + ` (összes: ${utana.join(', ')})`);
+
+    // ...és ami a képernyőképen valójában látszik: ILLESZKEDIK-e a blokk a saját
+    // idősávjához? A rács zsugorodik, az esemény-réteg viszont a saját pixel-méretét
+    // tartja — ha a kettő elcsúszik, a mise a rossz sorban jelenik meg.
+    const rowTop = (time: string): number => {
+      const lane = host.querySelector(`.fc-timegrid-slot-lane[data-time="${time}"]`) as HTMLElement | null;
+      return lane ? lane.getBoundingClientRect().top : NaN;
+    };
+    const harnessTops = Array.from(host.querySelectorAll('.fc-timegrid-event-harness'))
+      .map(el => (el as HTMLElement).getBoundingClientRect().top)
+      .sort((a, b) => a - b);
+
+    const elteres07 = Math.abs(harnessTops[0] - rowTop('07:00:00'));
+    const elteres18 = Math.abs(harnessTops[harnessTops.length - 1] - rowTop('18:00:00'));
+
+    const racsUtana = gridHeight();
+
+    // eslint-disable-next-line no-console
+    console.log(`[#358 illeszkedés] rács ${racsElotte}px -> ${racsUtana}px`
+      + ` | 07:00 eltérés=${Math.round(elteres07)}px, 18:00 eltérés=${Math.round(elteres18)}px`);
+
+    expect(racsUtana).toBeLessThan(racsElotte, 'A rácsnak zsugorodnia kell.');
+
+    // Ez a lényeg: a rács zsugorodik, de az események NEM csúsznak el a soraiktól.
+    // (A FullCalendar százalékosan pozicionál, ezért ehhez a komponens útját kell
+    // követni: slotMinTime/slotMaxTime + height:'auto' + újrarenderelés. Ha valaki ezt
+    // a sorrendet elrontja, itt 100px feletti eltérés lesz.)
+    expect(elteres07).toBeLessThan(6, 'A reggeli mise blokkja a 07:00-s sorban kell legyen.');
+    expect(elteres18).toBeLessThan(6, 'Az esti mise blokkja a 18:00-s sorban kell legyen.');
+  });
+
 });
