@@ -1,14 +1,12 @@
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
-   integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
-   crossorigin=""/>
-         <!-- Make sure you put this AFTER Leaflet's CSS -->
- <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
-   integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
-   crossorigin=""></script>
-    <script src="https://makinacorpus.github.io/Leaflet.TextPath/leaflet.textpath.js"></script>
-    <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylinedecorator.js"></script>
-    {# A leaflet-polylinedecorator CSS-e itt volt behivatkozva, de nem létezik: az unpkg
-       HTTP 404-et ad rá. Minden térképes oldalbetöltéskor feleslegesen kértük. (#653) #}
+{# #661/#653: a Leafletet és a bővítményeit saját magunk szolgáljuk ki a
+   webapp/package.json-ból, nem az unpkg-ról és nem egy GitHub Pages-ről.
+   Így nincs két idegen hoszt a térképes oldalak kritikus útján, és nem
+   tölthetünk be háromféle Leaflet-verziót három sablonból (itt 1.7.1 volt,
+   a stat.twig-ben 1.9.3, a church/create.twig-ben 1.9.4). Egységesen 1.9.4. #}
+<link rel="stylesheet" href="/node_modules/leaflet/dist/leaflet.css"/>
+<script src="/node_modules/leaflet/dist/leaflet.js"></script>
+<script src="/node_modules/leaflet-textpath/leaflet.textpath.js"></script>
+<script src="/node_modules/leaflet-polylinedecorator/dist/leaflet.polylineDecorator.js"></script>
 
 <style>
     /* Map Popup Weekend Masses Styling */
