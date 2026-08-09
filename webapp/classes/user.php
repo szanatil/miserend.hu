@@ -589,8 +589,14 @@ class User {
 			$email->send();
 			
 		}
-		$count = DB::table('user')->whereIN('uid',$ids2delete)->delete();
-									
+
+		// #239/#171: itt régen egy `whereIn('uid', $ids2delete)->delete()` állt, de a
+		// $ids2delete változó SEHOL nem kapott értéket — a törlést a fenti ciklus végzi
+		// egyesével. PHP 8 alatt a whereIn(null) TypeError-t dob, ami \Error, nem
+		// \Exception, ezért a cron-futtató catch-e sem fogta el: a job végzett a
+		// törléssel és kiküldte az értesítőket, aztán fatalra futott, így soha nem
+		// került success-be. Éles: 2026-03-27 óta nem futott le sikeresen.
+		return $countDeleted;
 	}
 	
 

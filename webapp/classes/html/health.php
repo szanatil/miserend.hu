@@ -8,6 +8,7 @@ use Carbon\Carbon;
 class Health extends Html {
     public $infos;
     public $cronjobs;
+    public $stuckCronjobs;
     public $elasticsearch;
     public $churchesWithNoElasticMasses;
     public $churchesWithNoElasticMassesCount;
@@ -119,6 +120,26 @@ class Health extends Html {
 
 		// Health of CronJobs
 		$this->cronjobs = \Eloquent\Cron::orderBy('deadline_at','DESC')->get()->toArray();
+
+		// Az elakadt munkákat külön is kiemeljük: az attempts oszlop egyetlen bukott
+		// futástól is piros, ezért abban elveszett, hogy volt cron, ami hónapok óta nem
+		// futott le sikeresen.
+		$this->stuckCronjobs = [];
+		foreach ($this->cronjobs as $i => $cron) {
+			$reason = \Eloquent\Cron::stuckReason(
+				$cron['lastsuccess_at'] ?? null,
+				(string) ($cron['frequency'] ?? '')
+			);
+			$this->cronjobs[$i]['stuck_reason'] = $reason;
+			if ($reason !== null) {
+				$this->stuckCronjobs[] = [
+					'id'       => $cron['id'],
+					'name'     => $cron['class'] . '::' . $cron['function'] . '()',
+					'reason'   => $reason,
+					'attempts' => $cron['attempts'] ?? 0,
+				];
+			}
+		}
 
 		// Health of ElasticSearch database
 		$elastic = new \ExternalApi\ElasticsearchApi();

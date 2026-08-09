@@ -42,6 +42,21 @@
 	<h3 id="cronjobs">Időzített feladatok</h3>
 	<p>Az időzített feladatok kézzel is futtathatóak egyesével vagy <a href="{{ base_url }}/index.php?q=cron" target="_blank">egyben itt</a>.</p>
 	<p>Most: {{ "now"|date('Y-m-d H:i:s') }}</p>
+	{% if stuckCronjobs is not empty %}
+		<div class="alert alert-danger">
+			<strong>{{ stuckCronjobs|length }} időzített feladat elakadt.</strong>
+			Ezek a gyakoriságuk háromszorosánál is régebben futottak le utoljára sikeresen —
+			vagy soha. A hibát az egyesével futtató linkre kattintva lehet megnézni.
+			<ul class="mb-0">
+				{% for cron in stuckCronjobs %}
+					<li>
+						<a href="{{ base_url }}/index.php?q=cron&cron_id={{ cron.id }}" target="_blank">{{ cron.name }}</a>
+						— {{ cron.reason }} ({{ cron.attempts }} próbálkozás)
+					</li>
+				{% endfor %}
+			</ul>
+		</div>
+	{% endif %}
 	<table class="table table-hover table-condensed table-striped">
 		<tr>
 			<th>id</th>
@@ -58,7 +73,10 @@
 				<td>{{ cron.frequency }} {% if cron.from %}({{ cron.from }} - {{ cron.until }}){% endif %}</td>
 				<td class="{% if cron.deadline_at < "now"|date("Y-m-d H:i:s") %}table-danger{% endif %}">{{ cron.deadline_at }}</td>
 				<td  style="text-align: center" class="{% if cron.attempts > 0 %}table-danger{% endif%}">{{ cron.attempts }}</td>
-				<td>{{ cron.lastsuccess_at }}</td>
+				<td class="{% if cron.stuck_reason %}table-danger{% endif %}" {% if cron.stuck_reason %}title="{{ cron.stuck_reason }}"{% endif %}>
+					{{ cron.lastsuccess_at }}
+					{% if cron.stuck_reason %}<br><small>{{ cron.stuck_reason }}</small>{% endif %}
+				</td>
 			</tr>
 		{% endfor %}
 	</table>
