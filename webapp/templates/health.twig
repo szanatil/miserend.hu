@@ -190,6 +190,29 @@
 			<td>{{ boundariesStats.with_osm.avg_days_old }} nap</td>
 		</tr>
 		<tr>
+			{# #570: ez a döntő szám — a területi keresés CSAK azokat találja meg,
+			   amiknek van boundary-kapcsolatuk. Az „ellenőrizve" nem elég: az Overpass
+			   hibája vagy üres válasza után is ellenőrzöttnek számít a templom. #}
+			<td><strong>Területre kereshető (van boundary-kapcsolata)</strong></td>
+			<td>
+				{% set covered = boundariesStats.with_osm.with_boundary_count %}
+				{% set total = boundariesStats.with_osm.count %}
+				{% set ratio = total > 0 ? (100 * covered / total)|round : 0 %}
+				{% if ratio >= 95 %}
+					<span class="badge bg-success">{{ covered }}</span>
+				{% elseif ratio >= 60 %}
+					<span class="badge bg-warning">{{ covered }}</span>
+				{% else %}
+					<span class="badge bg-danger">{{ covered }}</span>
+				{% endif %}
+				/ {{ total }} ({{ ratio }}%)
+				{% if boundariesStats.with_osm.without_boundary_count > 0 %}
+					<br/><small class="text-muted">{{ boundariesStats.with_osm.without_boundary_count }} misézőhely NEM jön ki
+					település/egyházmegye szerinti keresésre.</small>
+				{% endif %}
+			</td>
+		</tr>
+		<tr>
 			<td><strong>Misézőhelyek amiknek nem kerestük még soha</strong> </td>
 			<td>
 				{% if boundariesStats.with_osm.never_checked_count == 0 %}

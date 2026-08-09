@@ -202,10 +202,29 @@ class Health extends Html {
 			)
 			->first();
 		
+		/*
+		 * #570: „ellenőrizve" != „van boundaryja". A checkBoundariesForOne() akkor is
+		 * megjelöli a templomot ellenőrzöttként, ha az Overpass hibázott vagy nem adott
+		 * eredményt — a templom mégis boundary NÉLKÜL marad. A területi (települési,
+		 * egyházmegyei) keresés viszont KIZÁRÓLAG a lookup_boundary_church alapján szűr,
+		 * ezért pontosan ez a szám mondja meg, hány templom TALÁLHATÓ MEG így egyáltalán.
+		 *
+		 * Enélkül a fenti „soha nem ellenőrzött" sor félrevezető: lehet 0, miközben a
+		 * templomok fele mégsem kereshető területre.
+		 */
+		$churchesWithBoundary = DB::table('lookup_boundary_church')
+			->join('templomok', 'templomok.id', '=', 'lookup_boundary_church.church_id')
+			->where('templomok.ok', 'i')
+			->whereNull('templomok.deleted_at')
+			->distinct()
+			->count('lookup_boundary_church.church_id');
+
 		$this->boundariesStats = [
 			'with_osm' => [
 				'count' => $churchBoundaryStats->count ?? 0,
 				'never_checked_count' => $churchBoundaryStats->never_checked_count ?? 0,
+				'with_boundary_count' => $churchesWithBoundary,
+				'without_boundary_count' => max(0, ($churchBoundaryStats->count ?? 0) - $churchesWithBoundary),
 				'avg_days_old' => $churchBoundaryStats->avg_days_old ? round($churchBoundaryStats->avg_days_old, 2) : 0,
 				'newest' => $churchBoundaryStats->newest ?? null,
 				'oldest' => $churchBoundaryStats->oldest ?? null
