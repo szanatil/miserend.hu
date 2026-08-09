@@ -218,21 +218,14 @@ class SearchResultsMasses extends Html {
             if (!empty($categoriesReq)) {
                 $selectedCategories = array_filter(array_map('trim', explode(',', $categoriesReq)));
 
-                $allTitles = (new \MassDefinitions())->titlesByCategories($selectedCategories);
-                if (!empty($allTitles)) {
-                    foreach ($allTitles as $title) {
-                        $cleanTitle = preg_replace('/^MASS_TITLE\./', '', $title);
-                        $allTitles[] = $title;
-                        $translatedTitle = t('MASS_TITLE.' . $cleanTitle);
-                        $allTitles[] = $translatedTitle;
-                    }
-                    $titleFilters = array_unique($allTitles);
-                    $titleFilters = array_values($titleFilters);
-                    if (!empty($titleFilters)) {
-                        $search->query['bool']['must'][] = [ 'terms' => ['title.keyword' => $titleFilters] ];
-                        $translatedCategoryNames = array_map(function($c){ return t('MASS_TITLE_CATEGORY.' . $c); }, $selectedCategories);
-                        $search->filters[] = "Kategóriák: <b>" . implode('</b> vagy <b>', $translatedCategoryNames) . "</b>";
-                    }
+                // #299: a cím-alakok előállítása átkerült a \MassDefinitions-be, mert az
+                // API-nak (api/search.php `categories`) is pontosan ugyanez kell. Egy
+                // implementáció, két hívó — így a kettő nem tud szétcsúszni.
+                $titleFilters = (new \MassDefinitions())->titleFiltersByCategories($selectedCategories);
+                if (!empty($titleFilters)) {
+                    $search->query['bool']['must'][] = [ 'terms' => ['title.keyword' => $titleFilters] ];
+                    $translatedCategoryNames = array_map(function($c){ return t('MASS_TITLE_CATEGORY.' . $c); }, $selectedCategories);
+                    $search->filters[] = "Kategóriák: <b>" . implode('</b> vagy <b>', $translatedCategoryNames) . "</b>";
                 }
             }
         };
