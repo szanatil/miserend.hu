@@ -40,10 +40,3 @@ CREATE TABLE IF NOT EXISTS `church_relationships` (
   CONSTRAINT `fk_cr_child`  FOREIGN KEY (`child_church_id`)
     REFERENCES `templomok` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
-
--- #671: az adottság-lefedettség számlálója (Church::facilityCoverage()) minden olyan
--- keresésnél lefut, ahol be van kapcsolva az akadálymentesség/gluténmentes szűrő, és
--- `key` szerint szűr. Az attributes táblán eddig csak a church_id-n volt index, tehát
--- ez teljes táblaolvasás lett volna minden ilyen keresésnél.
-ALTER TABLE `attributes`
-    ADD INDEX IF NOT EXISTS `key_church` (`key`, `church_id`);
