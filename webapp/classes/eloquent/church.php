@@ -1313,16 +1313,64 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         /* Adminisrative Boundaries(Country,County, City, District) */
         $boundaries = $this->boundaries()
                 ->where('boundary','administrative')
-                ->whereIn('admin_level',[2,6,8,9,10])
-                ->orderBy('admin_level')              
+                ->whereIn('admin_level',[2,4,6,8,9,10])
+                ->orderBy('admin_level')
                 ->get()->toArray();
+
+        $boundaries = self::pickAdministrativeBoundaries($boundaries);
 
         if(array_key_exists(0, $boundaries)) $location->country = $boundaries[0];
         if(array_key_exists(1, $boundaries)) $location->county = $boundaries[1];
-        if(array_key_exists(2, $boundaries)) $location->city = $boundaries[2];   
-        if(array_key_exists(3, $boundaries)) $location->district = $boundaries[3];        
-                
+        if(array_key_exists(2, $boundaries)) $location->city = $boundaries[2];
+        if(array_key_exists(3, $boundaries)) $location->district = $boundaries[3];
+
         return $location;
+    }
+
+    /**
+     * #496/#497/#498: az admin_level ország/megye/település sorrendbe rendezése.
+     *
+     * A location() pozíció szerint címkéz: a rendezett lista 0., 1., 2., 3. eleme
+     * lesz az ország, megye, település, kerület. Ez addig működik, amíg minden
+     * ország ugyanazokat a szinteket használja — de nem használják:
+     *
+     *   Magyarország  2 ország | 4 nagyrégió | 6 vármegye | 8 település | 9 kerület
+     *   Szlovákia     2 ország | 4 kraj      | 6 okres    | 8 obec
+     *   Szerbia       2 ország | 4 tartomány | 6 okrug    | 8 opstina    | 9 település
+     *   Ukrajna       2 ország | 4 oblaszty  | 6 rajon    |              | 9 település
+     *   Románia       2 ország | 4 judet     |    -       | 8 comuna/oras
+     *
+     * Romániában NINCS 6-os szint: a megyét a 4-es hordozza. A korábbi
+     * whereIn([2,6,8,9,10]) ezt kizárta, így a román templomoknál a lista
+     * [ország, település] lett — vagyis a TELEPÜLÉS csúszott a megye helyére,
+     * a location->city pedig NULL maradt. Ez 538 templomot érint (a határon túli
+     * állomány 80%-a), és mindenhová továbbgyűrűzik, ahol location.city-t
+     * használunk (home.twig ajánló, szomszédos templomok panel, Angular naptár).
+     *
+     * Ezért a 4-es szintet is behúzzuk, de CSAK akkor hagyjuk bent, ha nincs
+     * 6-os. Magyarországon van 6-os (vármegye), így a nagyrégió kiesik és a
+     * viselkedés bitre azonos marad a korábbival — a templomok 87%-át ez a
+     * változás nem érinti.
+     *
+     * @param array $boundaries admin_level szerint növekvőn rendezve
+     */
+    static function pickAdministrativeBoundaries(array $boundaries): array {
+        $hasCounty = false;
+        foreach ($boundaries as $boundary) {
+            if ((int) ($boundary['admin_level'] ?? 0) === 6) {
+                $hasCounty = true;
+                break;
+            }
+        }
+
+        if (!$hasCounty) {
+            return array_values($boundaries);
+        }
+
+        return array_values(array_filter(
+            $boundaries,
+            fn($boundary) => (int) ($boundary['admin_level'] ?? 0) !== 4
+        ));
     }
 	
 	
