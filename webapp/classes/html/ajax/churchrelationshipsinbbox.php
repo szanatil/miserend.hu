@@ -41,11 +41,6 @@ class ChurchRelationshipsInBBox extends Ajax {
             ->get();
 
         $return = [];
-        $typeLabels = [
-            'subordinate' => 'alá-fölé rendelt',
-            'associated' => 'mellérendelt',
-            'territorially_independent' => 'területileg ott van, de lényegében független'
-        ];
 
         foreach ($relationships as $rel) {
             $parentChurch = \Eloquent\Church::find($rel->parent_church_id);
@@ -68,8 +63,8 @@ class ChurchRelationshipsInBBox extends Ajax {
                     'lat' => (float) $childChurch->lat,
                     'lon' => (float) $childChurch->lon
                 ],
-                'type' => $rel->type,
-                'type_label' => isset($typeLabels[$rel->type]) ? $typeLabels[$rel->type] : $rel->type
+                // #663: a kapcsolat típusa kivezetésre került — minden kapcsolat
+                // alárendeltség, a térkép egységes stílussal rajzolja.
             ];
         }
 
