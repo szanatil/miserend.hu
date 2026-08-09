@@ -2,9 +2,12 @@
 
 class Request {
 
+    // #393: a "mi számít egésznek/dátumnak" tudás a közös \Validate-ben él, ugyanazt
+    // használja az \Api validate* is. A hibaüzenetek itt szándékosan a megszokottak
+    // maradnak, hogy a hívók viselkedése ne változzon.
     static function Integer($name) {
-        $value = self::get($name);    
-        if ($value <> '' AND !is_numeric($value)) {
+        $value = self::get($name);
+        if ($value <> '' AND \Validate::integerError($value) !== null) {
             throw new Exception("Required '$name' is not an Integer.");
         }
         return $value;
@@ -12,7 +15,7 @@ class Request {
 
     static function IntegerRequired($name) {
         $value = self::getRequired($name);
-        if (!is_numeric($value)) {
+        if (\Validate::integerError($value) !== null) {
             throw new Exception("Required '$name' is not an Integer.");
         }
         return $value;
@@ -20,7 +23,7 @@ class Request {
 
     static function IntegerwDefault($name, $default = false) {
         $value = self::getwDefault($name, $default);
-        if (!is_numeric($value)) {
+        if (\Validate::integerError($value) !== null) {
             throw new Exception("Required '$name' is not an Integer.");
         }
         return $value;
@@ -250,17 +253,9 @@ class Request {
     }
 
      static function validateDateFormat($value) {
-        // Strict YYYY-mm-dd format validation
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            return false;
-        }
-        
-        // Use DateTime::createFromFormat to strictly validate the date
-        // This will reject invalid dates like 2023-02-29
-        $date = DateTime::createFromFormat('Y-m-d', $value);
-        
-        // Check if the date is valid and matches the format exactly
-        return $date && $date->format('Y-m-d') === $value;
+        // #393: a naptár-tudatos ellenőrzés a közös \Validate-be került, hogy az API is
+        // ugyanazt használja (az ott korábban puszta reguláris kifejezés volt).
+        return \Validate::isDate($value);
     }
 
     static function Date($name) {
