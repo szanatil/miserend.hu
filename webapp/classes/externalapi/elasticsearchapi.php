@@ -13,6 +13,15 @@ class ElasticsearchApi extends \ExternalApi\ExternalApi {
 	
 	public $q; // Ez a solr keresőben a query, nem pedig az API-ban a query
     public $data;
+
+	/**
+	 * Az Elasticsearch a SAJÁT infrastruktúránk (compose-hálózat), nem harmadik fél —
+	 * az EXTERNAL_APIS_OFFLINE kapcsoló nem vonatkozik rá. Enélkül a tesztek alatt a
+	 * kereső is elnémulna.
+	 */
+	protected function isInternalService(): bool {
+		return true;
+	}
 			
 	function run() {					
 		$this->curl_setopt(CURLOPT_HTTPHEADER ,['Content-Type: application/json']);		 	
