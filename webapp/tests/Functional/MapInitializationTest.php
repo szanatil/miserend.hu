@@ -1,5 +1,6 @@
 <?php
 
+use Facebook\WebDriver\WebDriverDimension;
 use Symfony\Component\Panther\PantherTestCase;
 
 /**
@@ -108,12 +109,27 @@ final class MapInitializationTest extends PantherTestCase {
      */
     public function testMapDoesNotStartBeforeItScrollsIntoView(): void {
         $client = $this->client();
+
+        // ALACSONY ablak, hogy a térkép biztosan a hajtás ALÁ kerüljön. Enélkül a teszt a
+        // futtató ablakméretétől függ: egy magas headless ablakban a templomoldal térképe
+        // eleve látszik, és akkor jogosan indul is el (a CI-ban pont ezért bukott).
+        $client->manage()->window()->setSize(new WebDriverDimension(1024, 300));
         $client->request('GET', '/templom/1');
 
         // Megvárjuk, hogy a szkript betöltődjön és lefusson (de NE görgetünk).
         $client->wait(10)->until(static function ($driver) {
             return $driver->executeScript('return typeof window.miserendInitMap === "function";');
         });
+
+        $outOfView = $client->executeScript(
+            'var m = document.getElementById("mapid");'
+            . ' if (!m) { return false; }'
+            . ' var r = m.getBoundingClientRect();'
+            . ' return r.top > window.innerHeight + 200;'   // 200 px = az observer ráhagyása
+        );
+        if (!$outOfView) {
+            self::markTestSkipped('A térkép ebben az ablakméretben is látótávolságban van.');
+        }
 
         $started = $client->executeScript('return !!window.mymap;');
         self::assertFalse(
