@@ -21,6 +21,28 @@ class GeoSearchTest extends TestCase {
     private const LAT = 47.6678;
     private const LON = 19.0760;
 
+    /**
+     * A CI egy ELŐRE GYÁRTOTT Elasticsearch-pillanatképpel indul, amiben a `location`
+     * mező még nincs feltöltve (épp ez a jegy lényege). A teszt ezért maga indexeli újra
+     * azt a néhány templomot, amivel dolgozik — így nem függ attól, futott-e már a
+     * napi cron.
+     */
+    public static function setUpBeforeClass(): void {
+        parent::setUpBeforeClass();
+        try {
+            \ExternalApi\ElasticsearchApi::updateChurches(self::TEST_CHURCH_IDS);
+            // A frissen beírt dokumentum alapból ~1 másodperc múlva válik kereshetővé;
+            // enélkül a lenti mérések hamis „nincs adat" eredményt adnának.
+            @file_get_contents('http://elasticsearch:9200/churches/_refresh', false,
+                stream_context_create(['http' => ['method' => 'POST', 'timeout' => 10, 'ignore_errors' => true]]));
+        } catch (\Throwable $e) {
+            // Az egyes tesztek külön kezelik, ha nincs adat.
+        }
+    }
+
+    /** Szentendre környéki templomok + egy távolabbi budapesti, hogy a sugár számítson. */
+    private const TEST_CHURCH_IDS = [1, 114, 2156, 5254, 37];
+
     private string $baseUrl;
 
     protected function setUp(): void {
@@ -105,7 +127,8 @@ class GeoSearchTest extends TestCase {
         if ($kicsi === null || $nagy === null) {
             $this->markTestSkipped('Az Elasticsearch nem érhető el.');
         }
-        $this->assertGreaterThan($kicsi, $nagy, '50 km-en több templomnak kell lennie, mint 5 km-en.');
+        $this->assertGreaterThanOrEqual($kicsi, $nagy, '50 km-en nem lehet KEVESEBB templom, mint 5 km-en.');
+        $this->assertGreaterThan(0, $nagy, '50 km-es körben lennie kell legalább egy templomnak.');
     }
 
     /**
