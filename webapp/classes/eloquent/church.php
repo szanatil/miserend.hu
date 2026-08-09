@@ -63,7 +63,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
     /**
      * Rekurziv felfelé járás: az összes ős-lánc.
      * Max 10 szint, ciklus-védelem visited set-tel.
-     * Visszatér: [ ['church' => Church, 'type' => '...', 'children' => [...]], ... ]
+     * Visszatér: [ ['church' => Church, 'children' => [...]], ... ]
      */
     public function getAncestorsAttribute(): array {
         return $this->_getAncestors([$this->id]);
@@ -80,7 +80,6 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             $newVisited = array_merge($visited, [$rel->parent_church_id]);
             $result[] = [
                 'church'   => $parent,
-                'type'     => $rel->type,
                 'children' => $parent->_getAncestors($newVisited, $depth + 1),
             ];
         }
@@ -106,7 +105,6 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             $newVisited = array_merge($visited, [$rel->child_church_id]);
             $result[] = [
                 'church'   => $child,
-                'type'     => $rel->type,
                 'children' => $child->_getDescendants($newVisited, $depth + 1),
             ];
         }
@@ -118,7 +116,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
      * Egy flat lista, amely az indentálást és nyilakat a template-ben jeleníti meg.
      *
      * Struktura: [
-     *   ['church' => Church, 'type' => 'type', 'level' => 0, 'isCurrent' => false, 'isLast' => true],
+     *   ['church' => Church, 'level' => 0, 'isCurrent' => false, 'isLast' => true],
      *   ...
      * ]
      */
@@ -134,7 +132,6 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         foreach ($ancestors as $ancestor) {
             $network[] = [
                 'church' => $ancestor['church'],
-                'type' => $ancestor['type'],
                 'level' => $level,
                 'isCurrent' => false,
                 'isLast' => false
@@ -146,7 +143,6 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         $currentChurch = Church::find($this->id);
         $network[] = [
             'church' => $currentChurch,
-            'type' => null,
             'level' => $level,
             'isCurrent' => true,
             'isLast' => false
@@ -157,7 +153,6 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         foreach ($descendants as $descendant) {
             $network[] = [
                 'church' => $descendant['church'],
-                'type' => $descendant['type'],
                 'level' => $descendant['level'],
                 'isCurrent' => false,
                 'isLast' => false
@@ -199,8 +194,7 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             
             // Majd az őt magát
             $result[] = [
-                'church' => $parent,
-                'type' => $rel->type
+                'church' => $parent
             ];
         }
         return $result;
@@ -220,7 +214,6 @@ class Church extends \Illuminate\Database\Eloquent\Model {
             
             $result[] = [
                 'church' => $child,
-                'type' => $rel->type,
                 'level' => $depth
             ];
             
@@ -1422,6 +1415,67 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         );
 
     }
+
+    /*
+     * #671: hány aktív misézőhelyről tudunk EGYÁLTALÁN valamit az adott témában.
+     *
+     * Akadálymentességnél a „nem akadálymentes" IS adat — azt is tudjuk. Ezért itt
+     * bármilyen kitöltött érték számít, nem csak a pozitív.
+     *
+     * Azért kell, mert a szűrő ma szinte üres adathalmazon dolgozik (a seedben egyetlen
+     * templomnak sincs `wheelchair` attribútuma), és a felhasználó a nulla találatot
+     * hibának hinné. Inkább mondjuk meg neki, hol tartunk.
+     */
+    public static function facilityCoverage(): array {
+        $count = function (array $keys): int {
+            return (int) \Eloquent\Attribute::whereIn('key', $keys)
+                ->whereIn('church_id', function ($q) {
+                    $q->select('id')->from('templomok')
+                      ->where('ok', 'i')->whereNull('deleted_at');
+                })
+                ->distinct()
+                ->count('church_id');
+        };
+
+        return [
+            'wheelchair' => $count(['wheelchair']),
+            'gluten_free' => $count([
+                \GlutenFreeCommunion::HOLIDAYS_KEY,
+                \GlutenFreeCommunion::WEEKDAYS_KEY,
+            ]),
+        ];
+    }
+
+    /**
+     * #671: a keresési eredményhez tartozó tájékoztató üzenetek — csak azokra a
+     * témákra, amikre a felhasználó ténylegesen szűrt.
+     *
+     * @param  bool $wheelchair  aktív-e az akadálymentesség-szűrő
+     * @param  bool $glutenFree  aktív-e a gluténmentes szűrő
+     * @return string[]
+     */
+    public static function facilityCoverageMessages(bool $wheelchair, bool $glutenFree): array {
+        if (!$wheelchair && !$glutenFree) {
+            return [];
+        }
+
+        $coverage = self::facilityCoverage();
+        $messages = [];
+
+        if ($wheelchair) {
+            $messages[] = 'Az akadálymentességi adatokat még gyűjtjük, ez nálunk új dolog: eddig '
+                . '<strong>' . $coverage['wheelchair'] . ' misézőhelyről</strong> tudjuk, hogy '
+                . 'akadálymentes-e. Most ezek között keresünk. Ha tudsz másról, küldd el nekünk észrevételként!';
+        }
+
+        if ($glutenFree) {
+            $messages[] = 'A csökkentett gluténtartalmú áldozás lehetőségeit csak nemrég kezdtük gyűjteni, '
+                . 'ezért eddig <strong>' . $coverage['gluten_free'] . ' misézőhelynek</strong> van ilyen adata. '
+                . 'Most ezek között keresünk. Ha tudsz másról, küldd el nekünk észrevételként!';
+        }
+
+        return $messages;
+    }
 	
     /*
      * What does 'M' mean?
@@ -1442,6 +1496,52 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         $parish = new \Parish();
         $parish->getByChurchId($this->id);
         $this->religious_administration->parish = $parish;
+    }
+
+    /**
+     * #409: mit írjunk ki a nem-publikus templom oldalán, és kinek?
+     *
+     * A jogosultság maga rendben volt: a checkWriteAccess() SOHA nem nézi az `ok`-ot,
+     * tehát egy `allowed` gondnok (vagy ős-templom gondnoka, vagy egyházmegyei felelős)
+     * eddig is szerkeszthette a nem-publikus templomát. Csak épp azt olvasta közben, hogy
+     * „Csak adminisztrátorok számára látható ez az oldal" — ami neki egyszerűen nem igaz,
+     * és pont az ellenkezőjét hitette el vele.
+     *
+     * Szándékosan tiszta, statikus függvény (se DB, se globális), hogy tesztelhető legyen.
+     *
+     * @param  string $ok             a templom `ok` mezője: i = nyilvános, f = áttekintésre vár, n = letiltva
+     * @param  bool   $isAdmin        van-e `miserend` jogosultsága
+     * @param  bool   $hasWriteAccess szerkesztheti-e (gondnok / egyházmegyei felelős / admin)
+     * @return array{0:string,1:string}|null  [üzenet, szint] vagy null, ha nincs mit mondani
+     */
+    public static function visibilityNotice(string $ok, bool $isAdmin, bool $hasWriteAccess): ?array {
+        if ($ok === 'i') {
+            return null;
+        }
+
+        // Akinek nincs írási joga, az ide amúgy sem jut be (checkReadAccess), de ha
+        // mégis, maradjon a régi, semleges szöveg.
+        if ($isAdmin || !$hasWriteAccess) {
+            if ($ok === 'n') {
+                return ['Ez a templom le van tiltva! Csak adminisztrátorok számára látható ez az oldal.', 'warning'];
+            }
+            return ['Ez a templom áttekintésre vár. Csak adminisztrátorok számára látható ez az oldal.', 'warning'];
+        }
+
+        if ($ok === 'n') {
+            return [
+                'Ez a misézőhely jelenleg le van tiltva, ezért a látogatók nem látják. '
+                . 'Te gondnokként látod és szerkesztheted; ha szerinted tévedés, jelezd az adminisztrátoroknak.',
+                'warning'
+            ];
+        }
+
+        return [
+            'Ez a misézőhely még nem nyilvános: áttekintésre vár, ezért egyelőre csak te '
+            . 'és az adminisztrátorok látjátok. Nyugodtan szerkeszd — a jóváhagyás után '
+            . 'ezek az adatok jelennek meg a látogatóknak.',
+            'info'
+        ];
     }
 
     function checkReadAccess($_user) {

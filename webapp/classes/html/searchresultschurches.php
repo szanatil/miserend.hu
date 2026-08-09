@@ -29,7 +29,12 @@ class SearchResultsChurches extends Html {
 		    // #667: a keresőűrlap rítus-gombjai (zöld/piros/semleges) eddig csak a
 		    // mise-keresőre hatottak; a templomkereső némán figyelmen kívül hagyta őket.
 		    'rites' => \Request::StringArray('rites'),
-		    'ehm' => \Request::IntegerwDefault('ehm', 0)
+		    'ehm' => \Request::IntegerwDefault('ehm', 0),
+		    // #666: az „Adottságok" szűrő eddig csak a misekeresésre hatott, pedig a
+		    // címlap ugyanabból az űrlapból indítja a templomkeresést is — a paraméterek
+		    // tehát megérkeztek, csak nem használtuk fel őket.
+		    'wheelchair' => \Request::Text('wheelchair'),
+		    'gluten_free' => \Request::Text('gluten_free')
 		];
                         
         $search = new \Search('churches');
@@ -109,6 +114,23 @@ class SearchResultsChurches extends Html {
                 $translated = array_map(function($r){ return t($r); }, $ritesMustNot);
                 $search->filters[] = "Amelyik templomban nincs <b>" . implode('</b> se <b>', $translated) . "</b> liturgia.";
             }
+        }
+
+        // #666: adottságok (akadálymentesség, gluténmentes áldozás). A Search metódusai
+        // index-függetlenek — a misekeresőben `church.` prefixszel, itt anélkül szűrnek.
+        $wheelchairFilter = array_filter(array_map('trim', explode(',', (string) $params['wheelchair'])));
+        $glutenFreeFilter = array_filter(array_map('trim', explode(',', (string) $params['gluten_free'])));
+        if ($wheelchairFilter) {
+            $search->wheelchair($wheelchairFilter);
+        }
+        if ($glutenFreeFilter) {
+            $search->glutenFree($glutenFreeFilter);
+        }
+
+        // #671: az adottság-adat még nagyon hiányos, a nulla találatot a felhasználó
+        // hibának hinné. Mondjuk meg, hány misézőhelyről tudunk egyáltalán valamit.
+        foreach (\Eloquent\Church::facilityCoverageMessages((bool) $wheelchairFilter, (bool) $glutenFreeFilter) as $message) {
+            addMessage($message, 'info');
         }
 
         //Let's do the search
