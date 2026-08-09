@@ -718,10 +718,12 @@ class Church extends \Illuminate\Database\Eloquent\Model {
     }
 
     public function getLanguagesAttribute() {
-        // Grab the 'lang' column from related massrules, remove empty values, unique and return as array
+        // #334: egy mise `lang` mezője vesszővel elválasztva több nyelvet is tartalmazhat
+        // ("sk,la"), ezért szét kell bontani — enélkül a templom nyelvei közé maga a
+        // "sk,la" karakterlánc kerülne be.
         return $this->massrules()
                     ->pluck('lang')
-                    ->filter(function($v) { return $v !== null && $v !== ''; })
+                    ->flatMap(function($v) { return \Eloquent\CalMass::splitLanguages($v); })
                     ->unique()
                     ->values()
                     ->toArray();
@@ -859,8 +861,15 @@ class Church extends \Illuminate\Database\Eloquent\Model {
                 foreach($masses as $key => $mise) {
                     $misek[$key]['idopont'] = date('Y-m-d H:i:s', strtotime($mise->start_date));
                     $info = trim( t($mise->rite)." ".t($mise->title));
-                    if( $this->orszag != 12 or $mise->lang != 'hu') {
-                        $info .= ' ' . t('LANGUAGES.'.$mise->lang)." nyelven";
+                    // #334: az ES-ből tömbként jön (több nyelvű mise is lehet).
+                    $miseLangs = \Eloquent\CalMass::splitLanguages(
+                        is_array($mise->lang) ? implode(',', $mise->lang) : $mise->lang
+                    );
+                    if( $this->orszag != 12 or $miseLangs != ['hu'] ) {
+                        $translated = array_map(function($l) { return t('LANGUAGES.'.$l); }, $miseLangs);
+                        if ($translated) {
+                            $info .= ' ' . implode('-', $translated)." nyelven";
+                        }
                     }
                     if (!empty($mise->types)) {                        
                         $translatedTypes = array_map(function($type) { return t($type); }, $mise->types);

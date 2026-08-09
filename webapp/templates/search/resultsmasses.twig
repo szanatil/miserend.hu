@@ -103,8 +103,14 @@
                         </td>
 
                         <td class="align-middle">
-                            {% if result.lang and result.lang != 'hu' %}
-                                <img src="/cal_images/flags/{{ result.lang|lower }}.svg" alt="{{ ('LANGUAGES.' ~ result.lang)|trans }}" title="{{ ('LANGUAGES.' ~ result.lang)|trans }}" style="height:1.3em; margin-right:6px; vertical-align:middle;">
+                            {# #334: a mise nyelve lista is lehet (szlovák-latin), ilyenkor
+                               mindegyikhez kiteszünk egy zászlót. A magyart továbbra sem
+                               jelöljük külön — egynyelvű magyar misénél az lenne a zaj. #}
+                            {% set massLangs = result.lang is iterable ? result.lang : (result.lang ? [result.lang] : []) %}
+                            {% if massLangs != ['hu'] %}
+                                {% for lang in massLangs %}
+                                    <img src="/cal_images/flags/{{ lang|lower }}.svg" alt="{{ ('LANGUAGES.' ~ lang)|trans }}" title="{{ ('LANGUAGES.' ~ lang)|trans }}" style="height:1.3em; margin-right:6px; vertical-align:middle;">
+                                {% endfor %}
                             {% endif %}
                             {% if result.types is iterable and result.types|length %}
                                 {% for type in result.types %}

@@ -2309,6 +2309,15 @@ export class ChurchCalendarComponent implements OnInit, AfterViewInit, OnChanges
    * @param country Optional country code. Uses currentChurch.country if not provided
    * @returns true if flag should be displayed, false otherwise
    */
+  /**
+   * #334: a mise `lang` mezője vesszővel elválasztva több nyelvet is tartalmazhat
+   * ("sk,la"). A sablonok ezen keresztül kapják a listát, hogy ne az egész karakterlánccal
+   * próbáljanak zászlót keresni (/cal_images/flags/sk,la.svg — nem létezik).
+   */
+  languagesOf(lang: string | null | undefined): string[] {
+    return MassUtil.languageCodes(lang);
+  }
+
   shouldShowFlag(language: string, country?: string): boolean {
     const churchCountry = country || this.currentChurch?.country;
     
