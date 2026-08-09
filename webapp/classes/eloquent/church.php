@@ -1421,6 +1421,52 @@ class Church extends \Illuminate\Database\Eloquent\Model {
         $this->religious_administration->parish = $parish;
     }
 
+    /**
+     * #409: mit írjunk ki a nem-publikus templom oldalán, és kinek?
+     *
+     * A jogosultság maga rendben volt: a checkWriteAccess() SOHA nem nézi az `ok`-ot,
+     * tehát egy `allowed` gondnok (vagy ős-templom gondnoka, vagy egyházmegyei felelős)
+     * eddig is szerkeszthette a nem-publikus templomát. Csak épp azt olvasta közben, hogy
+     * „Csak adminisztrátorok számára látható ez az oldal" — ami neki egyszerűen nem igaz,
+     * és pont az ellenkezőjét hitette el vele.
+     *
+     * Szándékosan tiszta, statikus függvény (se DB, se globális), hogy tesztelhető legyen.
+     *
+     * @param  string $ok             a templom `ok` mezője: i = nyilvános, f = áttekintésre vár, n = letiltva
+     * @param  bool   $isAdmin        van-e `miserend` jogosultsága
+     * @param  bool   $hasWriteAccess szerkesztheti-e (gondnok / egyházmegyei felelős / admin)
+     * @return array{0:string,1:string}|null  [üzenet, szint] vagy null, ha nincs mit mondani
+     */
+    public static function visibilityNotice(string $ok, bool $isAdmin, bool $hasWriteAccess): ?array {
+        if ($ok === 'i') {
+            return null;
+        }
+
+        // Akinek nincs írási joga, az ide amúgy sem jut be (checkReadAccess), de ha
+        // mégis, maradjon a régi, semleges szöveg.
+        if ($isAdmin || !$hasWriteAccess) {
+            if ($ok === 'n') {
+                return ['Ez a templom le van tiltva! Csak adminisztrátorok számára látható ez az oldal.', 'warning'];
+            }
+            return ['Ez a templom áttekintésre vár. Csak adminisztrátorok számára látható ez az oldal.', 'warning'];
+        }
+
+        if ($ok === 'n') {
+            return [
+                'Ez a misézőhely jelenleg le van tiltva, ezért a látogatók nem látják. '
+                . 'Te gondnokként látod és szerkesztheted; ha szerinted tévedés, jelezd az adminisztrátoroknak.',
+                'warning'
+            ];
+        }
+
+        return [
+            'Ez a misézőhely még nem nyilvános: áttekintésre vár, ezért egyelőre csak te '
+            . 'és az adminisztrátorok látjátok. Nyugodtan szerkeszd — a jóváhagyás után '
+            . 'ezek az adatok jelennek meg a látogatóknak.',
+            'info'
+        ];
+    }
+
     function checkReadAccess($_user) {
         $access = false;
         if ($this->ok == 'i')
